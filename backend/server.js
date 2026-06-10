@@ -104,12 +104,29 @@ const startServer = async () => {
   app.use('/api/categories', categoryRoutes);
   app.use('/api/admin', adminRoutes);
 
-  // Health check endpoint
+  // Health check endpoint (for Dockerfile and external checkers)
   app.get('/health', (req, res) => {
     res.status(200).json({
       success: true,
       status: 'UP',
       timestamp: new Date()
+    });
+  });
+
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({
+      success: true,
+      status: 'UP',
+      timestamp: new Date()
+    });
+  });
+
+  // Root endpoint
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      message: 'Smart Lost & Found API Server is running.',
+      version: '1.0.0',
+      status: 'healthy'
     });
   });
 
