@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, clearAuth } from '../../redux/slices/authSlice';
+import { loginUser, clearAuthError } from '../../redux/slices/authSlice';
 import { validateEmail } from '../../utils/validators';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -36,7 +36,7 @@ export const Login = () => {
   // Clear auth errors on unmount
   useEffect(() => {
     return () => {
-      dispatch(clearAuth());
+      dispatch(clearAuthError());
     };
   }, [dispatch]);
 

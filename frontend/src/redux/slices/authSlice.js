@@ -70,6 +70,9 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
     },
+    clearAuthError: (state) => {
+      state.error = null;
+    },
     updateUserProfile: (state, action) => {
       state.user = action.payload;
       localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(action.payload));
@@ -125,5 +128,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearAuth, updateUserProfile } = authSlice.actions;
+export const { clearAuth, clearAuthError, updateUserProfile } = authSlice.actions;
 export default authSlice.reducer;
