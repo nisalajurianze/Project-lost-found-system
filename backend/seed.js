@@ -180,150 +180,159 @@ async function seed() {
 
     // ── 4. Lost Items ───────────────────────────────────────────────────
     console.log('\n🔍 Creating Demo Lost Items...');
-    const lostCount = await LostItem.countDocuments();
-    if (lostCount > 0) {
-      console.log(`   ⚠️  ${lostCount} lost items already exist — skipping`);
-    } else {
-      const [u1, u2, u3, u4] = createdUsers;
-      const lostItems = [
-        {
-          userId: u1._id,
-          itemName: 'iPhone 13 Pro',
-          category: 'Electronics',
-          description: 'Space grey iPhone 13 Pro with a cracked screen protector. Has a black leather case with card holder. Lost near the canteen area.',
-          lostLocation: 'University Canteen, Main Building',
-          lostDate: new Date('2026-06-05'),
-          status: 'pending',
-          tags: ['iphone', 'phone', 'apple', 'grey'],
-          contactPreference: 'both',
-        },
-        {
-          userId: u2._id,
-          itemName: 'Blue Backpack',
-          category: 'Bags & Wallets',
-          description: 'Navy blue Adidas backpack with a small keychain attached. Contains engineering textbooks and a pencil case.',
-          lostLocation: 'Engineering Faculty, 2nd Floor Corridor',
-          lostDate: new Date('2026-06-07'),
-          status: 'pending',
-          tags: ['backpack', 'adidas', 'blue', 'bag'],
-          contactPreference: 'email',
-        },
-        {
-          userId: u3._id,
-          itemName: 'Student ID Card',
-          category: 'ID & Cards',
-          description: 'SEUSL Student ID card for CS/2022/010. Has a yellow lanyard attached.',
-          lostLocation: 'Computer Science Lab, Block C',
-          lostDate: new Date('2026-06-08'),
-          status: 'pending',
-          tags: ['id', 'card', 'student', 'seusl'],
-          contactPreference: 'phone',
-        },
-        {
-          userId: u4._id,
-          itemName: 'Silver Casio Watch',
-          category: 'Accessories',
-          description: 'Silver Casio digital watch with a black rubber strap. Has initials DJ engraved on the back.',
-          lostLocation: 'Library Reading Room, Ground Floor',
-          lostDate: new Date('2026-06-09'),
-          status: 'pending',
-          tags: ['watch', 'casio', 'silver', 'digital'],
-          contactPreference: 'email',
-        },
-        {
-          userId: u1._id,
-          itemName: 'Mechanical Pencil Set',
-          category: 'Books & Notes',
-          description: 'Pentel Graph 1000 mechanical pencil set in a blue zip pouch. Contains 0.3, 0.5, 0.7mm pencils.',
-          lostLocation: 'Lecture Hall 3, Main Building',
-          lostDate: new Date('2026-06-09'),
-          status: 'pending',
-          tags: ['pencil', 'pentel', 'stationery'],
-          contactPreference: 'email',
-        },
-        {
-          userId: u2._id,
-          itemName: 'Black Umbrella',
-          category: 'Accessories',
-          description: 'Compact black folding umbrella with a red handle. Brand name Samsonite printed on fabric.',
-          lostLocation: 'Main Entrance Gate Area',
-          lostDate: new Date('2026-06-06'),
-          status: 'pending',
-          tags: ['umbrella', 'black', 'samsonite', 'folding'],
-          contactPreference: 'both',
-        },
-      ];
-      await LostItem.insertMany(lostItems);
-      console.log(`   ✅ Created ${lostItems.length} lost item reports`);
-    }
+    const demoUserIds = createdUsers.map(u => u._id);
+    
+    // Clear existing demo items first to avoid duplicates
+    const deleteLostRes = await LostItem.deleteMany({ userId: { $in: demoUserIds } });
+    console.log(`   🧹 Cleared ${deleteLostRes.deletedCount} old demo lost items`);
+
+    const [u1, u2, u3, u4] = createdUsers;
+    const lostItems = [
+      {
+        userId: u1._id,
+        itemName: 'iPhone 13 Pro',
+        category: 'Electronics',
+        description: 'Space grey iPhone 13 Pro with a cracked screen protector. Has a black leather case with card holder. Lost near the canteen area.',
+        lostLocation: 'University Canteen, Main Building',
+        lostDate: new Date('2026-06-05'),
+        status: 'pending',
+        tags: ['iphone', 'phone', 'apple', 'grey'],
+        contactPreference: 'both',
+        images: [{ url: 'https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u2._id,
+        itemName: 'Blue Backpack',
+        category: 'Bags & Wallets',
+        description: 'Navy blue Adidas backpack with a small keychain attached. Contains engineering textbooks and a pencil case.',
+        lostLocation: 'Engineering Faculty, 2nd Floor Corridor',
+        lostDate: new Date('2026-06-07'),
+        status: 'pending',
+        tags: ['backpack', 'adidas', 'blue', 'bag'],
+        contactPreference: 'email',
+        images: [{ url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u3._id,
+        itemName: 'Student ID Card',
+        category: 'ID & Cards',
+        description: 'SEUSL Student ID card for CS/2022/010. Has a yellow lanyard attached.',
+        lostLocation: 'Computer Science Lab, Block C',
+        lostDate: new Date('2026-06-08'),
+        status: 'pending',
+        tags: ['id', 'card', 'student', 'seusl'],
+        contactPreference: 'phone',
+        images: [{ url: 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u4._id,
+        itemName: 'Silver Casio Watch',
+        category: 'Accessories',
+        description: 'Silver Casio digital watch with a black rubber strap. Has initials DJ engraved on the back.',
+        lostLocation: 'Library Reading Room, Ground Floor',
+        lostDate: new Date('2026-06-09'),
+        status: 'pending',
+        tags: ['watch', 'casio', 'silver', 'digital'],
+        contactPreference: 'email',
+        images: [{ url: 'https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u1._id,
+        itemName: 'Mechanical Pencil Set',
+        category: 'Books & Notes',
+        description: 'Pentel Graph 1000 mechanical pencil set in a blue zip pouch. Contains 0.3, 0.5, 0.7mm pencils.',
+        lostLocation: 'Lecture Hall 3, Main Building',
+        lostDate: new Date('2026-06-09'),
+        status: 'pending',
+        tags: ['pencil', 'pentel', 'stationery'],
+        contactPreference: 'email',
+        images: [{ url: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u2._id,
+        itemName: 'Black Umbrella',
+        category: 'Accessories',
+        description: 'Compact black folding umbrella with a red handle. Brand name Samsonite printed on fabric.',
+        lostLocation: 'Main Entrance Gate Area',
+        lostDate: new Date('2026-06-06'),
+        status: 'pending',
+        tags: ['umbrella', 'black', 'samsonite', 'folding'],
+        contactPreference: 'both',
+        images: [{ url: 'https://images.unsplash.com/photo-1527786356703-4b100091cd2c?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+    ];
+    await LostItem.insertMany(lostItems);
+    console.log(`   ✅ Created ${lostItems.length} lost item reports`);
 
     // ── 5. Found Items ──────────────────────────────────────────────────
     console.log('\n📦 Creating Demo Found Items...');
-    const foundCount = await FoundItem.countDocuments();
-    if (foundCount > 0) {
-      console.log(`   ⚠️  ${foundCount} found items already exist — skipping`);
-    } else {
-      const [u1, u2, u3, u4] = createdUsers;
-      const foundItems = [
-        {
-          userId: u3._id,
-          itemName: 'Samsung Galaxy Buds',
-          category: 'Electronics',
-          description: 'White Samsung Galaxy Buds in a white charging case. Found on a bench near the library entrance.',
-          foundLocation: 'Library Entrance, Ground Floor',
-          foundDate: new Date('2026-06-08'),
-          status: 'available',
-          tags: ['earbuds', 'samsung', 'wireless', 'white'],
-          contactPreference: 'email',
-        },
-        {
-          userId: u4._id,
-          itemName: 'Green Water Bottle',
-          category: 'Sports & Gym',
-          description: 'Hydro Flask green 32oz water bottle with stickers on it. Found in the gym changing room.',
-          foundLocation: 'University Gym, Changing Room',
-          foundDate: new Date('2026-06-07'),
-          status: 'available',
-          tags: ['bottle', 'hydroflask', 'green', 'gym'],
-          contactPreference: 'phone',
-        },
-        {
-          userId: u1._id,
-          itemName: 'Brown Leather Wallet',
-          category: 'Bags & Wallets',
-          description: 'Brown leather bifold wallet with some cash and a few cards inside. Found near the canteen.',
-          foundLocation: 'Canteen Seating Area',
-          foundDate: new Date('2026-06-09'),
-          status: 'available',
-          tags: ['wallet', 'leather', 'brown', 'bifold'],
-          contactPreference: 'both',
-        },
-        {
-          userId: u2._id,
-          itemName: 'Set of Keys',
-          category: 'Keys',
-          description: 'A bunch of 4 keys on a blue keyring with a small Pikachu keychain. Found in the parking area.',
-          foundLocation: 'Student Parking Lot, Block B',
-          foundDate: new Date('2026-06-08'),
-          status: 'available',
-          tags: ['keys', 'keychain', 'pikachu', 'blue'],
-          contactPreference: 'email',
-        },
-        {
-          userId: u3._id,
-          itemName: 'Engineering Drawing Book',
-          category: 'Books & Notes',
-          description: 'A4 engineering drawing book with student name written inside front cover — "K. Perera". Found on the bench outside Block D.',
-          foundLocation: 'Outside Engineering Block D',
-          foundDate: new Date('2026-06-10'),
-          status: 'available',
-          tags: ['book', 'drawing', 'engineering', 'notes'],
-          contactPreference: 'email',
-        },
-      ];
-      await FoundItem.insertMany(foundItems);
-      console.log(`   ✅ Created ${foundItems.length} found item listings`);
-    }
+    const deleteFoundRes = await FoundItem.deleteMany({ userId: { $in: demoUserIds } });
+    console.log(`   🧹 Cleared ${deleteFoundRes.deletedCount} old demo found items`);
+
+    const foundItems = [
+      {
+        userId: u3._id,
+        itemName: 'Samsung Galaxy Buds',
+        category: 'Electronics',
+        description: 'White Samsung Galaxy Buds in a white charging case. Found on a bench near the library entrance.',
+        foundLocation: 'Library Entrance, Ground Floor',
+        foundDate: new Date('2026-06-08'),
+        status: 'available',
+        tags: ['earbuds', 'samsung', 'wireless', 'white'],
+        contactPreference: 'email',
+        images: [{ url: 'https://images.unsplash.com/photo-1608156639585-b3a032ef9689?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u4._id,
+        itemName: 'Green Water Bottle',
+        category: 'Sports & Gym',
+        description: 'Hydro Flask green 32oz water bottle with stickers on it. Found in the gym changing room.',
+        foundLocation: 'University Gym, Changing Room',
+        foundDate: new Date('2026-06-07'),
+        status: 'available',
+        tags: ['bottle', 'hydroflask', 'green', 'gym'],
+        contactPreference: 'phone',
+        images: [{ url: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u1._id,
+        itemName: 'Brown Leather Wallet',
+        category: 'Bags & Wallets',
+        description: 'Brown leather bifold wallet with some cash and a few cards inside. Found near the canteen.',
+        foundLocation: 'Canteen Seating Area',
+        foundDate: new Date('2026-06-09'),
+        status: 'available',
+        tags: ['wallet', 'leather', 'brown', 'bifold'],
+        contactPreference: 'both',
+        images: [{ url: 'https://images.unsplash.com/photo-1627124765135-5657d9d29c88?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u2._id,
+        itemName: 'Set of Keys',
+        category: 'Keys',
+        description: 'A bunch of 4 keys on a blue keyring with a small Pikachu keychain. Found in the parking area.',
+        foundLocation: 'Student Parking Lot, Block B',
+        foundDate: new Date('2026-06-08'),
+        status: 'available',
+        tags: ['keys', 'keychain', 'pikachu', 'blue'],
+        contactPreference: 'email',
+        images: [{ url: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+      {
+        userId: u3._id,
+        itemName: 'Engineering Drawing Book',
+        category: 'Books & Notes',
+        description: 'A4 engineering drawing book with student name written inside front cover — "K. Perera". Found on the bench outside Block D.',
+        foundLocation: 'Outside Engineering Block D',
+        foundDate: new Date('2026-06-10'),
+        status: 'available',
+        tags: ['book', 'drawing', 'engineering', 'notes'],
+        contactPreference: 'email',
+        images: [{ url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80', publicId: '' }]
+      },
+    ];
+    await FoundItem.insertMany(foundItems);
+    console.log(`   ✅ Created ${foundItems.length} found item listings`);
 
     // ── Summary ──────────────────────────────────────────────────────────
     console.log('\n═══════════════════════════════════════');
