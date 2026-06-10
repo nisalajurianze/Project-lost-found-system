@@ -86,8 +86,15 @@ export const Register = () => {
         })
       ).unwrap();
       
-      setRegistrationSuccess(true);
-      toast.success('Registration successful!');
+      toast.success('Registration successful! Logging in...');
+      
+      // Auto login after successful registration
+      await dispatch(
+        loginUser({
+          email,
+          password
+        })
+      ).unwrap();
     } catch (err) {
       toast.error(err || 'Registration failed.');
     }
