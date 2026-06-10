@@ -1,0 +1,405 @@
+{
+  "info": {
+    "_postman_id": "893c5d6e-12fa-45b0-9e4a-ec77d612e4f0",
+    "name": "Smart Lost & Found Management System API",
+    "description": "Postman collection for testing the Smart Lost & Found Management System backend API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Dineth Perera\",\n  \"email\": \"dineth@student.com\",\n  \"phone\": \"+94719876543\",\n  \"studentId\": \"UWU-2023-CS-0045\",\n  \"password\": \"StudentPassword123\",\n  \"confirmPassword\": \"StudentPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-email?token=VERIFICATION_TOKEN_HERE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify-email"],
+              "query": [
+                { "key": "token", "value": "VERIFICATION_TOKEN_HERE" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success && responseJson.data.accessToken) {",
+                  "    pm.environment.set(\"accessToken\", responseJson.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dineth@student.com\",\n  \"password\": \"StudentPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh-token",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh-token"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "fullName", "value": "Dineth Updated", "type": "text" },
+                { "key": "phone", "value": "+94770000000", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"StudentPassword123\",\n  \"newPassword\": \"StudentPassword1234\",\n  \"confirmNewPassword\": \"StudentPassword1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "stats"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lost Items",
+      "item": [
+        {
+          "name": "Create Lost Item Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "itemName", "value": "Lost Smartwatch", "type": "text" },
+                { "key": "category", "value": "Watches & Jewelry", "type": "text" },
+                { "key": "description", "value": "A blue colored Xiaomi Band 6 smartwatch with a black strap.", "type": "text" },
+                { "key": "lostLocation", "value": "Science Faculty Lecture Theater B", "type": "text" },
+                { "key": "lostDate", "value": "2026-06-08T10:00:00.000Z", "type": "text" },
+                { "key": "tags", "value": "Xiaomi, Watch, Blue, Gadget", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/lost-items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lost-items"]
+            }
+          }
+        },
+        {
+          "name": "Get Lost Items List (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/lost-items?page=1&limit=10&category=Electronics & Gadgets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lost-items"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "category", "value": "Electronics & Gadgets" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Lost Item By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/lost-items/LOST_ITEM_ID_HERE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "lost-items", "LOST_ITEM_ID_HERE"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Found Items",
+      "item": [
+        {
+          "name": "Create Found Item Listing",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "itemName", "value": "Mi Smart Band 6", "type": "text" },
+                { "key": "category", "value": "Watches & Jewelry", "type": "text" },
+                { "key": "description", "value": "Found a Xiaomi smart fitness band on a chair. Case screen has minor scratches.", "type": "text" },
+                { "key": "foundLocation", "value": "Science Block Hall B", "type": "text" },
+                { "key": "foundDate", "value": "2026-06-09T08:00:00.000Z", "type": "text" },
+                { "key": "storedAt", "value": "Science Faculty Dean Office", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/found-items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "found-items"]
+            }
+          }
+        },
+        {
+          "name": "Get Found Items List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/found-items",
+              "host": ["{{base_url}}"],
+              "path": ["api", "found-items"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "Get Suggested Matches",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/matches?status=suggested",
+              "host": ["{{base_url}}"],
+              "path": ["api", "matches"],
+              "query": [
+                { "key": "status", "value": "suggested" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Confirm Match",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/matches/MATCH_ID_HERE",
+              "host": ["{{base_url}}"],
+              "path": ["api", "matches", "MATCH_ID_HERE"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Claim Requests",
+      "item": [
+        {
+          "name": "Submit Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "foundItemId", "value": "FOUND_ITEM_ID_HERE", "type": "text" },
+                { "key": "matchId", "value": "MATCH_ID_HERE", "type": "text" },
+                { "key": "proofDescription", "value": "It has my personal background wallpaper showing my family cat.", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/claims",
+              "host": ["{{base_url}}"],
+              "path": ["api", "claims"]
+            }
+          }
+        },
+        {
+          "name": "Review Claim (Admin Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"adminRemark\": \"Ownership verified. Collect from Admin Block 2nd floor office. Bring student ID.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/claims/CLAIM_ID_HERE/review",
+              "host": ["{{base_url}}"],
+              "path": ["api", "claims", "CLAIM_ID_HERE", "review"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get Categories List (Cached)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/categories",
+              "host": ["{{base_url}}"],
+              "path": ["api", "categories"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" }
+  ]
+}

@@ -1,0 +1,31 @@
+// ============================================
+// Debounce Custom Hook
+// Used for search filters to prevent excessive api calls
+// ============================================
+
+import { useState, useEffect } from 'react';
+
+/**
+ * Debounce a state value update by a delay.
+ *
+ * @param {any} value - Value to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @returns {any} Debounced value
+ */
+export const useDebounce = (value, delay = 500) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+export default useDebounce;
