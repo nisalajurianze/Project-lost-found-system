@@ -1,18 +1,77 @@
 // ============================================
 // Student Dashboard Page Component
-// Stat aggregates, recent match list, and shortcut actions
+// Premium redesign with glassmorphism & animations
 // ============================================
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { FiPlusCircle, FiPackage, FiActivity, FiCheckSquare } from 'react-icons/fi';
-import StatCard from '../../components/cards/StatCard';
+import {
+  FiPlusCircle, FiPackage, FiActivity, FiCheckSquare,
+  FiSearch, FiZap, FiArrowRight, FiTrendingUp,
+  FiMapPin, FiClock, FiStar, FiShield
+} from 'react-icons/fi';
 import MatchCard from '../../components/cards/MatchCard';
 import api from '../../services/api';
 import matchService from '../../services/matchService';
 import Loader from '../../components/common/Loader';
 import toast from 'react-hot-toast';
+
+// Animated number counter
+const AnimatedNumber = ({ value }) => {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    if (value === 0) { setDisplay(0); return; }
+    let start = 0;
+    const step = Math.ceil(value / 20);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= value) { setDisplay(value); clearInterval(timer); }
+      else setDisplay(start);
+    }, 40);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <span>{display}</span>;
+};
+
+// Premium Stat Card
+const PremiumStatCard = ({ title, value, icon: Icon, gradient, delay = 0 }) => (
+  <div
+    className="premium-stat-card"
+    style={{ animationDelay: `${delay}ms` }}
+  >
+    <div className="premium-stat-inner">
+      <div className="premium-stat-icon" style={{ background: gradient }}>
+        <Icon size={22} />
+      </div>
+      <div className="premium-stat-info">
+        <p className="premium-stat-label">{title}</p>
+        <h3 className="premium-stat-value">
+          <AnimatedNumber value={value} />
+        </h3>
+      </div>
+    </div>
+    <div className="premium-stat-glow" style={{ background: gradient }} />
+  </div>
+);
+
+// Quick Action Card
+const QuickActionCard = ({ to, icon: Icon, label, description, gradient, delay = 0 }) => (
+  <Link
+    to={to}
+    className="quick-action-card"
+    style={{ animationDelay: `${delay}ms` }}
+  >
+    <div className="quick-action-icon" style={{ background: gradient }}>
+      <Icon size={20} />
+    </div>
+    <div className="quick-action-text">
+      <span className="quick-action-label">{label}</span>
+      <span className="quick-action-desc">{description}</span>
+    </div>
+    <FiArrowRight className="quick-action-arrow" size={16} />
+  </Link>
+);
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -29,13 +88,10 @@ export const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // 1. Fetch User Stats
       const statsRes = await api.get('/users/stats');
       setStats(statsRes.data.data);
-
-      // 2. Fetch Recent Suggested Matches
       const matchesData = await matchService.getMatches('suggested');
-      setMatches(matchesData.slice(0, 2)); // Show top 2 matches
+      setMatches(matchesData.slice(0, 2));
     } catch (err) {
       console.error('Failed to load student dashboard stats:', err);
     } finally {
@@ -44,9 +100,7 @@ export const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
+    if (user) fetchDashboardData();
   }, [user]);
 
   const handleMatchConfirm = async (id) => {
@@ -71,79 +125,101 @@ export const Dashboard = () => {
 
   if (isLoading) return <Loader fullPage />;
 
+  const firstName = user?.fullName?.split(' ')[0] || 'there';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      
-      {/* Welcome Card */}
-      <div className="flex flex-col md:flex-row items-center justify-between p-6 bg-gradient-to-r from-primary-900 to-indigo-900 text-white rounded-2xl shadow-xl relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-2xl font-bold font-display">
-            Welcome Back, {user?.fullName}! 👋
-          </h2>
-          <p className="text-xs text-primary-200 mt-1.5 max-w-md">
-            Manage your reports, view AI recommendations, and verify claims on reported property.
-          </p>
-        </div>
-        
-        {/* Quick action buttons */}
-        <div className="flex gap-3 mt-4 md:mt-0 relative z-10">
-          <Link to="/dashboard/report-lost" className="btn btn-primary btn-sm rounded-lg bg-white text-primary-900 hover:bg-surface-100 flex items-center gap-1.5 font-bold shadow-md">
-            <FiPlusCircle /> Report Lost
-          </Link>
-          <Link to="/dashboard/report-found" className="btn btn-outline btn-sm rounded-lg border-white text-white hover:bg-white/10 flex items-center gap-1.5 font-bold">
-            <FiPackage /> Report Found
-          </Link>
+    <div className="dashboard-premium">
+
+      {/* ── Hero Welcome Banner ── */}
+      <div className="dashboard-hero">
+        <div className="dashboard-hero-bg" />
+        <div className="dashboard-hero-orb orb-1" />
+        <div className="dashboard-hero-orb orb-2" />
+        <div className="dashboard-hero-content">
+          <div className="dashboard-hero-left">
+            <span className="dashboard-greeting-tag">
+              <FiZap size={12} /> {greeting}
+            </span>
+            <h1 className="dashboard-hero-title">
+              Welcome back, <span className="dashboard-hero-name">{firstName}!</span> 👋
+            </h1>
+            <p className="dashboard-hero-subtitle">
+              Track your lost items, view AI matches, and manage claims — all in one place.
+            </p>
+          </div>
+          <div className="dashboard-hero-actions">
+            <Link to="/dashboard/report-lost" className="hero-btn-primary">
+              <FiPlusCircle size={16} /> Report Lost
+            </Link>
+            <Link to="/dashboard/report-found" className="hero-btn-secondary">
+              <FiPackage size={16} /> Report Found
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Aggregate Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
+      {/* ── Stat Cards ── */}
+      <div className="dashboard-stats-grid">
+        <PremiumStatCard
           title="Lost Reports"
           value={stats.totalLostItems}
-          icon={<FiPlusCircle />}
-          color="warning"
+          icon={FiSearch}
+          gradient="linear-gradient(135deg, #f59e0b, #d97706)"
+          delay={0}
         />
-        <StatCard
+        <PremiumStatCard
           title="Found Listings"
           value={stats.totalFoundItems}
-          icon={<FiPackage />}
-          color="success"
+          icon={FiPackage}
+          gradient="linear-gradient(135deg, #10b981, #059669)"
+          delay={80}
         />
-        <StatCard
+        <PremiumStatCard
           title="Submitted Claims"
           value={stats.totalClaims}
-          icon={<FiCheckSquare />}
-          color="info"
+          icon={FiCheckSquare}
+          gradient="linear-gradient(135deg, #06b6d4, #0284c7)"
+          delay={160}
         />
-        <StatCard
-          title="Recovered Belongings"
+        <PremiumStatCard
+          title="Recovered Items"
           value={stats.successfulRecoveries}
-          icon={<FiActivity />}
-          color="primary"
+          icon={FiShield}
+          gradient="linear-gradient(135deg, #8b5cf6, #6366f1)"
+          delay={240}
         />
       </div>
 
-      {/* AI Matches Block */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Suggestions Column */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="section-title">
-              💡 Top AI Match Recommendations
-            </h3>
-            <Link to="/dashboard/my-matches" className="text-xs font-semibold text-primary-500 hover:underline">
-              View All
+      {/* ── Main Content Grid ── */}
+      <div className="dashboard-main-grid">
+
+        {/* Left: AI Matches */}
+        <div className="dashboard-matches-col">
+          <div className="dashboard-section-header">
+            <div className="dashboard-section-title">
+              <span className="section-icon-badge">
+                <FiActivity size={16} />
+              </span>
+              <h2>AI Match Recommendations</h2>
+            </div>
+            <Link to="/dashboard/my-matches" className="view-all-link">
+              View All <FiArrowRight size={13} />
             </Link>
           </div>
 
           {matches.length === 0 ? (
-            <div className="p-8 bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 text-center text-sm text-surface-500 dark:text-surface-400">
-              No suggested matches found yet. We will notify you when matching items are reported.
+            <div className="dashboard-empty-state">
+              <div className="empty-icon">🔍</div>
+              <h3>No matches yet</h3>
+              <p>We'll notify you instantly when AI finds a potential match for your reported items.</p>
+              <Link to="/dashboard/report-lost" className="empty-cta">
+                <FiPlusCircle size={14} /> Report a Lost Item
+              </Link>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="matches-list">
               {matches.map((match) => (
                 <MatchCard
                   key={match._id}
@@ -156,33 +232,72 @@ export const Dashboard = () => {
           )}
         </div>
 
-        {/* Shortcuts Links Column */}
-        <div className="lg:col-span-1 space-y-6">
-          <h3 className="section-title">
-            ⚙️ Quick Dashboard Shortcuts
-          </h3>
-          <div className="card bg-white dark:bg-surface-800 p-6 flex flex-col gap-4 border border-surface-200 dark:border-surface-700/60 shadow-sm">
-            <Link to="/dashboard/my-lost" className="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-900/30 hover:bg-surface-100 rounded-xl transition-all">
-              <span className="text-sm font-semibold text-surface-700 dark:text-surface-200">My Lost Reports</span>
-              <span className="text-xs text-primary-500 font-bold">&rarr;</span>
-            </Link>
-            <Link to="/dashboard/my-found" className="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-900/30 hover:bg-surface-100 rounded-xl transition-all">
-              <span className="text-sm font-semibold text-surface-700 dark:text-surface-200">My Found Listings</span>
-              <span className="text-xs text-primary-500 font-bold">&rarr;</span>
-            </Link>
-            <Link to="/dashboard/my-claims" className="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-900/30 hover:bg-surface-100 rounded-xl transition-all">
-              <span className="text-sm font-semibold text-surface-700 dark:text-surface-200">My Claim Statuses</span>
-              <span className="text-xs text-primary-500 font-bold">&rarr;</span>
-            </Link>
-            <Link to="/dashboard/profile" className="flex items-center justify-between p-3 bg-surface-50 dark:bg-surface-900/30 hover:bg-surface-100 rounded-xl transition-all">
-              <span className="text-sm font-semibold text-surface-700 dark:text-surface-200">Profile Settings</span>
-              <span className="text-xs text-primary-500 font-bold">&rarr;</span>
-            </Link>
+        {/* Right: Quick Actions + Tips */}
+        <div className="dashboard-sidebar-col">
+
+          {/* Quick Actions */}
+          <div className="dashboard-section-header">
+            <div className="dashboard-section-title">
+              <span className="section-icon-badge">
+                <FiZap size={16} />
+              </span>
+              <h2>Quick Actions</h2>
+            </div>
+          </div>
+
+          <div className="quick-actions-list">
+            <QuickActionCard
+              to="/dashboard/my-lost"
+              icon={FiSearch}
+              label="My Lost Reports"
+              description="View & manage your reports"
+              gradient="linear-gradient(135deg, #f59e0b, #d97706)"
+              delay={0}
+            />
+            <QuickActionCard
+              to="/dashboard/my-found"
+              icon={FiPackage}
+              label="My Found Listings"
+              description="Items you've reported found"
+              gradient="linear-gradient(135deg, #10b981, #059669)"
+              delay={60}
+            />
+            <QuickActionCard
+              to="/dashboard/my-matches"
+              icon={FiActivity}
+              label="AI Matches"
+              description="Smart item suggestions"
+              gradient="linear-gradient(135deg, #8b5cf6, #6366f1)"
+              delay={120}
+            />
+            <QuickActionCard
+              to="/dashboard/my-claims"
+              icon={FiCheckSquare}
+              label="My Claims"
+              description="Track your claim statuses"
+              gradient="linear-gradient(135deg, #06b6d4, #0284c7)"
+              delay={180}
+            />
+            <QuickActionCard
+              to="/dashboard/profile"
+              icon={FiStar}
+              label="Profile Settings"
+              description="Update your information"
+              gradient="linear-gradient(135deg, #ec4899, #db2777)"
+              delay={240}
+            />
+          </div>
+
+          {/* Tips Card */}
+          <div className="dashboard-tips-card">
+            <div className="tips-header">
+              <FiTrendingUp size={16} />
+              <span>Pro Tip</span>
+            </div>
+            <p>Add detailed descriptions and photos when reporting items. AI matching is <strong>3x more accurate</strong> with clear images!</p>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 };
