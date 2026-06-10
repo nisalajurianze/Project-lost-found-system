@@ -67,7 +67,18 @@ const startServer = async () => {
 
   // HTTP security headers
   app.use(helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production',
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://*.unsplash.com"],
+        fontSrc: ["'self'", "https:", "data:"],
+        connectSrc: ["'self'", "https:", "wss:", "ws:", "https://project-lost-found-system-production.up.railway.app"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      }
+    } : false,
     crossOriginResourcePolicy: { policy: 'cross-origin' }
   }));
 
