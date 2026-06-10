@@ -27,7 +27,9 @@ import ResetPassword from './pages/public/ResetPassword';
 import About from './pages/public/About';
 import Contact from './pages/public/Contact';
 import LostItems from './pages/public/LostItems';
+import LostItemDetail from './pages/public/LostItemDetail';
 import FoundItems from './pages/public/FoundItems';
+import FoundItemDetail from './pages/public/FoundItemDetail';
 import VerifyEmail from './pages/public/VerifyEmail';
 
 // User Pages
@@ -92,7 +94,9 @@ const App = () => {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/lost-items" element={<LostItems />} />
+        <Route path="/lost-items/:id" element={<LostItemDetail />} />
         <Route path="/found-items" element={<FoundItems />} />
+        <Route path="/found-items/:id" element={<FoundItemDetail />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
       </Route>
 
