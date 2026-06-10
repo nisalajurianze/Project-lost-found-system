@@ -7,6 +7,9 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
 
@@ -111,9 +114,20 @@ async function seed() {
 
     // ── 1. Admin Account ────────────────────────────────────────────────
     console.log('👑 Creating Admin account...');
-    const adminExists = await User.findOne({ email: 'smartlostandfound.seusl@gmail.com' });
+    const adminExists = await User.findOne({ 
+      $or: [
+        { email: 'smartlostandfound.seusl@gmail.com' }, 
+        { studentId: 'ADMIN001' }
+      ] 
+    });
     if (adminExists) {
-      console.log('   ⚠️  Admin already exists — skipping');
+      console.log('   ⚠️  Admin user already exists — ensuring admin role');
+      if (adminExists.role !== 'admin' || !adminExists.isVerified) {
+        adminExists.role = 'admin';
+        adminExists.isVerified = true;
+        await adminExists.save();
+        console.log('   ✅ Admin user role/verification updated');
+      }
     } else {
       const admin = new User({
         fullName:  'Smart L&F Admin',
@@ -134,9 +148,14 @@ async function seed() {
     console.log('\n👥 Creating Demo Users...');
     const createdUsers = [];
     for (const u of DEMO_USERS) {
-      const exists = await User.findOne({ email: u.email });
+      const exists = await User.findOne({
+        $or: [
+          { email: u.email },
+          { studentId: u.studentId }
+        ]
+      });
       if (exists) {
-        console.log(`   ⚠️  ${u.fullName} already exists — skipping`);
+        console.log(`   ⚠️  ${u.fullName} (${u.email} / ${u.studentId}) already exists — skipping`);
         createdUsers.push(exists);
       } else {
         const user = new User({ ...u, password: DEMO_PASSWORD, isVerified: true });
