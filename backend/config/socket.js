@@ -13,9 +13,13 @@ let io = null;
  * @returns {import('socket.io').Server} Socket.IO server
  */
 const initSocket = (httpServer) => {
+  const allowedOrigin = process.env.CLIENT_URL
+    ? [process.env.CLIENT_URL, process.env.CLIENT_URL.replace(/\/$/, '')]
+    : ['http://localhost:5173', 'http://localhost:3000'];
+
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: allowedOrigin,
       methods: ['GET', 'POST'],
       credentials: true,
     },
