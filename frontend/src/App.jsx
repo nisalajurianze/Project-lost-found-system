@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -81,52 +82,55 @@ const App = () => {
   useSocket(user);
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/lost-items" element={<LostItems />} />
-        <Route path="/found-items" element={<FoundItems />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-      </Route>
-
-      {/* User Protected Routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/profile" element={<Profile />} />
-          <Route path="/dashboard/report-lost" element={<ReportLost />} />
-          <Route path="/dashboard/report-found" element={<ReportFound />} />
-          <Route path="/dashboard/my-lost" element={<MyLostItems />} />
-          <Route path="/dashboard/my-found" element={<MyFoundItems />} />
-          <Route path="/dashboard/my-matches" element={<MyMatches />} />
-          <Route path="/dashboard/my-claims" element={<MyClaims />} />
-          <Route path="/dashboard/notifications" element={<Notifications />} />
+    <>
+      <Routes>
+        {/* Public Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/lost-items" element={<LostItems />} />
+          <Route path="/found-items" element={<FoundItems />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
         </Route>
-      </Route>
 
-      {/* Admin Protected Routes */}
-      <Route element={<AdminRoute />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
-          <Route path="/admin/lost-items" element={<ManageLostItems />} />
-          <Route path="/admin/found-items" element={<ManageFoundItems />} />
-          <Route path="/admin/claims" element={<ManageClaims />} />
-          <Route path="/admin/matches" element={<ManageMatches />} />
-          <Route path="/admin/feedback" element={<Feedback />} />
-          <Route path="/admin/logs" element={<AdminLogs />} />
-          <Route path="/admin/analytics" element={<Analytics />} />
-          <Route path="/admin/categories" element={<ManageCategories />} />
+        {/* User Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/profile" element={<Profile />} />
+            <Route path="/dashboard/report-lost" element={<ReportLost />} />
+            <Route path="/dashboard/report-found" element={<ReportFound />} />
+            <Route path="/dashboard/my-lost" element={<MyLostItems />} />
+            <Route path="/dashboard/my-found" element={<MyFoundItems />} />
+            <Route path="/dashboard/my-matches" element={<MyMatches />} />
+            <Route path="/dashboard/my-claims" element={<MyClaims />} />
+            <Route path="/dashboard/notifications" element={<Notifications />} />
+          </Route>
         </Route>
-      </Route>
-    </Routes>
+
+        {/* Admin Protected Routes */}
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<ManageUsers />} />
+            <Route path="/admin/lost-items" element={<ManageLostItems />} />
+            <Route path="/admin/found-items" element={<ManageFoundItems />} />
+            <Route path="/admin/claims" element={<ManageClaims />} />
+            <Route path="/admin/matches" element={<ManageMatches />} />
+            <Route path="/admin/feedback" element={<Feedback />} />
+            <Route path="/admin/logs" element={<AdminLogs />} />
+            <Route path="/admin/analytics" element={<Analytics />} />
+            <Route path="/admin/categories" element={<ManageCategories />} />
+          </Route>
+        </Route>
+      </Routes>
+      <SpeedInsights />
+    </>
   );
 };
 
