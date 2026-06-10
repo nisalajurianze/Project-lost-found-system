@@ -52,6 +52,10 @@ const startServer = async () => {
   initEmailService();
 
   const app = express();
+  
+  // Trust proxy for rate limiting behind Railway's load balancer
+  app.set('trust proxy', 1);
+
   const server = http.createServer(app);
 
   // Initialize WebSockets (Socket.IO)
