@@ -217,6 +217,15 @@ const startServer = async () => {
         results.skipped.push('Found items (' + foundCount + ' already exist)');
       }
 
+      // Invalidate Redis cache
+      try {
+        const { deleteCache } = await import('./config/redis.js');
+        await deleteCache('categories:all');
+        results.created.push('Redis Cache Cleared: categories:all');
+      } catch (cacheErr) {
+        results.skipped.push('Redis Cache Invalidation failed/skipped: ' + cacheErr.message);
+      }
+
       return res.json({
         success: true,
         message: '🎉 Database seeded successfully!',
