@@ -1,4 +1,5 @@
-# Smart Lost & Found Management System
+# Smart Lost & Found Management System 
+#SEUSL Group Project
 
 [![Build Status](https://github.com/ebay/smart-lost-found/actions/workflows/ci.yml/badge.svg)](https://github.com/ebay/smart-lost-found/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
