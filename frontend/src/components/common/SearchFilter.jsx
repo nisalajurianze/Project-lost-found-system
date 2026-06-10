@@ -95,3 +95,4 @@ export const SearchFilter = ({
 };
 
 export default SearchFilter;
+

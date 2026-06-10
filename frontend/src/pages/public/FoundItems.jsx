@@ -134,3 +134,4 @@ export const FoundItems = () => {
 };
 
 export default FoundItems;
+

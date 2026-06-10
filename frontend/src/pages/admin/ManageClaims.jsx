@@ -191,3 +191,4 @@ const ManageClaims = () => {
 };
 
 export default ManageClaims;
+

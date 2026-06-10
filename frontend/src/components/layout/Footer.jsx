@@ -28,7 +28,7 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-surface-100 dark:border-surface-850 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-surface-400">
+        <div className="mt-8 pt-8 border-t border-surface-100 dark:border-surface-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-surface-400">
           <p>&copy; {new Date().getFullYear()} Smart Lost & Found. All rights reserved.</p>
           <p>Designed for university project submission and live demonstration.</p>
         </div>
@@ -38,3 +38,4 @@ export const Footer = () => {
 };
 
 export default Footer;
+

@@ -76,7 +76,7 @@ export const MyFoundItems = () => {
         <>
           <div className="table-container bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700/60 shadow-sm rounded-2xl overflow-hidden">
             <table className="table-base w-full text-sm text-left">
-              <thead className="table-head bg-surface-50 dark:bg-surface-850 text-surface-600 dark:text-surface-400">
+              <thead className="table-head bg-surface-50 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
                 <tr>
                   <th className="px-6 py-4">Item Name</th>
                   <th className="px-6 py-4">Category</th>
@@ -87,7 +87,7 @@ export const MyFoundItems = () => {
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item._id} className="table-row border-t border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-850/50 transition-colors">
+                  <tr key={item._id} className="table-row border-t border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors">
                     <td className="px-6 py-4 font-bold text-surface-900 dark:text-white">
                       {item.itemName}
                     </td>
@@ -146,3 +146,4 @@ export const MyFoundItems = () => {
 };
 
 export default MyFoundItems;
+

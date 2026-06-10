@@ -90,3 +90,4 @@ export const DashboardChart = ({ data = [] }) => {
 };
 
 export default DashboardChart;
+

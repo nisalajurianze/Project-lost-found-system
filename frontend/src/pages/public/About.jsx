@@ -36,7 +36,7 @@ export const About = () => {
 
         {/* Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="p-5 rounded-xl border border-surface-200/60 dark:border-surface-800 bg-white dark:bg-surface-850">
+          <div className="p-5 rounded-xl border border-surface-200/60 dark:border-surface-700 bg-white dark:bg-surface-800">
             <FiCpu className="text-3xl text-primary-500 mb-3" />
             <h4 className="text-base font-bold font-display text-surface-900 dark:text-white mb-2">
               Automated Matching
@@ -46,7 +46,7 @@ export const About = () => {
             </p>
           </div>
 
-          <div className="p-5 rounded-xl border border-surface-200/60 dark:border-surface-800 bg-white dark:bg-surface-850">
+          <div className="p-5 rounded-xl border border-surface-200/60 dark:border-surface-700 bg-white dark:bg-surface-800">
             <FiEye className="text-3xl text-cyan-500 mb-3" />
             <h4 className="text-base font-bold font-display text-surface-900 dark:text-white mb-2">
               Vision AI Labels
@@ -56,7 +56,7 @@ export const About = () => {
             </p>
           </div>
 
-          <div className="p-5 rounded-xl border border-surface-200/60 dark:border-surface-800 bg-white dark:bg-surface-850">
+          <div className="p-5 rounded-xl border border-surface-200/60 dark:border-surface-700 bg-white dark:bg-surface-800">
             <FiAward className="text-3xl text-emerald-500 mb-3" />
             <h4 className="text-base font-bold font-display text-surface-900 dark:text-white mb-2">
               Secure Reclaims
@@ -73,3 +73,4 @@ export const About = () => {
 };
 
 export default About;
+

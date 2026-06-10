@@ -183,7 +183,7 @@ export const Home = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {latestLost.slice(0, 3).map((item) => (
-                <div key={item._id} className="card bg-white dark:bg-surface-850 p-5 shadow-md flex flex-col justify-between">
+                <div key={item._id} className="card bg-white dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between">
                   <div>
                     <span className="text-xs font-bold text-primary-500 dark:text-primary-400 uppercase">
                       {item.category}
@@ -211,3 +211,4 @@ export const Home = () => {
 };
 
 export default Home;
+

@@ -80,3 +80,4 @@ export const ItemCard = ({ item, type = 'lost' }) => {
 };
 
 export default ItemCard;
+

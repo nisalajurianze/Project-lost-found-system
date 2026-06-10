@@ -103,3 +103,4 @@ export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => 
 };
 
 export default MonthlyReportsChart;
+

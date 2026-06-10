@@ -67,7 +67,7 @@ export const Contact = () => {
           {/* Support Details */}
           <div className="md:col-span-1 flex flex-col gap-6">
             {contactInfos.map((info, index) => (
-              <div key={index} className="card p-5 bg-white dark:bg-surface-850 border border-surface-200/50 dark:border-surface-800 flex items-start gap-4">
+              <div key={index} className="card p-5 bg-white dark:bg-surface-800 border border-surface-200/50 dark:border-surface-800 flex items-start gap-4">
                 <div className="p-3 bg-surface-50 dark:bg-surface-800 rounded-xl flex-shrink-0">
                   {info.icon}
                 </div>
@@ -138,3 +138,4 @@ export const Contact = () => {
 };
 
 export default Contact;
+
