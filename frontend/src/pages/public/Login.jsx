@@ -59,7 +59,8 @@ export const Login = () => {
       await dispatch(loginUser({ email, password })).unwrap();
       toast.success('Welcome back!');
     } catch (err) {
-      toast.error(err || 'Failed to authenticate.');
+      const msg = err?.message || (typeof err === 'string' ? err : 'Failed to authenticate.');
+      toast.error(msg);
     }
   };
 

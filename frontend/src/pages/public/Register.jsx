@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser, clearAuthError } from '../../redux/slices/authSlice';
+import { registerUser, loginUser, clearAuthError } from '../../redux/slices/authSlice';
 import { validateEmail, validatePassword, validatePhone, validateStudentId } from '../../utils/validators';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -85,18 +85,18 @@ export const Register = () => {
           confirmPassword
         })
       ).unwrap();
-      
+
       toast.success('Registration successful! Logging in...');
-      
+
       // Auto login after successful registration
       await dispatch(
-        loginUser({
-          email,
-          password
-        })
+        loginUser({ email, password })
       ).unwrap();
+
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      toast.error(err || 'Registration failed.');
+      const msg = err?.message || (typeof err === 'string' ? err : 'Registration failed. Please try again.');
+      toast.error(msg);
     }
   };
 
