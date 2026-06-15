@@ -111,7 +111,7 @@ export const Home = () => {
               size="lg"
               onClick={() => navigate('/lost-items')}
               icon={<FiSearch />}
-              className="border-white text-white hover:bg-white/10 dark:hover:bg-white/10"
+              className="border-white text-white hover:bg-white/10 dark:border-white dark:text-white dark:hover:bg-white/10"
             >
               Browse Lost Directory
             </Button>
