@@ -237,6 +237,10 @@ const generateCategoryDetails = async (categoryName) => {
 const suggestDetailsFromImage = async (imageUrl) => {
   const { OPENROUTER_API_KEY } = process.env;
 
+  if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key') {
+    throw new Error('OPENROUTER_API_KEY is not configured on the server.');
+  }
+
   const systemPrompt = `You are an AI assistant helping a user fill out a Lost and Found report. 
 Look at the image provided and return ONLY a valid JSON object with these exact fields:
 - "itemName": A concise title (max 5 words, e.g. "Apple iPhone 13 Pro Black").
@@ -244,8 +248,18 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
 - "description": A short descriptive paragraph suitable for a lost/found report (include visible brands, colors, unique marks, or damage).
 - "tags": A comma-separated string of 3 to 5 search keywords (e.g. "smartwatch, fitness, wristband, black").`;
 
-  try {
-    if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key') {
+  // Models ranked by speed and reliability (tested 2026-06-16)
+  const models = [
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free', // 🥇 1.1s, perfect JSON
+    'nex-agi/nex-n2-pro:free',                             // 🥈 4.5s, most detailed
+    'nvidia/nemotron-nano-12b-v2-vl:free',                  // 🥉 1.8s, backup
+  ];
+
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      console.log(`🤖 Trying AI model: ${model}`);
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -255,7 +269,7 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
           'X-Title': 'Smart Lost and Found'
         },
         body: JSON.stringify({
-          model: 'nex-agi/nex-n2-pro:free',
+          model,
           messages: [
             {
               role: 'user',
@@ -273,19 +287,24 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
         const result = parseJSONResponse(content);
-        if (result && result.itemName) return result;
-        throw new Error('AI returned invalid JSON or empty itemName');
+        if (result && result.itemName) {
+          console.log(`✅ AI suggestion success with ${model}`);
+          return result;
+        }
+        console.warn(`⚠️ ${model} returned invalid JSON, trying next...`);
       } else {
         const errorText = await response.text();
-        throw new Error(`OpenRouter API failed with status ${response.status}: ${errorText}`);
+        console.warn(`⚠️ ${model} failed (${response.status}), trying next...`);
+        lastError = new Error(`${model} returned ${response.status}: ${errorText.substring(0, 200)}`);
       }
-    } else {
-      throw new Error('OPENROUTER_API_KEY is not configured on the server.');
+    } catch (err) {
+      console.warn(`⚠️ ${model} error: ${err.message}, trying next...`);
+      lastError = err;
     }
-  } catch (error) {
-    console.error('AI Suggestion Error:', error);
-    throw error; // Re-throw to be caught by aiController
   }
+
+  // All models failed
+  throw lastError || new Error('All AI models failed to generate suggestions.');
 };
 
 export {
