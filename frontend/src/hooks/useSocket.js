@@ -21,6 +21,11 @@ export const useSocket = (user) => {
     console.log(`🔌 Initializing socket client for user: ${user.fullName}`);
     socketService.connectSocket(user._id, user.role);
 
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+
     // Subscribe to notification channel with batching/debouncing (PERF-010)
     let notificationBuffer = [];
     let timeoutId = null;
@@ -28,6 +33,19 @@ export const useSocket = (user) => {
     socketService.onNotification((notification) => {
       notificationBuffer.push(notification);
       
+      // Trigger native browser push notification if permitted and document is hidden
+      // or just show it anyway for important alerts
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(notification.title || 'Smart L&F Update', {
+            body: notification.message,
+            icon: '/favicon.ico' // Or any suitable logo path
+          });
+        } catch (err) {
+          console.warn('Native notification failed:', err);
+        }
+      }
+
       if (!timeoutId) {
         timeoutId = setTimeout(() => {
           notificationBuffer.forEach(n => dispatch(addSocketNotification(n)));
