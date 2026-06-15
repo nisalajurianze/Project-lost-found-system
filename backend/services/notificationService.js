@@ -24,6 +24,11 @@ const createNotification = async ({
   type = 'system',
   relatedItem = {},
 }) => {
+  if (!userId) {
+    console.warn(`⚠️ Attempted to create notification without userId. Title: ${title}`);
+    return null;
+  }
+
   try {
     const notification = await Notification.create({
       userId,

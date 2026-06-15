@@ -21,9 +21,20 @@ export const useSocket = (user) => {
     console.log(`🔌 Initializing socket client for user: ${user.fullName}`);
     socketService.connectSocket(user._id, user.role);
 
-    // Subscribe to notification channel
+    // Subscribe to notification channel with batching/debouncing (PERF-010)
+    let notificationBuffer = [];
+    let timeoutId = null;
+
     socketService.onNotification((notification) => {
-      dispatch(addSocketNotification(notification));
+      notificationBuffer.push(notification);
+      
+      if (!timeoutId) {
+        timeoutId = setTimeout(() => {
+          notificationBuffer.forEach(n => dispatch(addSocketNotification(n)));
+          notificationBuffer = [];
+          timeoutId = null;
+        }, 500); // Process buffer every 500ms
+      }
     });
 
     // Cleanup on unmount or user change

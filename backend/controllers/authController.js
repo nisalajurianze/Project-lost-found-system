@@ -4,6 +4,7 @@
 // ============================================
 
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import ApiError from '../utils/apiError.js';
@@ -125,14 +126,28 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Fetch user with password
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
+  
+  // SEC-006: Timing-safe login check
   if (!user) {
+    // Hash a dummy password to mitigate timing attacks
+    await bcrypt.compare(password, '$2a$12$dummyhashdummyhashdummyhashdummyhashdummyhashdummyhash');
     throw ApiError.unauthorized('Invalid email or password.');
+  }
+
+  // SEC-011: Account Lockout Check
+  if (user.isLocked) {
+    throw ApiError.forbidden('Account is temporarily locked due to multiple failed login attempts. Please try again later.');
   }
 
   // Verify password
   const isMatch = await user.comparePassword(password);
   if (!isMatch) {
+    user.loginAttempts = (user.loginAttempts || 0) + 1;
+    if (user.loginAttempts >= 5) {
+      user.lockUntil = Date.now() + 15 * 60 * 1000; // 15 mins
+    }
+    await user.save({ validateBeforeSave: false });
     throw ApiError.unauthorized('Invalid email or password.');
   }
 
@@ -141,13 +156,24 @@ const login = asyncHandler(async (req, res) => {
     throw ApiError.forbidden('Your account has been deactivated. Please contact an admin.');
   }
 
+  // SEC-012: Enforce email verification on login
+  if (!user.isVerified) {
+    throw ApiError.forbidden('Please verify your email address before logging in.');
+  }
+
+  // Reset login attempts on success
+  user.loginAttempts = 0;
+  user.lockUntil = undefined;
+  user.lastLogin = Date.now();
+  await user.save({ validateBeforeSave: false });
+
   // Generate tokens and set cookies
-  const { accessToken } = await generateTokens(user, res);
+  await generateTokens(user, res);
 
   const userData = user.toObject();
   delete userData.password;
 
-  ApiResponse.ok({ user: userData, accessToken }, 'Login successful.').send(res);
+  ApiResponse.ok({ user: userData }, 'Login successful.').send(res);
 });
 
 /**
@@ -180,9 +206,9 @@ const refreshToken = asyncHandler(async (req, res) => {
   }
 
   // Generate new tokens
-  const { accessToken } = await generateTokens(user, res);
+  await generateTokens(user, res);
 
-  ApiResponse.ok({ accessToken }, 'Token refreshed successfully.').send(res);
+  ApiResponse.ok(null, 'Token refreshed successfully.').send(res);
 });
 
 /**

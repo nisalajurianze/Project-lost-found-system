@@ -92,6 +92,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    loginAttempts: {
+      type: Number,
+      required: true,
+      default: 0
+    },
+    lockUntil: {
+      type: Number
+    }
   },
   {
     timestamps: true,
@@ -168,9 +176,17 @@ userSchema.methods.toJSON = function () {
   delete obj.verificationTokenExpire;
   delete obj.resetPasswordToken;
   delete obj.resetPasswordExpire;
+  delete obj.loginAttempts;
+  delete obj.lockUntil;
   delete obj.__v;
   return obj;
 };
+
+// ── Virtuals ────────────────────────────────────────────────────────────
+
+userSchema.virtual('isLocked').get(function () {
+  return !!(this.lockUntil && this.lockUntil > Date.now());
+});
 
 const User = mongoose.model('User', userSchema);
 export default User;

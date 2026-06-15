@@ -4,7 +4,7 @@
 // ============================================
 
 import api from './api';
-import { LOCAL_STORAGE_TOKEN_KEY, LOCAL_STORAGE_USER_KEY } from '../utils/constants';
+import { LOCAL_STORAGE_USER_KEY } from '../utils/constants';
 
 const authService = {
   /**
@@ -16,16 +16,15 @@ const authService = {
   },
 
   /**
-   * Login user and save token in localStorage.
+   * Login user and save user object in localStorage.
    */
   login: async (credentials) => {
     const res = await api.post('/auth/login', credentials);
-    const { user, accessToken } = res.data.data;
+    const { user } = res.data.data;
     
-    localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, accessToken);
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
     
-    return { user, accessToken };
+    return { user };
   },
 
   /**
@@ -69,7 +68,6 @@ const authService = {
     } catch (error) {
       console.warn('Logout endpoint call failed, clearing local storage anyway.', error);
     }
-    localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
   }
 };

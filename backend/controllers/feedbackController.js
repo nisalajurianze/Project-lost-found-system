@@ -47,7 +47,8 @@ const getFeedback = asyncHandler(async (req, res) => {
     .populate('userId', 'fullName email studentId profileImage')
     .sort({ createdAt: -1 })
     .skip(pagination.skip)
-    .limit(pagination.limit);
+    .limit(pagination.limit)
+    .lean();
 
   ApiResponse.ok({ feedbacks, pagination }, 'Feedback retrieved successfully.').send(res);
 });

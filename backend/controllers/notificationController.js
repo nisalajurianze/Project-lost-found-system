@@ -27,7 +27,8 @@ const getNotifications = asyncHandler(async (req, res) => {
   const notifications = await Notification.find(filter)
     .sort({ createdAt: -1 })
     .skip(pagination.skip)
-    .limit(pagination.limit);
+    .limit(pagination.limit)
+    .lean();
 
   ApiResponse.ok({ notifications, pagination }, 'Notifications retrieved successfully.').send(res);
 });

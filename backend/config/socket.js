@@ -7,6 +7,11 @@ import { Server } from 'socket.io';
 
 let io = null;
 
+import cookie from 'cookie';
+import jwt from 'jsonwebtoken';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { getRedisClient } from './redis.js';
+
 /**
  * Initialise Socket.IO on the HTTP server.
  * @param {import('http').Server} httpServer - Node HTTP server instance
@@ -27,9 +32,35 @@ const initSocket = (httpServer) => {
     pingInterval: 25000,
   });
 
+  // ARCH-001: Horizontal Scaling with Redis Adapter
+  try {
+    const pubClient = getRedisClient();
+    if (pubClient) {
+      const subClient = pubClient.duplicate();
+      io.adapter(createAdapter(pubClient, subClient));
+      console.log('✅ Socket.IO Redis Adapter configured for horizontal scaling.');
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not configure Redis adapter for Socket.io:', err.message);
+  }
+
   // Connection handler
   io.on('connection', (socket) => {
     console.log(`🔌 Socket connected: ${socket.id}`);
+
+    // Parse cookies from socket request
+    let userRole = 'user';
+    try {
+      if (socket.request.headers.cookie) {
+        const cookies = cookie.parse(socket.request.headers.cookie);
+        if (cookies.accessToken) {
+          const decoded = jwt.verify(cookies.accessToken, process.env.JWT_ACCESS_SECRET);
+          userRole = decoded.role;
+        }
+      }
+    } catch (e) {
+      // Ignore errors, default to 'user'
+    }
 
     // Join user-specific room for targeted notifications
     socket.on('join', (userId) => {
@@ -41,8 +72,12 @@ const initSocket = (httpServer) => {
 
     // Join admin room for admin-specific events
     socket.on('joinAdmin', () => {
-      socket.join('admin_room');
-      console.log(`🛡️  Socket ${socket.id} joined admin_room`);
+      if (userRole === 'admin') {
+        socket.join('admin_room');
+        console.log(`🛡️  Socket ${socket.id} joined admin_room`);
+      } else {
+        console.warn(`⚠️  Unauthorised attempt to join admin_room from socket ${socket.id}`);
+      }
     });
 
     // Handle disconnection

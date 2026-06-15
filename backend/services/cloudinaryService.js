@@ -24,6 +24,10 @@ const initCloudinary = () => {
  * @returns {Promise<{url: string, publicId: string}>}
  */
 const uploadImage = async (fileBuffer, folder = 'smart-lf', options = {}) => {
+  if (!fileBuffer) {
+    throw new Error('Image buffer is missing');
+  }
+
   if (!isConfigured) {
     // Fallback: return a data-URI placeholder so the app still works
     console.warn('⚠️  Cloudinary not configured. Returning placeholder image data.');

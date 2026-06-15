@@ -154,7 +154,33 @@ const evaluateMatch = (lost, found, lostAnalysis = null, foundAnalysis = null) =
  * @param {object} item - LostItem or FoundItem document
  * @param {string} itemType - 'LostItem' or 'FoundItem'
  */
-const runMatchingForItem = async (item, itemType) => {
+const matchingQueue = [];
+let isProcessingQueue = false;
+
+const processQueue = async () => {
+  if (isProcessingQueue || matchingQueue.length === 0) return;
+  isProcessingQueue = true;
+  
+  while (matchingQueue.length > 0) {
+    const { item, itemType, resolve, reject } = matchingQueue.shift();
+    try {
+      const result = await executeMatching(item, itemType);
+      if (resolve) resolve(result);
+    } catch (err) {
+      console.error('❌ Queued matching error:', err);
+      if (reject) reject(err);
+    }
+  }
+  isProcessingQueue = false;
+};
+
+const runMatchingForItem = (item, itemType) => {
+  return new Promise((resolve, reject) => {
+    matchingQueue.push({ item, itemType, resolve, reject });
+    processQueue();
+  });
+};
+const executeMatching = async (item, itemType) => {
   console.log(`🔍 Running matching engine for new ${itemType}: ${item.itemName} (${item._id})`);
   
   try {
@@ -171,6 +197,14 @@ const runMatchingForItem = async (item, itemType) => {
       candidates = await LostItem.find({ status: { $in: ['pending', 'matched'] } });
     }
 
+    // BUG-003: Fix N+1 Query. Fetch all candidate analysis in one go
+    const candidateIds = candidates.map(c => c._id);
+    const candidateAnalyses = await ImageAnalysis.find({ itemId: { $in: candidateIds } });
+    const analysisMap = {};
+    for (const a of candidateAnalyses) {
+      analysisMap[a.itemId.toString()] = a;
+    }
+
     const MATCH_THRESHOLD = 50; // Minimum score to save a match
     const STRONG_MATCH_THRESHOLD = 70; // Minimum score to send a real-time notification
     const matchesCreated = [];
@@ -179,8 +213,8 @@ const runMatchingForItem = async (item, itemType) => {
       // Avoid matching items belonging to the same user
       if (candidate.userId.toString() === item.userId.toString()) continue;
 
-      // Fetch image analysis for candidate
-      const candidateAnalysis = await ImageAnalysis.findOne({ itemId: candidate._id });
+      // Fetch image analysis for candidate from map
+      const candidateAnalysis = analysisMap[candidate._id.toString()] || null;
 
       // Calculate score
       const lostItem = itemType === 'LostItem' ? item : candidate;
@@ -217,18 +251,19 @@ const runMatchingForItem = async (item, itemType) => {
 
         matchesCreated.push(savedMatch);
 
-        // Update items' status to 'matched' if they are still 'pending' / 'available'
-        if (lostItem.status === 'pending') {
-          lostItem.status = 'matched';
-          await lostItem.save();
-        }
-        if (foundItem.status === 'available') {
-          foundItem.status = 'matched';
-          await foundItem.save();
-        }
-
-        // Send notification if it's a strong match
+        // BUG-018: Only change status to 'matched' if it's a STRONG match (>= 70)
+        // Otherwise, it remains a suggested match without taking the item off the active list
         if (similarityScore >= STRONG_MATCH_THRESHOLD) {
+          if (lostItem.status === 'pending') {
+            lostItem.status = 'matched';
+            await lostItem.save();
+          }
+          if (foundItem.status === 'available') {
+            foundItem.status = 'matched';
+            await foundItem.save();
+          }
+
+          // Send notification for strong match
           // Notify lost user
           await createNotification({
             userId: lostItem.userId,
@@ -258,4 +293,4 @@ const runMatchingForItem = async (item, itemType) => {
   }
 };
 
-export { runMatchingForItem, evaluateMatch };
+export { runMatchingForItem, evaluateMatch, executeMatching as _executeMatching };

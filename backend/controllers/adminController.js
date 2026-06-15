@@ -119,10 +119,11 @@ const getUsers = asyncHandler(async (req, res) => {
     filter.role = req.query.role;
   }
   if (req.query.search) {
+    const escapedSearch = req.query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { fullName: { $regex: req.query.search, $options: 'i' } },
-      { email: { $regex: req.query.search, $options: 'i' } },
-      { studentId: { $regex: req.query.search, $options: 'i' } }
+      { fullName: { $regex: escapedSearch, $options: 'i' } },
+      { email: { $regex: escapedSearch, $options: 'i' } },
+      { studentId: { $regex: escapedSearch, $options: 'i' } }
     ];
   }
 
@@ -132,7 +133,8 @@ const getUsers = asyncHandler(async (req, res) => {
   const users = await User.find(filter)
     .sort({ createdAt: -1 })
     .skip(pagination.skip)
-    .limit(pagination.limit);
+    .limit(pagination.limit)
+    .lean();
 
   ApiResponse.ok({ users, pagination }, 'Users list retrieved.').send(res);
 });
@@ -150,6 +152,11 @@ const updateUserStatus = asyncHandler(async (req, res) => {
 
   if (user._id.toString() === req.user._id.toString()) {
     throw ApiError.badRequest('You cannot deactivate your own account.');
+  }
+
+  // BUG-019: Prevent deactivating or demoting other admins
+  if (user.role === 'admin' && !isActive) {
+    throw ApiError.forbidden('You cannot deactivate another administrator.');
   }
 
   const prevStatus = user.isActive;
@@ -189,7 +196,8 @@ const getAdminLogs = asyncHandler(async (req, res) => {
     .populate('adminId', 'fullName email role')
     .sort({ createdAt: -1 })
     .skip(pagination.skip)
-    .limit(pagination.limit);
+    .limit(pagination.limit)
+    .lean();
 
   ApiResponse.ok({ logs, pagination }, 'Admin logs retrieved.').send(res);
 });

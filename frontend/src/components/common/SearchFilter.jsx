@@ -23,6 +23,24 @@ export const SearchFilter = ({
   statusOptions = [],
   onClear
 }) => {
+  const [localSearch, setLocalSearch] = React.useState(search);
+
+  // Sync local state if search prop changes (e.g., Clear Filters)
+  React.useEffect(() => {
+    setLocalSearch(search);
+  }, [search]);
+
+  // Debounce local search changes
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localSearch !== search) {
+        onSearchChange(localSearch);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [localSearch, search, onSearchChange]);
+
   const categoryOptions = categories.map((cat) => ({
     value: cat.name,
     label: `${cat.icon} ${cat.name}`
@@ -35,8 +53,8 @@ export const SearchFilter = ({
         <div className="relative md:col-span-2">
           <Input
             placeholder="Search items by name, details..."
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             className="w-full"
             icon={<FiSearch className="text-surface-400" />}
           />

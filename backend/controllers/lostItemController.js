@@ -11,6 +11,7 @@ import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate, buildSort } from '../utils/pagination.js';
+import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { uploadMultipleImages, deleteMultipleImages } from '../services/cloudinaryService.js';
 import { analyzeItemImage } from '../services/imageAnalysisService.js';
 import { runMatchingForItem } from '../services/aiMatchingService.js';
@@ -59,6 +60,9 @@ const createLostItem = asyncHandler(async (req, res) => {
   categoryExists.itemCount = (categoryExists.itemCount || 0) + 1;
   await categoryExists.save();
 
+  // Invalidate cache
+  await deleteCache('lostItems:*');
+
   // Run AI Image Analysis and AI Matching in background (avoid blocking client response)
   // We handle errors locally inside the async IIFE to prevent crash
   (async () => {
@@ -85,6 +89,14 @@ const createLostItem = asyncHandler(async (req, res) => {
  * Get all lost items (with pagination, search, and filters).
  */
 const getLostItems = asyncHandler(async (req, res) => {
+  const cacheKey = `lostItems:${JSON.stringify(req.query)}`;
+  
+  // Try Cache
+  const cachedData = await getCache(cacheKey);
+  if (cachedData) {
+    return ApiResponse.ok(cachedData, 'Lost items retrieved from cache.').send(res);
+  }
+
   const filter = { isDeleted: { $ne: true } };
 
   // 1. Text Search (using compound text index)
@@ -134,9 +146,15 @@ const getLostItems = asyncHandler(async (req, res) => {
     .populate('userId', 'fullName profileImage')
     .sort(sort)
     .skip(pagination.skip)
-    .limit(pagination.limit);
+    .limit(pagination.limit)
+    .lean();
 
-  ApiResponse.ok({ items, pagination }, 'Lost items retrieved successfully.').send(res);
+  const responsePayload = { items, pagination };
+  
+  // Save to cache (5 minutes)
+  await setCache(cacheKey, responsePayload, 300);
+
+  ApiResponse.ok(responsePayload, 'Lost items retrieved successfully.').send(res);
 });
 
 /**
@@ -144,7 +162,8 @@ const getLostItems = asyncHandler(async (req, res) => {
  */
 const getLostItemById = asyncHandler(async (req, res) => {
   const item = await LostItem.findOne({ _id: req.params.id, isDeleted: { $ne: true } })
-    .populate('userId', 'fullName email phone profileImage studentId');
+    .populate('userId', 'fullName email phone profileImage studentId')
+    .lean();
 
   if (!item) {
     throw ApiError.notFound('Lost item not found.');
@@ -180,7 +199,7 @@ const updateLostItem = asyncHandler(async (req, res) => {
     }
     
     // Decrement from old, increment in new
-    await Category.updateOne({ name: item.category }, { $inc: { itemCount: -1 } });
+    await Category.updateOne({ name: item.category, itemCount: { $gt: 0 } }, { $inc: { itemCount: -1 } });
     await Category.updateOne({ name: category }, { $inc: { itemCount: 1 } });
     item.category = category;
   }
@@ -234,6 +253,9 @@ const updateLostItem = asyncHandler(async (req, res) => {
     }
   })();
 
+  // Invalidate cache
+  await deleteCache('lostItems:*');
+
   ApiResponse.ok(item, 'Lost item updated successfully. Rematching completed.').send(res);
 });
 
@@ -260,10 +282,13 @@ const deleteLostItem = asyncHandler(async (req, res) => {
   await item.save();
 
   // Decrement category count
-  await Category.updateOne({ name: item.category }, { $inc: { itemCount: -1 } });
+  await Category.updateOne({ name: item.category, itemCount: { $gt: 0 } }, { $inc: { itemCount: -1 } });
 
   // Delete all associated Match entries
   await Match.deleteMany({ lostItemId: item._id });
+
+  // Invalidate cache
+  await deleteCache('lostItems:*');
 
   ApiResponse.noContent('Lost item deleted successfully.').send(res);
 });

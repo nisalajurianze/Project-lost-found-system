@@ -56,7 +56,8 @@ const lostItemSchema = new mongoose.Schema(
       required: [true, 'Lost date is required'],
       validate: {
         validator: function (value) {
-          return value <= new Date();
+          // Allow up to +24 hours to account for timezone differences
+          return value <= new Date(Date.now() + 24 * 60 * 60 * 1000);
         },
         message: 'Lost date cannot be in the future',
       },
@@ -103,6 +104,7 @@ lostItemSchema.index(
 );
 
 lostItemSchema.index({ category: 1, status: 1 });
+lostItemSchema.index({ status: 1, isDeleted: 1 });
 lostItemSchema.index({ lostDate: -1 });
 lostItemSchema.index({ createdAt: -1 });
 

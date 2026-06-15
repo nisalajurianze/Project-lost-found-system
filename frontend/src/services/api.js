@@ -10,17 +10,15 @@ const api = axios.create({
   baseURL: API_URL,
   withCredentials: true, // Send cookies with all requests (refresh token)
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest'
   }
 });
 
-// Request Interceptor: Attach bearer accessToken to header
+// Request Interceptor (Can be used for other headers if needed)
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // The accessToken is handled automatically via HTTP-only cookies
     return config;
   },
   (error) => {
@@ -51,7 +49,11 @@ api.interceptors.response.use(
     // Check if error is 401 Unauthorized and not already retried
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Avoid infinite loop of refresh attempts
-      if (originalRequest.url === '/auth/refresh-token' || originalRequest.url === '/auth/login') {
+      if (
+        originalRequest.url === '/auth/refresh-token' || 
+        originalRequest.url === '/auth/login' ||
+        originalRequest.url === '/auth/logout'
+      ) {
         return Promise.reject(error);
       }
 
@@ -73,18 +75,12 @@ api.interceptors.response.use(
 
       try {
         console.log('🔄 Access token expired. Attempting token refresh...');
-        const refreshResponse = await axios.get(`${API_URL}/auth/refresh-token`, {
+        await axios.get(`${API_URL}/auth/refresh-token`, {
           withCredentials: true
         });
 
-        const { accessToken } = refreshResponse.data.data;
-        localStorage.setItem(LOCAL_STORAGE_TOKEN_KEY, accessToken);
-
-        // Update default header and original request header
-        api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-        processQueue(null, accessToken);
+        // The backend sets the new accessToken in an HTTP-only cookie automatically.
+        processQueue(null, null);
         isRefreshing = false;
 
         return api(originalRequest);
@@ -94,7 +90,6 @@ api.interceptors.response.use(
         isRefreshing = false;
 
         // Clear local storage and dispatch a custom event to redirect to login
-        localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY);
         localStorage.removeItem('smart-lf-user');
         window.dispatchEvent(new Event('auth-logout'));
 

@@ -43,7 +43,8 @@ const getMatches = asyncHandler(async (req, res) => {
       path: 'foundItemId',
       populate: { path: 'userId', select: 'fullName email phone profileImage' }
     })
-    .sort({ similarityScore: -1, createdAt: -1 });
+    .sort({ similarityScore: -1, createdAt: -1 })
+    .lean();
 
   ApiResponse.ok(matches, 'Matches retrieved successfully.').send(res);
 });
@@ -60,7 +61,8 @@ const getMatchById = asyncHandler(async (req, res) => {
     .populate({
       path: 'foundItemId',
       populate: { path: 'userId', select: 'fullName email phone profileImage' }
-    });
+    })
+    .lean();
 
   if (!match) {
     throw ApiError.notFound('Match not found.');

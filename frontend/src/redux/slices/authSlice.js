@@ -7,14 +7,16 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '../../services/authService';
 import { LOCAL_STORAGE_USER_KEY, LOCAL_STORAGE_TOKEN_KEY } from '../../utils/constants';
 
-// Initial state checks localStorage
-const cachedUser = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-const cachedToken = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+// BUG-014 & SEC-013: Safe initialization
+let cachedUser = null;
+try {
+  const stored = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
+  if (stored) cachedUser = JSON.parse(stored);
+} catch (e) {}
 
 const initialState = {
-  user: cachedUser ? JSON.parse(cachedUser) : null,
-  token: cachedToken || null,
-  isAuthenticated: !!cachedToken,
+  user: cachedUser,
+  isAuthenticated: !!cachedUser,
   isLoading: false,
   error: null
 };
@@ -34,7 +36,7 @@ export const loginUser = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      return await authService.login(credentials); // Returns { user, accessToken }
+      return await authService.login(credentials); // Returns { user }
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -66,16 +68,23 @@ const authSlice = createSlice({
   reducers: {
     clearAuth: (state) => {
       state.user = null;
-      state.token = null;
       state.isAuthenticated = false;
       state.error = null;
+      localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
+      localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY); // Legacy fallback
     },
     clearAuthError: (state) => {
       state.error = null;
     },
     updateUserProfile: (state, action) => {
       state.user = action.payload;
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(action.payload));
+      const safeUser = {
+        _id: action.payload._id,
+        fullName: action.payload.fullName,
+        role: action.payload.role,
+        profileImage: action.payload.profileImage
+      };
+      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
     }
   },
   extraReducers: (builder) => {
@@ -100,8 +109,15 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.user = action.payload.user;
-        state.token = action.payload.accessToken;
         state.isAuthenticated = true;
+        
+        const safeUser = {
+          _id: action.payload.user._id,
+          fullName: action.payload.user.fullName,
+          role: action.payload.user.role,
+          profileImage: action.payload.user.profileImage
+        };
+        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -115,15 +131,21 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
-        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(action.payload));
+        const safeUser = {
+          _id: action.payload._id,
+          fullName: action.payload.fullName,
+          role: action.payload.role,
+          profileImage: action.payload.profileImage
+        };
+        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
       })
       .addCase(fetchCurrentUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
         // Auto logout if auth fetch fails
         state.user = null;
-        state.token = null;
         state.isAuthenticated = false;
+        localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
       });
   }
 });

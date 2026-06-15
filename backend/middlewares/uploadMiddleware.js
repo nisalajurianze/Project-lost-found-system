@@ -42,18 +42,64 @@ const upload = multer({
   },
 });
 
+// ── Magic Byte Validation Middleware (SEC-007) ─────────────────────────
+const validateMagicBytes = (req, res, next) => {
+  const files = [];
+  if (req.file) files.push(req.file);
+  if (req.files) {
+    if (Array.isArray(req.files)) {
+      files.push(...req.files);
+    } else {
+      for (const key in req.files) {
+        files.push(...req.files[key]);
+      }
+    }
+  }
+
+  if (files.length === 0) return next();
+
+  for (const file of files) {
+    const buffer = file.buffer;
+    if (!buffer || buffer.length < 12) {
+      return next(new ApiError(400, 'Invalid or empty file uploaded.'));
+    }
+
+    let isValid = false;
+    const mime = file.mimetype;
+
+    if (mime === 'image/jpeg' || mime === 'image/jpg') {
+      isValid = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+    } else if (mime === 'image/png') {
+      isValid = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+    } else if (mime === 'image/gif') {
+      isValid = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38;
+    } else if (mime === 'image/webp') {
+      // WEBP format: RIFF....WEBP
+      isValid = buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+                buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+    }
+
+    if (!isValid) {
+      return next(new ApiError(400, `File content does not match extension/mimetype for ${file.originalname}. Potential malicious file.`));
+    }
+  }
+  next();
+};
+
 // ── Pre-built middleware variants ────────────────────────────────────────
 
+const withValidation = (multerMiddleware) => [multerMiddleware, validateMagicBytes];
+
 /** Upload a single image (field name: "image") */
-const uploadSingle = upload.single('image');
+const uploadSingle = withValidation(upload.single('image'));
 
 /** Upload up to 5 images (field name: "images") */
-const uploadMultiple = upload.array('images', 5);
+const uploadMultiple = withValidation(upload.array('images', 5));
 
 /** Upload up to 3 proof images (field name: "proofImages") */
-const uploadProofImages = upload.array('proofImages', 3);
+const uploadProofImages = withValidation(upload.array('proofImages', 3));
 
 /** Upload a single profile image (field name: "profileImage") */
-const uploadProfileImage = upload.single('profileImage');
+const uploadProfileImage = withValidation(upload.single('profileImage'));
 
 export { upload, uploadSingle, uploadMultiple, uploadProofImages, uploadProfileImage };

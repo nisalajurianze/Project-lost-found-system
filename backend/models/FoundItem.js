@@ -56,7 +56,8 @@ const foundItemSchema = new mongoose.Schema(
       required: [true, 'Found date is required'],
       validate: {
         validator: function (value) {
-          return value <= new Date();
+          // Allow up to +24 hours to account for timezone differences
+          return value <= new Date(Date.now() + 24 * 60 * 60 * 1000);
         },
         message: 'Found date cannot be in the future',
       },
@@ -108,6 +109,7 @@ foundItemSchema.index(
 );
 
 foundItemSchema.index({ category: 1, status: 1 });
+foundItemSchema.index({ status: 1, isDeleted: 1 });
 foundItemSchema.index({ foundDate: -1 });
 foundItemSchema.index({ createdAt: -1 });
 

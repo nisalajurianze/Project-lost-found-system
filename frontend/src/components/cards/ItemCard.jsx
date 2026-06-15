@@ -10,7 +10,7 @@ import { getCategoryIcon } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 import { FiMapPin, FiClock } from 'react-icons/fi';
 
-export const ItemCard = ({ item, type = 'lost' }) => {
+export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   const isLost = type === 'lost';
   const detailPath = isLost ? `/lost-items/${item._id}` : `/found-items/${item._id}`;
   
@@ -77,7 +77,7 @@ export const ItemCard = ({ item, type = 'lost' }) => {
       </div>
     </Link>
   );
-};
+});
 
 export default ItemCard;
 

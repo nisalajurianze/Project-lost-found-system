@@ -241,18 +241,20 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
     analysis = getFallbackAnalysis(itemName, description);
   }
 
-  // Save analysis to database
-  const savedAnalysis = await ImageAnalysis.create({
-    itemType,
-    itemId,
-    imageUrl,
-    labels: analysis.labels || [],
-    colors: analysis.colors || [],
-    description: analysis.description || '',
-    confidence: analysis.confidence || 0,
-    provider: analysis.provider || 'fallback',
-    rawResponse: analysis.rawResponse || null
-  });
+  // BUG-008: Save analysis to database using upsert to prevent duplicates
+  const savedAnalysis = await ImageAnalysis.findOneAndUpdate(
+    { itemId, itemType },
+    {
+      imageUrl,
+      labels: analysis.labels || [],
+      colors: analysis.colors || [],
+      description: analysis.description || '',
+      confidence: analysis.confidence || 0,
+      provider: analysis.provider || 'fallback',
+      rawResponse: analysis.rawResponse || null
+    },
+    { new: true, upsert: true }
+  );
 
   console.log(`✅ Image analysis completed and saved for ${itemType} (${itemId}). Provider: ${savedAnalysis.provider}`);
   return savedAnalysis;

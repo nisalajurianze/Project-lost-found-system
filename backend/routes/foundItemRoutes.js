@@ -24,7 +24,7 @@ import {
 const router = express.Router();
 
 // Publicly viewable found items
-router.get('/', paginationQuery, getFoundItems);
+router.get('/', paginationQuery, validate, getFoundItems);
 router.get('/:id', mongoIdParam, validate, getFoundItemById);
 
 // Protected report/management

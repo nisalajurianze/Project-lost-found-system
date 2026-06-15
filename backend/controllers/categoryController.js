@@ -26,7 +26,7 @@ const getCategories = asyncHandler(async (req, res) => {
   console.log('🐌 Redis Cache Miss: getCategories. Querying MongoDB...');
   
   // 2. Query MongoDB
-  const categories = await Category.find({ isActive: true }).sort({ name: 1 });
+  const categories = await Category.find({ isActive: true }).sort({ name: 1 }).lean();
 
   // 3. Save to Redis cache
   await setCache(CACHE_KEY_CATEGORIES, categories, CACHE_TTL_SECONDS);
