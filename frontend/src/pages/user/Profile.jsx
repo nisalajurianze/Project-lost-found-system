@@ -248,7 +248,7 @@ export const Profile = () => {
 
         {/* Change Password Card */}
         <div className="lg:col-span-1 glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl h-fit">
-          <div className="flex justify-between items-center mb-6">
+          <div className={`flex justify-between items-center ${isEditingPassword ? 'mb-6' : ''} transition-all duration-300`}>
             <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white">
               Change Password
             </h3>
@@ -259,57 +259,61 @@ export const Profile = () => {
             )}
           </div>
 
-          <form onSubmit={handlePasswordSubmit} className="space-y-4">
-            <Input
-              label="Current Password"
-              type="password"
-              placeholder="••••••••"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-              disabled={!isEditingPassword}
-            />
-            <Input
-              label="New Password"
-              type="password"
-              placeholder="••••••••"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              disabled={!isEditingPassword}
-            />
-            <Input
-              label="Confirm New Password"
-              type="password"
-              placeholder="••••••••"
-              value={confirmNewPassword}
-              onChange={(e) => setConfirmNewPassword(e.target.value)}
-              required
-              disabled={!isEditingPassword}
-            />
+          <div className={`grid transition-all duration-300 ease-in-out ${isEditingPassword ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden">
+              <form onSubmit={handlePasswordSubmit} className="space-y-4 py-2">
+                <Input
+                  label="Current Password *"
+                  type="password"
+                  placeholder="••••••••"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  disabled={!isEditingPassword}
+                />
+                <Input
+                  label="New Password *"
+                  type="password"
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  disabled={!isEditingPassword}
+                />
+                <Input
+                  label="Confirm New Password *"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  required
+                  disabled={!isEditingPassword}
+                />
 
-            {isEditingPassword && (
-              <div className="flex flex-col gap-3 pt-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-full"
-                  isLoading={isChangingPassword}
-                >
-                  Update Password
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleCancelPasswordEdit}
-                  disabled={isChangingPassword}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </form>
+                {isEditingPassword && (
+                  <div className="flex flex-col gap-3 pt-2">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      className="w-full"
+                      isLoading={isChangingPassword}
+                    >
+                      Update Password
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleCancelPasswordEdit}
+                      disabled={isChangingPassword}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
         </div>
 
       </div>
