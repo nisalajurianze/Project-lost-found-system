@@ -11,23 +11,30 @@ export const Loader = ({
   className = ''
 }) => {
   const sizeClasses = {
-    sm: 'h-6 w-6 border-2',
-    md: 'h-10 w-10 border-4',
-    lg: 'h-16 w-16 border-4'
+    sm: 'text-2xl',
+    md: 'text-4xl',
+    lg: 'text-6xl'
   };
 
   const spinner = (
-    <div
-      className={`animate-spin rounded-full border-primary-500 border-t-transparent ${
-        sizeClasses[size] || sizeClasses.md
-      } ${className}`}
-    />
+    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
+      <span 
+        className={`inline-block animate-spin origin-center ${sizeClasses[size] || sizeClasses.md}`}
+        role="img" 
+        aria-label="loading"
+      >
+        🔍
+      </span>
+    </div>
   );
 
   if (fullPage) {
     return (
-      <div className="flex h-[50vh] w-full items-center justify-center">
+      <div className="flex flex-col h-[50vh] w-full items-center justify-center gap-4">
         {spinner}
+        <span className="text-sm font-medium text-surface-500 dark:text-surface-400 animate-pulse">
+          Loading...
+        </span>
       </div>
     );
   }
