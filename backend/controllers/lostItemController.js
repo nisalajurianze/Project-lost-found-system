@@ -111,7 +111,9 @@ const getLostItems = asyncHandler(async (req, res) => {
 
   // 3. Status Filter (default to pending/matched for public display)
   if (req.query.status) {
-    filter.status = req.query.status;
+    if (req.query.status !== 'all') {
+      filter.status = req.query.status;
+    }
   } else {
     // Only return items active in system
     filter.status = { $in: ['pending', 'matched'] };

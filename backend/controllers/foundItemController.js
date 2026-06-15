@@ -107,7 +107,9 @@ const getFoundItems = asyncHandler(async (req, res) => {
 
   // 3. Status Filter (default to available/matched for public display)
   if (req.query.status) {
-    filter.status = req.query.status;
+    if (req.query.status !== 'all') {
+      filter.status = req.query.status;
+    }
   } else {
     filter.status = { $in: ['available', 'matched'] };
   }
