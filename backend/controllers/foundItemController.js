@@ -227,7 +227,12 @@ const updateFoundItem = asyncHandler(async (req, res) => {
   if (foundLocation) item.foundLocation = foundLocation;
   if (foundDate) item.foundDate = new Date(foundDate);
   if (storedAt !== undefined) item.storedAt = storedAt;
-  if (status) item.status = status;
+  if (status && status !== item.status) {
+    item.status = status;
+    if (status === 'claimed' || status === 'closed') {
+      item.resolvedAt = new Date();
+    }
+  }
   if (contactPreference) item.contactPreference = contactPreference;
   if (tags) {
     item.tags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim());

@@ -21,7 +21,7 @@ export const suggestItemDetails = asyncHandler(async (req, res) => {
   // 1. Upload to Cloudinary to get a public URL for OpenRouter
   // We use the same service, but pass an array of one file
   const uploadedUrls = await uploadMultipleImages([req.file], 'ai-suggestions');
-  const imageUrl = uploadedUrls[0];
+  const imageUrl = uploadedUrls[0]?.url;
 
   if (!imageUrl) {
     throw ApiError.internal('Failed to upload image for AI analysis.');

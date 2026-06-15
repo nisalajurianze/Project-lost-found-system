@@ -195,6 +195,7 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
   if (status === 'approved') {
     // 1. Update found item status
     foundItem.status = 'claimed';
+    foundItem.resolvedAt = new Date();
     await foundItem.save();
 
     // 2. If claim had a match, update match status & lost item status
@@ -205,7 +206,10 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
         await match.save();
 
         // Update lost item status
-        await LostItem.findByIdAndUpdate(match.lostItemId, { status: 'claimed' });
+        await LostItem.findByIdAndUpdate(match.lostItemId, { 
+          status: 'claimed', 
+          resolvedAt: new Date() 
+        });
       }
     } else {
       // Try to find a matching lost item for this user & category to mark claimed
@@ -216,6 +220,7 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
       });
       if (matchingLost) {
         matchingLost.status = 'claimed';
+        matchingLost.resolvedAt = new Date();
         await matchingLost.save();
       }
     }

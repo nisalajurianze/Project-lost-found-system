@@ -20,6 +20,7 @@ import { initRedis } from './config/redis.js';
 import { initSocket } from './config/socket.js';
 import { initCloudinary } from './services/cloudinaryService.js';
 import { initEmailService } from './services/emailService.js';
+import { initCleanupJob } from './jobs/cleanupJob.js';
 
 // Middlewares
 import sanitize from './middlewares/sanitizeMiddleware.js';
@@ -53,6 +54,9 @@ const startServer = async () => {
 
   // Initialize Email/SMTP Service
   initEmailService();
+
+  // Initialize automated cleanup job
+  initCleanupJob();
 
   const app = express();
   
