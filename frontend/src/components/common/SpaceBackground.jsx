@@ -1,56 +1,192 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 const SpaceBackground = () => {
-  const [stars, setStars] = useState([]);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    // Generate random stars on mount
-    // 200 stars to make it look like a dense space
-    const generatedStars = Array.from({ length: 200 }).map(() => {
-      // Create sizes varying from 1px to 3px
-      const size = Math.random() * 2.5 + 0.5;
-      return {
-        id: Math.random().toString(36).substring(7),
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        width: `${size}px`,
-        height: `${size}px`,
-        // Randomize twinkle speed
-        animationDuration: `${Math.random() * 3 + 1.5}s`,
-        animationDelay: `${Math.random() * 5}s`,
-        // Some stars are slightly colored (blueish or purplish)
-        backgroundColor: Math.random() > 0.8 ? (Math.random() > 0.5 ? '#a855f7' : '#3b82f6') : '#ffffff',
-      };
-    });
-    setStars(generatedStars);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let stars = [];
+    
+    // Mouse tracking
+    let mouse = { x: -1000, y: -1000 }; // start off-screen
+    
+    // Resize handler
+    const resizeCanvas = () => {
+      // Use parent container dimensions
+      const parent = canvas.parentElement;
+      canvas.width = parent.clientWidth;
+      canvas.height = parent.clientHeight;
+      initStars();
+    };
+
+    // Initialize stars
+    const initStars = () => {
+      stars = [];
+      const numStars = 400; // More stars for a better vortex effect
+      
+      for (let i = 0; i < numStars; i++) {
+        const size = Math.random() * 2 + 0.5;
+        // Faster base movement as requested
+        const speedMultiplier = 1.5;
+        const baseVx = (Math.random() - 0.5) * speedMultiplier;
+        const baseVy = (Math.random() - 0.5) * speedMultiplier;
+        
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: size,
+          baseVx: baseVx,
+          baseVy: baseVy,
+          vx: baseVx,
+          vy: baseVy,
+          color: Math.random() > 0.8 ? (Math.random() > 0.5 ? '#a855f7' : '#3b82f6') : '#ffffff',
+          alpha: Math.random() * 0.5 + 0.5
+        });
+      }
+    };
+
+    // Animation Loop
+    const animate = () => {
+      // Clear canvas with a very slight fade for trail effect
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.3)'; // Match dark theme surface-900 roughly
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // Actually clear to let hero background show through!
+      
+      // If we want trails, we'd use fillRect, but we want the CSS background to show.
+      // So we just clear it entirely.
+      
+      const maxDistance = 250; // Radius of black hole effect
+      const eventHorizon = 15; // Radius where stars get "sucked in"
+
+      stars.forEach(star => {
+        // Calculate distance to mouse
+        const dx = mouse.x - star.x;
+        const dy = mouse.y - star.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < maxDistance) {
+          // Inside the black hole influence zone
+          const force = (maxDistance - distance) / maxDistance;
+          
+          // Angle to mouse
+          const angle = Math.atan2(dy, dx);
+          
+          // Tangential angle (perpendicular) for the vortex spinning effect
+          const spinAngle = angle + (Math.PI / 2);
+          
+          // Gravity (pull towards mouse)
+          const gravityStrength = 0.8;
+          star.vx += Math.cos(angle) * force * gravityStrength;
+          star.vy += Math.sin(angle) * force * gravityStrength;
+          
+          // Vortex (spin around mouse)
+          const spinStrength = 2.5; // Strong spin
+          star.vx += Math.cos(spinAngle) * force * spinStrength;
+          star.vy += Math.sin(spinAngle) * force * spinStrength;
+
+          // If it gets too close to the center (event horizon), teleport it away or reset it
+          if (distance < eventHorizon) {
+            star.x = Math.random() * canvas.width;
+            star.y = Math.random() * canvas.height;
+            star.vx = star.baseVx;
+            star.vy = star.baseVy;
+          }
+        } else {
+          // Outside influence: slowly return to normal drift
+          star.vx += (star.baseVx - star.vx) * 0.02;
+          star.vy += (star.baseVy - star.vy) * 0.02;
+        }
+
+        // Apply friction to max speed so they don't fly out of control
+        star.vx *= 0.98;
+        star.vy *= 0.98;
+
+        // Move star
+        star.x += star.vx;
+        star.y += star.vy;
+
+        // Screen wrap
+        if (star.x < 0) star.x = canvas.width;
+        if (star.x > canvas.width) star.x = 0;
+        if (star.y < 0) star.y = canvas.height;
+        if (star.y > canvas.height) star.y = 0;
+
+        // Draw star
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        
+        // Add a glow effect based on speed
+        const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
+        const glowAlpha = Math.min(star.alpha + (speed * 0.1), 1);
+        
+        ctx.fillStyle = star.color;
+        ctx.globalAlpha = glowAlpha;
+        ctx.fill();
+        ctx.globalAlpha = 1.0; // Reset
+      });
+
+      // Optional: Draw the black hole center (event horizon)
+      if (mouse.x > -100 && mouse.y > -100) {
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, eventHorizon + 5, 0, Math.PI * 2);
+        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, eventHorizon + 5);
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    // Event Listeners
+    window.addEventListener('resize', resizeCanvas);
+    
+    // We attach mousemove to the parent window/document to track it properly
+    // But we only care about coordinates relative to the canvas
+    const handleMouseMove = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+    };
+    
+    const handleMouseLeave = () => {
+      // Move black hole off screen
+      mouse.x = -1000;
+      mouse.y = -1000;
+    };
+
+    // Need to bind mouse to the parent section
+    const parentSection = canvas.closest('section');
+    if (parentSection) {
+      parentSection.addEventListener('mousemove', handleMouseMove);
+      parentSection.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    // Init
+    resizeCanvas();
+    animate();
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (parentSection) {
+        parentSection.removeEventListener('mousemove', handleMouseMove);
+        parentSection.removeEventListener('mouseleave', handleMouseLeave);
+      }
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   return (
-    <div
-      className="absolute inset-0 pointer-events-none"
-      style={{
-        // The black hole mask: Hides the stars right under the cursor, making a "void"
-        maskImage: 'radial-gradient(circle 120px at var(--mouse-x, -100px) var(--mouse-y, -100px), transparent 10%, black 100%)',
-        WebkitMaskImage: 'radial-gradient(circle 120px at var(--mouse-x, -100px) var(--mouse-y, -100px), transparent 10%, black 100%)',
-        transition: 'mask-image 0.1s ease-out, -webkit-mask-image 0.1s ease-out',
-      }}
-    >
-      {stars.map((star) => (
-        <div
-          key={star.id}
-          className="absolute rounded-full"
-          style={{
-            left: star.left,
-            top: star.top,
-            width: star.width,
-            height: star.height,
-            backgroundColor: star.backgroundColor,
-            animation: `twinkle ${star.animationDuration} infinite alternate ${star.animationDelay}`,
-            boxShadow: `0 0 ${parseFloat(star.width) * 2}px ${star.backgroundColor}`,
-          }}
-        />
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 pointer-events-none z-0"
+      style={{ opacity: 0.8 }}
+    />
   );
 };
 
