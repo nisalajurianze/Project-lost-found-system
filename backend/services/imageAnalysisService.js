@@ -96,7 +96,7 @@ const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
         'X-Title': 'Smart Lost and Found'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-90b-vision-instruct:free',
+        model: 'nvidia/nemotron-nano-12b-v2-vl:free',
         messages: [
           {
             role: 'user',
@@ -255,7 +255,7 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
           'X-Title': 'Smart Lost and Found'
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-3.2-90b-vision-instruct:free',
+          model: 'nvidia/nemotron-nano-12b-v2-vl:free',
           messages: [
             {
               role: 'user',
