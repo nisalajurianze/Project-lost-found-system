@@ -291,6 +291,5 @@ export {
   generateCategoryDetails,
   suggestDetailsFromImage,
   // Export these for testing if needed
-  parseJSONResponse,
-  fallbackAnalysis
+  parseJSONResponse
 };
