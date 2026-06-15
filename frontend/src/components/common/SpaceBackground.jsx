@@ -69,32 +69,34 @@ const SpaceBackground = () => {
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance < maxDistance) {
-          // Inside the black hole influence zone
-          // Use quadratic falloff so the pull is strong exactly at the center but weak at edges
-          const force = Math.pow((maxDistance - distance) / maxDistance, 2);
-          
-          // Angle to mouse
+          // Calculate angle from star to mouse
           const angle = Math.atan2(dy, dx);
-          
-          // Tangential angle (perpendicular) for the vortex spinning effect
+          // Tangential angle for orbital spinning
           const spinAngle = angle + (Math.PI / 2);
           
-          // Gravity (pull towards mouse)
-          const gravityStrength = 1.5;
-          star.vx += Math.cos(angle) * force * gravityStrength;
-          star.vy += Math.sin(angle) * force * gravityStrength;
+          // Target orbit radius (where they should spin)
+          const targetOrbit = 35;
+          // Distance difference from the ideal orbit
+          const radialDist = distance - targetOrbit;
           
-          // Vortex (spin around mouse)
-          const spinStrength = 4.0; // Strong spin, but localized
-          star.vx += Math.cos(spinAngle) * force * spinStrength;
-          star.vy += Math.sin(spinAngle) * force * spinStrength;
+          // Spring force pulling them towards the orbit ring
+          // If too far, pulls in. If too close, pushes out.
+          const gravityStrength = radialDist * 0.04;
+          
+          star.vx += Math.cos(angle) * gravityStrength;
+          star.vy += Math.sin(angle) * gravityStrength;
+          
+          // Strong continuous spin force
+          const spinStrength = 2.5; 
+          star.vx += Math.cos(spinAngle) * spinStrength;
+          star.vy += Math.sin(spinAngle) * spinStrength;
 
-          // If it gets too close to the center (event horizon), teleport it away or reset it
-          if (distance < eventHorizon) {
-            star.x = Math.random() * canvas.width;
-            star.y = Math.random() * canvas.height;
-            star.vx = star.baseVx;
-            star.vy = star.baseVy;
+          // Limit speed to prevent chaotic physics explosions
+          const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
+          const maxSpeed = 7;
+          if (speed > maxSpeed) {
+            star.vx = (star.vx / speed) * maxSpeed;
+            star.vy = (star.vy / speed) * maxSpeed;
           }
         } else {
           // Outside influence: slowly return to normal drift
