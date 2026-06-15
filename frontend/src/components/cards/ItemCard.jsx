@@ -25,13 +25,12 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   return (
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
       {/* Image Container */}
-      <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden flex items-center justify-center">
+      <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden">
         {mainImage ? (
           <img
             src={mainImage}
             alt={item.itemName}
-            className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
             onError={() => setImageError(true)}
           />
         ) : (

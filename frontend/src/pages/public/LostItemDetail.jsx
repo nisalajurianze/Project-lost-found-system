@@ -82,7 +82,7 @@ export const LostItemDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Image Gallery (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-[4/3] rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md flex items-center justify-center">
+            <div className="relative aspect-[4/3] rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md">
               {hasImages && activeImage ? (
                 <img
                   src={optimizeImageUrl(activeImage, 1200)}
