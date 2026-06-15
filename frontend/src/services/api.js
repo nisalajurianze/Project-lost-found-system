@@ -15,10 +15,14 @@ const api = axios.create({
   }
 });
 
-// Request Interceptor (Can be used for other headers if needed)
+// Request Interceptor
 api.interceptors.request.use(
   (config) => {
-    // The accessToken is handled automatically via HTTP-only cookies
+    // If the browser blocks third-party cookies, we also send the token via Authorization header
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -75,14 +79,21 @@ api.interceptors.response.use(
 
       try {
         console.log('🔄 Access token expired. Attempting token refresh...');
-        await axios.get(`${API_URL}/auth/refresh-token`, {
+        const refreshRes = await axios.get(`${API_URL}/auth/refresh-token`, {
           withCredentials: true
         });
 
-        // The backend sets the new accessToken in an HTTP-only cookie automatically.
-        processQueue(null, null);
+        const newAccessToken = refreshRes.data?.data?.accessToken;
+        if (newAccessToken) {
+          localStorage.setItem('accessToken', newAccessToken);
+        }
+
+        processQueue(null, newAccessToken);
         isRefreshing = false;
 
+        if (newAccessToken) {
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        }
         return api(originalRequest);
       } catch (refreshError) {
         console.warn('💀 Session expired. Logging user out.');

@@ -39,7 +39,7 @@ const generateTokens = async (user, res) => {
   res.cookie('accessToken', accessToken, accessCookieOptions);
   res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
-  return true;
+  return { accessToken, refreshToken };
 };
 
 export default generateTokens;

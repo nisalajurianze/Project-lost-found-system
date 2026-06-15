@@ -20,9 +20,12 @@ const authService = {
    */
   login: async (credentials) => {
     const res = await api.post('/auth/login', credentials);
-    const { user } = res.data.data;
+    const { user, accessToken } = res.data.data;
     
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
+    if (accessToken) {
+      localStorage.setItem('accessToken', accessToken);
+    }
     
     return { user };
   },
@@ -65,11 +68,12 @@ const authService = {
   logout: async () => {
     try {
       await api.post('/auth/logout');
-    } catch (error) {
-      console.warn('Logout endpoint call failed, clearing local storage anyway.', error);
+    } catch (e) {
+      console.error('Logout failed:', e);
     }
     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-  }
+    localStorage.removeItem('accessToken');
+  },
 };
 
 export default authService;

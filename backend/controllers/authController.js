@@ -168,12 +168,12 @@ const login = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Generate tokens and set cookies
-  await generateTokens(user, res);
+  const tokens = await generateTokens(user, res);
 
   const userData = user.toObject();
   delete userData.password;
 
-  ApiResponse.ok({ user: userData }, 'Login successful.').send(res);
+  ApiResponse.ok({ user: userData, accessToken: tokens.accessToken }, 'Login successful.').send(res);
 });
 
 /**
@@ -206,9 +206,9 @@ const refreshToken = asyncHandler(async (req, res) => {
   }
 
   // Generate new tokens
-  await generateTokens(user, res);
+  const tokens = await generateTokens(user, res);
 
-  ApiResponse.ok(null, 'Token refreshed successfully.').send(res);
+  ApiResponse.ok({ accessToken: tokens.accessToken }, 'Token refreshed successfully.').send(res);
 });
 
 /**
