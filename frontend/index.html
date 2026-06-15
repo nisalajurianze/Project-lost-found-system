@@ -14,7 +14,33 @@
     <title>Smart Lost & Found | Charm University</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <style>
+        body { margin: 0; background-color: #0f172a; font-family: 'Outfit', 'Inter', sans-serif; }
+        #initial-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: #0f172a; }
+        .logo-container { display: flex; align-items: center; gap: 0.75rem; font-size: 2.5rem; font-weight: 700; letter-spacing: -0.025em; }
+        .logo-icon { display: inline-block; animation: spin-bounce 2s ease-in-out infinite; transform-origin: center; }
+        .logo-text { background: linear-gradient(to right, #6366f1, #a5b4fc); -webkit-background-clip: text; color: transparent; }
+        .loading-text { margin-top: 1.5rem; font-size: 1rem; color: #94a3b8; font-weight: 500; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes spin-bounce {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.2); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        @media (prefers-color-scheme: light) {
+          body, #initial-loader { background-color: #ffffff; }
+          .loading-text { color: #64748b; }
+        }
+      </style>
+      <div id="initial-loader">
+        <div class="logo-container">
+          <span class="logo-icon">🔍</span>
+          <span class="logo-text">Smart L&F</span>
+        </div>
+        <div class="loading-text">Initializing Smart L&F...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
