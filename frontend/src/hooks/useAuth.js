@@ -3,6 +3,7 @@
 // Simple wrapper to access Redux auth selectors & dispatch actions
 // ============================================
 
+import { useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   registerUser,
@@ -16,15 +17,15 @@ export const useAuth = () => {
   const dispatch = useDispatch();
   const { user, isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
 
-  const register = (userData) => dispatch(registerUser(userData)).unwrap();
+  const register = useCallback((userData) => dispatch(registerUser(userData)).unwrap(), [dispatch]);
   
-  const login = (credentials) => dispatch(loginUser(credentials)).unwrap();
+  const login = useCallback((credentials) => dispatch(loginUser(credentials)).unwrap(), [dispatch]);
 
-  const logout = () => dispatch(logoutUser());
+  const logout = useCallback(() => dispatch(logoutUser()), [dispatch]);
 
-  const getMe = () => dispatch(fetchCurrentUser()).unwrap();
+  const getMe = useCallback(() => dispatch(fetchCurrentUser()).unwrap(), [dispatch]);
 
-  const updateProfile = (updatedUser) => dispatch(updateUserProfile(updatedUser));
+  const updateProfile = useCallback((updatedUser) => dispatch(updateUserProfile(updatedUser)), [dispatch]);
 
   return {
     user,
