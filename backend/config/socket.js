@@ -37,8 +37,13 @@ const initSocket = (httpServer) => {
     const pubClient = getRedisClient();
     if (pubClient) {
       const subClient = pubClient.duplicate();
-      io.adapter(createAdapter(pubClient, subClient));
-      console.log('✅ Socket.IO Redis Adapter configured for horizontal scaling.');
+      // Since lazyConnect is true, duplicated client needs explicit connection
+      subClient.connect().then(() => {
+        io.adapter(createAdapter(pubClient, subClient));
+        console.log('✅ Socket.IO Redis Adapter configured for horizontal scaling.');
+      }).catch((err) => {
+        console.warn('⚠️ Could not connect duplicated Redis subClient:', err.message);
+      });
     }
   } catch (err) {
     console.warn('⚠️ Could not configure Redis adapter for Socket.io:', err.message);
