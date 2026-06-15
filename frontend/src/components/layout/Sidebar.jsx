@@ -27,7 +27,6 @@ export const Sidebar = () => {
     { label: 'My Lost Reports', path: '/dashboard/my-lost', icon: <FiFileText /> },
     { label: 'My Found Listings', path: '/dashboard/my-found', icon: <FiFileText /> },
     { label: 'AI Matches', path: '/dashboard/my-matches', icon: <FiActivity /> },
-    { label: 'My Claims', path: '/dashboard/my-claims', icon: <FiCheckSquare /> },
     {
       label: 'Notifications',
       path: '/dashboard/notifications',

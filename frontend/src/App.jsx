@@ -40,7 +40,6 @@ import ReportFound from './pages/user/ReportFound';
 import MyLostItems from './pages/user/MyLostItems';
 import MyFoundItems from './pages/user/MyFoundItems';
 import MyMatches from './pages/user/MyMatches';
-import MyClaims from './pages/user/MyClaims';
 import Notifications from './pages/user/Notifications';
 
 // Admin Pages
@@ -48,7 +47,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ManageUsers from './pages/admin/ManageUsers';
 import ManageLostItems from './pages/admin/ManageLostItems';
 import ManageFoundItems from './pages/admin/ManageFoundItems';
-import ManageClaims from './pages/admin/ManageClaims';
 import ManageMatches from './pages/admin/ManageMatches';
 import Feedback from './pages/admin/Feedback';
 import AdminLogs from './pages/admin/AdminLogs';
@@ -110,7 +108,6 @@ const App = () => {
           <Route path="/dashboard/my-lost" element={<MyLostItems />} />
           <Route path="/dashboard/my-found" element={<MyFoundItems />} />
           <Route path="/dashboard/my-matches" element={<MyMatches />} />
-          <Route path="/dashboard/my-claims" element={<MyClaims />} />
           <Route path="/dashboard/notifications" element={<Notifications />} />
         </Route>
       </Route>
@@ -122,7 +119,6 @@ const App = () => {
           <Route path="/admin/users" element={<ManageUsers />} />
           <Route path="/admin/lost-items" element={<ManageLostItems />} />
           <Route path="/admin/found-items" element={<ManageFoundItems />} />
-          <Route path="/admin/claims" element={<ManageClaims />} />
           <Route path="/admin/matches" element={<ManageMatches />} />
           <Route path="/admin/feedback" element={<Feedback />} />
           <Route path="/admin/logs" element={<AdminLogs />} />

@@ -6,7 +6,6 @@
 import User from '../models/User.js';
 import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
-import ClaimRequest from '../models/ClaimRequest.js';
 import AdminLog from '../models/AdminLog.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
@@ -30,13 +29,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 
   console.log('🐌 Redis Cache Miss: getDashboardStats. Calculating aggregations...');
 
-  const [totalUsers, totalLost, totalFound, totalClaims, resolvedClaims, pendingClaims] = await Promise.all([
+  const [totalUsers, totalLost, totalFound, resolvedLost, resolvedFound] = await Promise.all([
     User.countDocuments({}),
     LostItem.countDocuments({ isDeleted: { $ne: true } }),
     FoundItem.countDocuments({ isDeleted: { $ne: true } }),
-    ClaimRequest.countDocuments({}),
-    ClaimRequest.countDocuments({ status: 'approved' }),
-    ClaimRequest.countDocuments({ status: 'pending' })
+    LostItem.countDocuments({ isDeleted: { $ne: true }, status: 'claimed' }),
+    FoundItem.countDocuments({ isDeleted: { $ne: true }, status: 'claimed' })
   ]);
 
   // Retrieve monthly aggregates for the last 6 months (lost vs found)
@@ -81,9 +79,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       totalUsers,
       totalLostItems: totalLost,
       totalFoundItems: totalFound,
-      totalClaims,
-      successfulRecoveries: resolvedClaims,
-      pendingClaims
+      successfulRecoveries: resolvedLost,
+      totalClaims: 0,
+      pendingClaims: 0
     },
     analytics: {
       monthlyLost: monthlyLostAgg.map(item => ({

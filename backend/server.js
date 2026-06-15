@@ -28,7 +28,6 @@ import userRoutes from './routes/userRoutes.js';
 import lostItemRoutes from './routes/lostItemRoutes.js';
 import foundItemRoutes from './routes/foundItemRoutes.js';
 import matchRoutes from './routes/matchRoutes.js';
-import claimRoutes from './routes/claimRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -117,7 +116,6 @@ const startServer = async () => {
   app.use('/api/lost-items', lostItemRoutes);
   app.use('/api/found-items', foundItemRoutes);
   app.use('/api/matches', matchRoutes);
-  app.use('/api/claims', claimRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/feedback', feedbackRoutes);
   app.use('/api/categories', categoryRoutes);

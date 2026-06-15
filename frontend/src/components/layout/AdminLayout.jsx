@@ -23,7 +23,6 @@ export const AdminLayout = () => {
     { label: 'Manage Users', path: '/admin/users', icon: <FiUsers /> },
     { label: 'Manage Lost Reports', path: '/admin/lost-items', icon: <FiFileText /> },
     { label: 'Manage Found Listings', path: '/admin/found-items', icon: <FiFileText /> },
-    { label: 'Verify Claims', path: '/admin/claims', icon: <FiCheckCircle /> },
     { label: 'Manage Categories', path: '/admin/categories', icon: <FiList /> },
     { label: 'Users Feedback', path: '/admin/feedback', icon: <FiMessageSquare /> },
     { label: 'Admin Audit Logs', path: '/admin/logs', icon: <FiShield /> },

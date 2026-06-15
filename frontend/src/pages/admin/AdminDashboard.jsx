@@ -100,40 +100,14 @@ const AdminDashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Pending Claims</p>
-            <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{summary.pendingClaims}</p>
-          </div>
-          <Link 
-            to="/admin/claims" 
-            className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition duration-200"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-        </div>
-
-        <div className="bg-gradient-to-br from-indigo-500/10 to-blue-500/10 border border-indigo-500/20 rounded-xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Total Claims Submitted</p>
-            <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{summary.totalClaims}</p>
-          </div>
-          <Link 
-            to="/admin/claims" 
-            className="p-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition duration-200"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Link>
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
         <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl p-5 flex items-center justify-between">
           <div>
             <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Successful Handbacks</p>
             <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{summary.successfulRecoveries}</p>
           </div>
           <Link 
-            to="/admin/claims?status=approved" 
+            to="/admin/found-items?status=claimed" 
             className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition duration-200"
           >
             <ArrowRight className="h-5 w-5" />
@@ -178,13 +152,7 @@ const AdminDashboard = () => {
             <Users className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Manage Users</span>
           </Link>
-          <Link 
-            to="/admin/claims" 
-            className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all duration-200 flex flex-col items-center text-center space-y-2"
-          >
-            <FileText className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Review Claims</span>
-          </Link>
+
           <Link 
             to="/admin/categories" 
             className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 hover:bg-indigo-50/20 dark:hover:bg-indigo-950/20 transition-all duration-200 flex flex-col items-center text-center space-y-2"

@@ -8,7 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFoundItemById, clearCurrentFoundItem } from '../../redux/slices/foundItemSlice';
-import claimService from '../../services/claimService';
+import foundItemService from '../../services/foundItemService';
 import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
@@ -31,12 +31,7 @@ export const FoundItemDetail = () => {
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
   const [activeImage, setActiveImage] = useState('');
 
-  // Claim Modal States
-  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
-  const [proofDescription, setProofDescription] = useState('');
-  const [proofImages, setProofImages] = useState([]);
-  const [isSubmittingClaim, setIsSubmittingClaim] = useState(false);
-  const [claimErrors, setClaimErrors] = useState({});
+  // No claim modal needed in P2P flow
 
   useEffect(() => {
     dispatch(fetchFoundItemById(id));
@@ -80,39 +75,7 @@ export const FoundItemDetail = () => {
   const isFinder = currentItem.user?._id === loggedInUserId;
   const isClaimable = currentItem.status === 'available' && !isFinder;
 
-  const handleClaimSubmit = async (e) => {
-    e.preventDefault();
-    setClaimErrors({});
 
-    if (!proofDescription.trim() || proofDescription.length < 10) {
-      setClaimErrors({ proofDescription: 'Proof description must be at least 10 characters long.' });
-      return;
-    }
-
-    setIsSubmittingClaim(true);
-    try {
-      const formData = new FormData();
-      formData.append('foundItemId', currentItem._id);
-      formData.append('proofDescription', proofDescription);
-      
-      proofImages.forEach((img) => {
-        formData.append('proofImages', img);
-      });
-
-      await claimService.submitClaim(formData);
-      toast.success('Ownership claim submitted successfully! Admins will review it.');
-      setIsClaimModalOpen(false);
-      setProofDescription('');
-      setProofImages([]);
-      
-      // Reload details to update status if needed
-      dispatch(fetchFoundItemById(id));
-    } catch (err) {
-      toast.error(err?.message || 'Failed to submit claim request.');
-    } finally {
-      setIsSubmittingClaim(false);
-    }
-  };
 
   return (
     <div className="flex-1 py-8 sm:py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
@@ -189,32 +152,45 @@ export const FoundItemDetail = () => {
               </div>
             </div>
 
-            {/* Claim Actions */}
+            {/* Resolution Actions */}
             <div className="p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <p className="text-sm font-extrabold text-surface-900 dark:text-white">Is this your property?</p>
                 <p className="text-xs text-surface-500 dark:text-surface-400">
-                  Submit a claim request with ownership proof to recover your item.
+                  Contact the finder using the details below to arrange collection.
                 </p>
               </div>
               <div>
-                {isClaimable ? (
+                {isFinder && currentItem.status !== 'claimed' ? (
+                  <Button 
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to mark this item as returned/resolved?')) {
+                        try {
+                          await foundItemService.updateFoundItem(currentItem._id, { status: 'claimed' });
+                          dispatch(fetchFoundItemById(id));
+                          toast.success('Item marked as resolved!');
+                        } catch (err) {
+                          toast.error('Failed to update status.');
+                        }
+                      }
+                    }} 
+                    variant="primary"
+                  >
+                    Mark as Returned
+                  </Button>
+                ) : isClaimable ? (
                   isAuthenticated ? (
-                    <Button onClick={() => setIsClaimModalOpen(true)} variant="primary">
-                      Claim Property
+                    <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} variant="primary">
+                      View Contact Details
                     </Button>
                   ) : (
                     <Link to="/login">
-                      <Button variant="primary">Log In to Claim</Button>
+                      <Button variant="primary">Log In to View Details</Button>
                     </Link>
                   )
-                ) : isFinder ? (
-                  <span className="text-xs font-bold text-primary-500 px-3 py-1.5 rounded-lg bg-primary-500/10">
-                    You listed this item
-                  </span>
                 ) : (
                   <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                    Not Available for Claims
+                    Item Resolved
                   </span>
                 )}
               </div>
@@ -349,58 +325,7 @@ export const FoundItemDetail = () => {
         </div>
       </div>
 
-      {/* Claim Ownership Modal */}
-      <Modal
-        isOpen={isClaimModalOpen}
-        onClose={() => setIsClaimModalOpen(false)}
-        title="Claim Ownership"
-      >
-        <form onSubmit={handleClaimSubmit} className="space-y-5">
-          <div className="p-3 bg-primary-500/5 dark:bg-primary-500/10 border border-primary-500/15 rounded-lg text-xs text-surface-600 dark:text-surface-400 flex items-start gap-2.5">
-            <FiAlertCircle className="text-primary-500 text-base flex-shrink-0 mt-0.5" />
-            <p>
-              Provide specific information to prove this is your item (e.g. details, stickers, passwords, contents, serial numbers). Submitting false claims may violate campus guidelines.
-            </p>
-          </div>
 
-          <Textarea
-            label="Describe Proof of Ownership"
-            placeholder="e.g. The wallet has my student ID card, some receipts, and a small key inside. It also has a scuff mark on the back left corner."
-            value={proofDescription}
-            onChange={(e) => setProofDescription(e.target.value)}
-            error={claimErrors.proofDescription}
-            required
-            helperText="Minimum 10 characters."
-          />
-
-          <ImageUpload
-            images={proofImages}
-            onChange={(imgs) => setProofImages(imgs)}
-            maxFiles={3}
-            label="Upload Proof of Ownership Images (Optional, Max 3)"
-          />
-
-          <div className="flex gap-3 pt-3 border-t border-surface-100 dark:border-surface-800/80">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsClaimModalOpen(false)}
-              disabled={isSubmittingClaim}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={isSubmittingClaim}
-              className="flex-1"
-            >
-              Submit Claim
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

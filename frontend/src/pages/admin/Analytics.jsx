@@ -81,7 +81,7 @@ const Analytics = () => {
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wide">Handed Back Rate</p>
             <p className="text-2xl font-bold text-slate-950 dark:text-white mt-1">{recoveryRate}%</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Approved claim recovery rate</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Item recovery rate</p>
           </div>
         </div>
 
