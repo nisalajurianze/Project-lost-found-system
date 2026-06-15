@@ -25,15 +25,17 @@ export const Profile = () => {
   const [avatarPreview, setAvatarPreview] = useState(user?.profileImage?.url || null);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
+  const [isEditing, setIsEditing] = useState(false);
+
   // Sync form inputs when user state updates (e.g. on session refresh)
   useEffect(() => {
-    if (user) {
+    if (user && !isEditing) {
       setFullName(user.fullName || '');
       setPhone(user.phone || '');
       setStudentId(user.studentId || '');
       setAvatarPreview(user.profileImage?.url || null);
     }
-  }, [user]);
+  }, [user, isEditing]);
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState('');
@@ -63,6 +65,7 @@ export const Profile = () => {
       // Update Redux state & LocalStorage
       dispatch(updateUserProfile(res.data.data));
       toast.success('Profile updated successfully!');
+      setIsEditing(false);
     } catch (err) {
       toast.error(err.message || 'Failed to update profile.');
     } finally {
@@ -70,8 +73,18 @@ export const Profile = () => {
     }
   };
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setFullName(user?.fullName || '');
+    setPhone(user?.phone || '');
+    setStudentId(user?.studentId || '');
+    setAvatar(null);
+    setAvatarPreview(user?.profileImage?.url || null);
+  };
+
   // Profile avatar select
   const handleAvatarChange = (e) => {
+    if (!isEditing) return;
     const file = e.target.files[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
@@ -112,24 +125,36 @@ export const Profile = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="page-header">
-        <h1 className="page-title">Profile Settings</h1>
-        <p className="page-subtitle">Manage your personal profile and account credentials</p>
+      <div className="page-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="page-title">Profile Settings</h1>
+          <p className="page-subtitle">Manage your personal profile and account credentials</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Profile Card & Details Form */}
         <div className="lg:col-span-2 glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl">
-          <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white mb-6">
-            Account Information
-          </h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white">
+              Account Information
+            </h3>
+            {!isEditing && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                Edit Profile
+              </Button>
+            )}
+          </div>
 
           <form onSubmit={handleProfileSubmit} className="space-y-6">
             
             {/* Avatar Uploader */}
             <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-surface-100 dark:border-surface-800">
-              <div className="relative group cursor-pointer" onClick={() => document.getElementById('avatar-input').click()}>
+              <div 
+                className={`relative group ${isEditing ? 'cursor-pointer' : 'opacity-80'}`} 
+                onClick={() => isEditing && document.getElementById('avatar-input').click()}
+              >
                 {avatarPreview ? (
                   <img
                     src={avatarPreview}
@@ -141,15 +166,18 @@ export const Profile = () => {
                     {getInitials(fullName)}
                   </div>
                 )}
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                  <FiCamera className="text-xl" />
-                </div>
+                {isEditing && (
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FiCamera className="text-xl" />
+                  </div>
+                )}
                 <input
                   id="avatar-input"
                   type="file"
                   accept="image/*"
                   className="hidden"
                   onChange={handleAvatarChange}
+                  disabled={!isEditing}
                 />
               </div>
               <div>
@@ -160,21 +188,24 @@ export const Profile = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                label="Full Name"
+                label="Full Name *"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
+                disabled={!isEditing}
               />
               <Input
-                label="Student ID / Admin Code"
+                label="Student ID / Admin Code *"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
                 required
+                disabled={!isEditing}
               />
               <Input
                 label="Phone Number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                disabled={!isEditing}
               />
               <Input
                 label="Email Address (Locked)"
@@ -184,13 +215,25 @@ export const Profile = () => {
               />
             </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={isUpdatingProfile}
-            >
-              Save Changes
-            </Button>
+            {isEditing && (
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  isLoading={isUpdatingProfile}
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isUpdatingProfile}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </form>
         </div>
 
