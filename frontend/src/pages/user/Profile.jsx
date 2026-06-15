@@ -38,6 +38,7 @@ export const Profile = () => {
   }, [user, isEditing]);
 
   // Password fields
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -82,6 +83,13 @@ export const Profile = () => {
     setAvatarPreview(user?.profileImage?.url || null);
   };
 
+  const handleCancelPasswordEdit = () => {
+    setIsEditingPassword(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmNewPassword('');
+  };
+
   // Profile avatar select
   const handleAvatarChange = (e) => {
     if (!isEditing) return;
@@ -116,6 +124,7 @@ export const Profile = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
+      setIsEditingPassword(false);
     } catch (err) {
       toast.error(err.message || 'Failed to change password.');
     } finally {
@@ -239,9 +248,16 @@ export const Profile = () => {
 
         {/* Change Password Card */}
         <div className="lg:col-span-1 glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl h-fit">
-          <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white mb-6">
-            Change Password
-          </h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white">
+              Change Password
+            </h3>
+            {!isEditingPassword && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditingPassword(true)}>
+                Edit
+              </Button>
+            )}
+          </div>
 
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <Input
@@ -251,6 +267,7 @@ export const Profile = () => {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
+              disabled={!isEditingPassword}
             />
             <Input
               label="New Password"
@@ -259,6 +276,7 @@ export const Profile = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
+              disabled={!isEditingPassword}
             />
             <Input
               label="Confirm New Password"
@@ -267,16 +285,30 @@ export const Profile = () => {
               value={confirmNewPassword}
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               required
+              disabled={!isEditingPassword}
             />
 
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full mt-4"
-              isLoading={isChangingPassword}
-            >
-              Update Password
-            </Button>
+            {isEditingPassword && (
+              <div className="flex flex-col gap-3 pt-2">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full"
+                  isLoading={isChangingPassword}
+                >
+                  Update Password
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleCancelPasswordEdit}
+                  disabled={isChangingPassword}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
           </form>
         </div>
 
