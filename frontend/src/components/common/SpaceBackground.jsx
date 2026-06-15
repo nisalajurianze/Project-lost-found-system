@@ -30,8 +30,8 @@ const SpaceBackground = () => {
       
       for (let i = 0; i < numStars; i++) {
         const size = Math.random() * 2 + 0.5;
-        // Faster base movement as requested
-        const speedMultiplier = 1.5;
+        // Slower base movement for a calmer space effect
+        const speedMultiplier = 0.5;
         const baseVx = (Math.random() - 0.5) * speedMultiplier;
         const baseVy = (Math.random() - 0.5) * speedMultiplier;
         
