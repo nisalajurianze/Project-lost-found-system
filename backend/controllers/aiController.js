@@ -19,24 +19,19 @@ export const suggestItemDetails = asyncHandler(async (req, res) => {
   }
 
   try {
-    // 1. Upload to Cloudinary to get a public URL for OpenRouter
-    const uploadedUrls = await uploadMultipleImages([req.file], 'ai-suggestions');
-    const imageUrl = uploadedUrls[0]?.url;
+    // Create base64 string directly from the buffer to send to OpenRouter
+    // This avoids uploading temporary images to Cloudinary just for AI auto-fill
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    if (!imageUrl) {
-      throw ApiError.internal('Failed to upload image for AI analysis.');
-    }
+    // Pass the base64 string to AI for suggestion
+    const suggestions = await suggestDetailsFromImage(base64Image);
 
-    // 2. Pass to AI for suggestion
-    const suggestions = await suggestDetailsFromImage(imageUrl);
-
-    // 3. Return JSON suggestions
+    // Return JSON suggestions
     res.status(200).json(
       ApiResponse.success(suggestions, 'AI suggestions generated successfully')
     );
   } catch (error) {
     console.error('AI Suggestion Endpoint Error:', error);
-    // Throw a 500 error with the specific message so we can debug it on the frontend
     throw ApiError.internal(`AI auto-fill failed: ${error.message}`);
   }
 });
