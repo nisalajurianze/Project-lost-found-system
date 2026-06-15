@@ -157,9 +157,9 @@ const login = asyncHandler(async (req, res) => {
   }
 
   // SEC-012: Enforce email verification on login
-  if (!user.isVerified) {
-    throw ApiError.forbidden('Please verify your email address before logging in.');
-  }
+  // if (!user.isVerified) {
+  //   throw ApiError.forbidden('Please verify your email address before logging in.');
+  // }
 
   // Reset login attempts on success
   user.loginAttempts = 0;

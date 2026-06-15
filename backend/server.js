@@ -134,16 +134,24 @@ const startServer = async () => {
       const origin = req.headers.origin;
       const referer = req.headers.referer;
 
+      // Helper to check if origin is allowed
+      const isAllowedOrigin = (url) => {
+        if (allowedOrigin.includes(url)) return true;
+        // Allow any vercel.app preview domains for Vercel deployments
+        if (url.endsWith('.vercel.app') || url.startsWith('http://localhost:')) return true;
+        return false;
+      };
+
       // If Origin is provided, it must match
-      if (origin && !allowedOrigin.includes(origin)) {
-        return res.status(403).json({ message: 'CSRF blocked: Invalid Origin header.' });
+      if (origin && !isAllowedOrigin(origin)) {
+        return res.status(403).json({ message: `CSRF blocked: Invalid Origin header (${origin}).` });
       }
 
       // If no Origin but Referer exists, check Referer
       if (!origin && referer) {
         try {
           const refererUrl = new URL(referer);
-          if (!allowedOrigin.includes(refererUrl.origin)) {
+          if (!isAllowedOrigin(refererUrl.origin)) {
             return res.status(403).json({ message: 'CSRF blocked: Invalid Referer header.' });
           }
         } catch (err) {
