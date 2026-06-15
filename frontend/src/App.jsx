@@ -37,6 +37,8 @@ const Dashboard = lazy(() => import('./pages/user/Dashboard'));
 const Profile = lazy(() => import('./pages/user/Profile'));
 const ReportLost = lazy(() => import('./pages/user/ReportLost'));
 const ReportFound = lazy(() => import('./pages/user/ReportFound'));
+const EditLostItem = lazy(() => import('./pages/user/EditLostItem'));
+const EditFoundItem = lazy(() => import('./pages/user/EditFoundItem'));
 const MyLostItems = lazy(() => import('./pages/user/MyLostItems'));
 const MyFoundItems = lazy(() => import('./pages/user/MyFoundItems'));
 const MyMatches = lazy(() => import('./pages/user/MyMatches'));
@@ -138,7 +140,9 @@ const App = () => {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/profile" element={<Profile />} />
             <Route path="/dashboard/report-lost" element={<ReportLost />} />
+            <Route path="/dashboard/edit-lost/:id" element={<EditLostItem />} />
             <Route path="/dashboard/report-found" element={<ReportFound />} />
+            <Route path="/dashboard/edit-found/:id" element={<EditFoundItem />} />
             <Route path="/dashboard/my-lost" element={<MyLostItems />} />
             <Route path="/dashboard/my-found" element={<MyFoundItems />} />
             <Route path="/dashboard/my-matches" element={<MyMatches />} />

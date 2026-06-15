@@ -114,6 +114,13 @@ export const MyLostItems = () => {
                       >
                         <FiEye />
                       </Link>
+                      <Link
+                        to={`/dashboard/edit-lost/${item._id}`}
+                        className="p-1.5 text-surface-500 hover:text-indigo-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
+                        title="Edit Report"
+                      >
+                        <FiEdit2 />
+                      </Link>
                       <button
                         onClick={() => handleDeleteClick(item._id)}
                         className="p-1.5 text-surface-500 hover:text-red-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
