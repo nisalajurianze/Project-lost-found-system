@@ -7,7 +7,7 @@ const aiService = {
 
     const response = await api.post('/ai/suggest-details', formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': null,
       },
     });
     return response.data;
