@@ -96,7 +96,7 @@ const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
         'X-Title': 'Smart Lost and Found'
       },
       body: JSON.stringify({
-        model: 'nex-agi/nex-n2-pro:free',
+        model: 'meta-llama/llama-3.2-90b-vision-instruct:free',
         messages: [
           {
             role: 'user',
@@ -255,7 +255,7 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
           'X-Title': 'Smart Lost and Found'
         },
         body: JSON.stringify({
-          model: 'nex-agi/nex-n2-pro:free',
+          model: 'meta-llama/llama-3.2-90b-vision-instruct:free',
           messages: [
             {
               role: 'user',
@@ -274,18 +274,18 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
         const content = data.choices?.[0]?.message?.content;
         const result = parseJSONResponse(content);
         if (result && result.itemName) return result;
+        throw new Error('AI returned invalid JSON or empty itemName');
+      } else {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API failed with status ${response.status}: ${errorText}`);
       }
+    } else {
+      throw new Error('OPENROUTER_API_KEY is not configured on the server.');
     }
   } catch (error) {
     console.error('AI Suggestion Error:', error);
+    throw error; // Re-throw to be caught by aiController
   }
-
-  return {
-    itemName: '',
-    category: '',
-    description: '',
-    tags: ''
-  };
 };
 
 export {
