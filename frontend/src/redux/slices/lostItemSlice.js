@@ -74,6 +74,9 @@ const lostItemSlice = createSlice({
   reducers: {
     clearCurrentLostItem: (state) => {
       state.currentItem = null;
+    },
+    clearLostItemsList: (state) => {
+      state.items = [];
     }
   },
   extraReducers: (builder) => {
@@ -145,5 +148,5 @@ const lostItemSlice = createSlice({
   }
 });
 
-export const { clearCurrentLostItem } = lostItemSlice.actions;
+export const { clearCurrentLostItem, clearLostItemsList } = lostItemSlice.actions;
 export default lostItemSlice.reducer;

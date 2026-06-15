@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchLostItems, deleteLostReport } from '../../redux/slices/lostItemSlice';
+import { fetchLostItems, deleteLostReport, clearLostItemsList } from '../../redux/slices/lostItemSlice';
 import { Link } from 'react-router-dom';
 import { FiEdit2, FiTrash2, FiEye, FiPlusCircle } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -30,6 +30,12 @@ export const MyLostItems = () => {
       dispatch(fetchLostItems({ userId: user._id, page, limit: 10, status: 'all' }));
     }
   }, [dispatch, user, page]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearLostItemsList());
+    };
+  }, [dispatch]);
 
   const handleDeleteClick = (id) => {
     setDeleteId(id);

@@ -5,7 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchLostItems } from '../../redux/slices/lostItemSlice';
+import { fetchLostItems, clearLostItemsList } from '../../redux/slices/lostItemSlice';
 import { fetchCategories } from '../../redux/slices/categorySlice';
 import { useDebounce } from '../../hooks/useDebounce';
 import SearchFilter from '../../components/common/SearchFilter';
@@ -34,6 +34,13 @@ export const LostItems = () => {
   // Fetch Categories on mount
   useEffect(() => {
     dispatch(fetchCategories());
+  }, [dispatch]);
+
+  // Clear list on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearLostItemsList());
+    };
   }, [dispatch]);
 
   // Fetch Items when filter states or page changes

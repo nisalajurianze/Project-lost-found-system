@@ -74,6 +74,9 @@ const foundItemSlice = createSlice({
   reducers: {
     clearCurrentFoundItem: (state) => {
       state.currentItem = null;
+    },
+    clearFoundItemsList: (state) => {
+      state.items = [];
     }
   },
   extraReducers: (builder) => {
@@ -145,5 +148,5 @@ const foundItemSlice = createSlice({
   }
 });
 
-export const { clearCurrentFoundItem } = foundItemSlice.actions;
+export const { clearCurrentFoundItem, clearFoundItemsList } = foundItemSlice.actions;
 export default foundItemSlice.reducer;
