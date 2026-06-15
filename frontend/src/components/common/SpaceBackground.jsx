@@ -59,8 +59,8 @@ const SpaceBackground = () => {
       // If we want trails, we'd use fillRect, but we want the CSS background to show.
       // So we just clear it entirely.
       
-      const maxDistance = 250; // Radius of black hole effect
-      const eventHorizon = 15; // Radius where stars get "sucked in"
+      const maxDistance = 120; // Tighter radius so it only affects exactly around the mouse
+      const eventHorizon = 10; // Radius where stars get "sucked in"
 
       stars.forEach(star => {
         // Calculate distance to mouse
@@ -70,7 +70,8 @@ const SpaceBackground = () => {
 
         if (distance < maxDistance) {
           // Inside the black hole influence zone
-          const force = (maxDistance - distance) / maxDistance;
+          // Use quadratic falloff so the pull is strong exactly at the center but weak at edges
+          const force = Math.pow((maxDistance - distance) / maxDistance, 2);
           
           // Angle to mouse
           const angle = Math.atan2(dy, dx);
@@ -79,12 +80,12 @@ const SpaceBackground = () => {
           const spinAngle = angle + (Math.PI / 2);
           
           // Gravity (pull towards mouse)
-          const gravityStrength = 0.8;
+          const gravityStrength = 1.5;
           star.vx += Math.cos(angle) * force * gravityStrength;
           star.vy += Math.sin(angle) * force * gravityStrength;
           
           // Vortex (spin around mouse)
-          const spinStrength = 2.5; // Strong spin
+          const spinStrength = 4.0; // Strong spin, but localized
           star.vx += Math.cos(spinAngle) * force * spinStrength;
           star.vy += Math.sin(spinAngle) * force * spinStrength;
 
