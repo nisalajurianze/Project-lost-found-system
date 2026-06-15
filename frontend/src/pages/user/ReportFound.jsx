@@ -15,6 +15,7 @@ import CreatableCategorySelect from '../../components/common/CreatableCategorySe
 import ImageUpload from '../../components/common/ImageUpload';
 import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
+import aiService from '../../services/aiService';
 
 export const ReportFound = () => {
   const navigate = useNavigate();
@@ -89,6 +90,28 @@ export const ReportFound = () => {
       toast.error(err || 'Failed to submit report.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageChange = async (imgs) => {
+    setImages(imgs);
+    
+    // If it's the first image being added and fields are mostly empty, suggest details
+    if (imgs.length === 1 && !itemName && !description) {
+      const loadingToast = toast.loading('✨ AI is analyzing your image...');
+      try {
+        const result = await aiService.suggestDetailsFromImage(imgs[0]);
+        if (result && result.data) {
+          if (result.data.itemName) setItemName(result.data.itemName);
+          if (result.data.category) setCategory(result.data.category);
+          if (result.data.description) setDescription(result.data.description);
+          toast.success('Fields auto-filled by AI!', { id: loadingToast });
+        } else {
+          toast.dismiss(loadingToast);
+        }
+      } catch (err) {
+        toast.dismiss(loadingToast);
+      }
     }
   };
 
@@ -196,9 +219,9 @@ export const ReportFound = () => {
           {/* Image Uploader */}
           <ImageUpload
             images={images}
-            onChange={(imgs) => setImages(imgs)}
+            onChange={handleImageChange}
             maxFiles={5}
-            label="Upload Item Images (Optional, Max 5)"
+            label="Upload Item Images (Auto-fill supported via AI)"
           />
 
           <div className="flex gap-4 pt-4 border-t border-surface-100 dark:border-surface-800">

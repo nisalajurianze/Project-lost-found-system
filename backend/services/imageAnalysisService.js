@@ -231,4 +231,66 @@ const generateCategoryDetails = async (categoryName) => {
   };
 };
 
-export { analyzeItemImage, generateCategoryDetails };
+/**
+ * Auto-suggests item details from an image for frontend form auto-fill.
+ */
+const suggestDetailsFromImage = async (imageUrl) => {
+  const { OPENROUTER_API_KEY } = process.env;
+
+  const systemPrompt = `You are an AI assistant helping a user fill out a Lost and Found report. 
+Look at the image provided and return ONLY a valid JSON object with these exact fields:
+- "itemName": A concise title (max 5 words, e.g. "Apple iPhone 13 Pro Black").
+- "category": The most appropriate category (e.g. "Electronics", "Wallets", "Keys", "Bags", "Clothing", "Documents", "Other").
+- "description": A short descriptive paragraph suitable for a lost/found report (include visible brands, colors, unique marks, or damage).`;
+
+  try {
+    if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key') {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+          'X-Title': 'Smart Lost and Found'
+        },
+        body: JSON.stringify({
+          model: 'nex-agi/nex-n2-pro:free',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: systemPrompt },
+                { type: 'image_url', image_url: { url: imageUrl } }
+              ]
+            }
+          ],
+          response_format: { type: 'json_object' }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        const result = parseJSONResponse(content);
+        if (result && result.itemName) return result;
+      }
+    }
+  } catch (error) {
+    console.error('AI Suggestion Error:', error);
+  }
+
+  return {
+    itemName: '',
+    category: '',
+    description: ''
+  };
+};
+
+export {
+  analyzeItemImage,
+  generateCategoryDetails,
+  suggestDetailsFromImage,
+  // Export these for testing if needed
+  parseJSONResponse,
+  fallbackAnalysis
+};
