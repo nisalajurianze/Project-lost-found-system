@@ -12,39 +12,57 @@ const SpaceBackground = () => {
     let stars = [];
     
     // Mouse tracking
-    let mouse = { x: -1000, y: -1000 }; // start off-screen
+    let mouse = { x: -1000, y: -1000 }; 
     
     // Resize handler
     const resizeCanvas = () => {
-      // Use parent container dimensions
       const parent = canvas.parentElement;
       canvas.width = parent.clientWidth;
       canvas.height = parent.clientHeight;
       initStars();
     };
 
-    // Initialize stars
+    // Initialize stars with Z-depth (3D)
     const initStars = () => {
       stars = [];
-      const numStars = 400; // More stars for a better vortex effect
+      const numStars = 400; 
       
       for (let i = 0; i < numStars; i++) {
-        const size = Math.random() * 2 + 0.5;
-        // Slower base movement for a calmer space effect
-        const speedMultiplier = 0.5;
+        // Z-depth: 1 is very close, 3 is very far
+        const z = Math.random() * 2 + 1; 
+        const size = (Math.random() * 2 + 0.5) / z; 
+        
+        // Slower movement for further stars (Parallax)
+        const speedMultiplier = 0.5 / z;
         const baseVx = (Math.random() - 0.5) * speedMultiplier;
         const baseVy = (Math.random() - 0.5) * speedMultiplier;
         
+        // Random base colors
+        let r, g, b;
+        const rand = Math.random();
+        if (rand > 0.8) {
+          // Purple
+          r = 168; g = 85; b = 247;
+        } else if (rand > 0.6) {
+          // Blue
+          r = 59; g = 130; b = 246;
+        } else {
+          // White/Gray
+          r = 255; g = 255; b = 255;
+        }
+
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
+          z: z,
           radius: size,
           baseVx: baseVx,
           baseVy: baseVy,
           vx: baseVx,
           vy: baseVy,
-          color: Math.random() > 0.8 ? (Math.random() > 0.5 ? '#a855f7' : '#3b82f6') : '#ffffff',
-          alpha: Math.random() * 0.5 + 0.5
+          baseR: r, baseG: g, baseB: b,
+          r: r, g: g, b: b,
+          alpha: (Math.random() * 0.5 + 0.3) / z
         });
       }
     };
@@ -54,13 +72,10 @@ const SpaceBackground = () => {
       // Clear canvas with a very slight fade for trail effect
       ctx.fillStyle = 'rgba(15, 23, 42, 0.3)'; // Match dark theme surface-900 roughly
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // Actually clear to let hero background show through!
+      ctx.clearRect(0, 0, canvas.width, canvas.height); 
       
-      // If we want trails, we'd use fillRect, but we want the CSS background to show.
-      // So we just clear it entirely.
-      
-      const maxDistance = 120; // Tighter radius so it only affects exactly around the mouse
-      const eventHorizon = 10; // Radius where stars get "sucked in"
+      const maxDistance = 150; // Influence radius
+      const targetOrbit = 40;  // Accretion disk radius
 
       stars.forEach(star => {
         // Calculate distance to mouse
@@ -68,32 +83,40 @@ const SpaceBackground = () => {
         const dy = mouse.y - star.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        // Reset color to base
+        star.r = star.baseR;
+        star.g = star.baseG;
+        star.b = star.baseB;
+
         if (distance < maxDistance) {
-          // Calculate angle from star to mouse
+          // Inside the black hole influence zone
           const angle = Math.atan2(dy, dx);
-          // Tangential angle for orbital spinning
           const spinAngle = angle + (Math.PI / 2);
           
-          // Target orbit radius (where they should spin)
-          const targetOrbit = 35;
           // Distance difference from the ideal orbit
           const radialDist = distance - targetOrbit;
           
           // Spring force pulling them towards the orbit ring
-          // If too far, pulls in. If too close, pushes out.
-          const gravityStrength = radialDist * 0.04;
+          // Closer stars (z=1) are affected more than far stars (z=3)
+          const gravityStrength = (radialDist * 0.04) / star.z;
           
           star.vx += Math.cos(angle) * gravityStrength;
           star.vy += Math.sin(angle) * gravityStrength;
           
-          // Strong continuous spin force
-          const spinStrength = 2.5; 
+          // Vortex (spin around mouse)
+          const spinStrength = 3.0 / star.z; 
           star.vx += Math.cos(spinAngle) * spinStrength;
           star.vy += Math.sin(spinAngle) * spinStrength;
 
+          // Heat up color (shift towards bright cyan/white) as they get closer/faster
+          const heat = Math.max(0, 1 - (distance / maxDistance));
+          star.r = star.baseR + (255 - star.baseR) * heat;
+          star.g = star.baseG + (255 - star.baseG) * heat;
+          star.b = star.baseB + (255 - star.baseB) * heat;
+
           // Limit speed to prevent chaotic physics explosions
           const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
-          const maxSpeed = 7;
+          const maxSpeed = 8 / star.z;
           if (speed > maxSpeed) {
             star.vx = (star.vx / speed) * maxSpeed;
             star.vy = (star.vy / speed) * maxSpeed;
@@ -104,40 +127,57 @@ const SpaceBackground = () => {
           star.vy += (star.baseVy - star.vy) * 0.02;
         }
 
-        // Apply friction to max speed so they don't fly out of control
+        // Apply friction
         star.vx *= 0.98;
         star.vy *= 0.98;
+
+        // Remember previous position for motion blur/lensing
+        const prevX = star.x;
+        const prevY = star.y;
 
         // Move star
         star.x += star.vx;
         star.y += star.vy;
 
         // Screen wrap
-        if (star.x < 0) star.x = canvas.width;
-        if (star.x > canvas.width) star.x = 0;
-        if (star.y < 0) star.y = canvas.height;
-        if (star.y > canvas.height) star.y = 0;
+        if (star.x < 0) { star.x = canvas.width; prevX = star.x; }
+        if (star.x > canvas.width) { star.x = 0; prevX = star.x; }
+        if (star.y < 0) { star.y = canvas.height; prevY = star.y; }
+        if (star.y > canvas.height) { star.y = 0; prevY = star.y; }
 
-        // Draw star
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-        
-        // Add a glow effect based on speed
+        // Draw star (Gravitational Lensing / Motion Blur)
         const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
-        const glowAlpha = Math.min(star.alpha + (speed * 0.1), 1);
+        const glowAlpha = Math.min(star.alpha + (speed * 0.05), 1);
         
-        ctx.fillStyle = star.color;
-        ctx.globalAlpha = glowAlpha;
-        ctx.fill();
-        ctx.globalAlpha = 1.0; // Reset
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${Math.floor(star.r)}, ${Math.floor(star.g)}, ${Math.floor(star.b)}, ${glowAlpha})`;
+        ctx.lineWidth = star.radius;
+        ctx.lineCap = 'round';
+        
+        // If it's moving fast (in the vortex), stretch it out (lensing)
+        if (speed > 1) {
+          ctx.moveTo(star.x - star.vx * 1.5, star.y - star.vy * 1.5);
+        } else {
+          ctx.moveTo(star.x, star.y);
+        }
+        ctx.lineTo(star.x, star.y);
+        ctx.stroke();
       });
 
-      // Optional: Draw the black hole center (event horizon)
+      // Draw Accretion Disk / Black Hole
       if (mouse.x > -100 && mouse.y > -100) {
+        // Event Horizon (Pure Black Void)
         ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, eventHorizon + 5, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, eventHorizon + 5);
-        gradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)');
+        ctx.arc(mouse.x, mouse.y, 12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+        ctx.fill();
+
+        // Accretion Disk Glow
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, targetOrbit + 20, 0, Math.PI * 2);
+        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 12, mouse.x, mouse.y, targetOrbit + 20);
+        gradient.addColorStop(0, 'rgba(168, 85, 247, 0.4)'); // Purple inner glow
+        gradient.addColorStop(0.5, 'rgba(59, 130, 246, 0.1)'); // Blue mid glow
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = gradient;
         ctx.fill();
@@ -149,8 +189,6 @@ const SpaceBackground = () => {
     // Event Listeners
     window.addEventListener('resize', resizeCanvas);
     
-    // We attach mousemove to the parent window/document to track it properly
-    // But we only care about coordinates relative to the canvas
     const handleMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
@@ -158,12 +196,10 @@ const SpaceBackground = () => {
     };
     
     const handleMouseLeave = () => {
-      // Move black hole off screen
       mouse.x = -1000;
       mouse.y = -1000;
     };
 
-    // Need to bind mouse to the parent section
     const parentSection = canvas.closest('section');
     if (parentSection) {
       parentSection.addEventListener('mousemove', handleMouseMove);
@@ -188,7 +224,7 @@ const SpaceBackground = () => {
     <canvas
       ref={canvasRef}
       className="absolute inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.8 }}
+      style={{ opacity: 0.9 }}
     />
   );
 };
