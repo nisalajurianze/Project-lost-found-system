@@ -128,7 +128,7 @@ const ManageLostItems = () => {
                 {/* Thumbnail */}
                 <div className="h-32 w-full md:w-32 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-800">
                   {item.images?.[0]?.url ? (
-                    <img src={item.images[0].url} alt={item.itemName} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img src={item.images[0].url} alt={item.itemName} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <HelpCircle className="h-10 w-10 text-slate-400" />
                   )}
