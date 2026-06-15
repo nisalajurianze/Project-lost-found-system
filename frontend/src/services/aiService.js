@@ -5,7 +5,11 @@ const aiService = {
     const formData = new FormData();
     formData.append('image', imageFile);
 
-    const response = await api.post('/ai/suggest-details', formData);
+    const response = await api.post('/ai/suggest-details', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 };
