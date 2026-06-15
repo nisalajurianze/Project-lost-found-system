@@ -91,25 +91,27 @@ const getFallbackAnalysis = (itemName = '', description = '') => {
 };
 
 /**
- * Analyze an item image using OpenAI.
+ * Analyze an item image using OpenRouter.
  */
-const analyzeWithOpenAI = async (imageUrl, apiKey) => {
+const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+        'X-Title': 'Smart Lost and Found'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'nex-agi/nex-n2-pro:free',
         messages: [
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Analyze this lost/found item image. Return a JSON object with fields: "labels" (array of strings, e.g. ["Laptop", "MacBook"]), "colors" (array of strings, e.g. ["Silver", "Black"]), "description" (a concise 1-2 sentence description of the item) and "confidence" (number 0-100 representing how confident you are). Do not wrap the JSON in markdown blocks.'
+                text: 'Analyze this lost/found item image. Return a JSON object with fields: "labels" (array of strings), "colors" (array of strings), "description" (a concise 1-2 sentence description of the item) and "confidence" (number 0-100 representing how confident you are). Do not wrap the JSON in markdown blocks.'
               },
               {
                 type: 'image_url',
@@ -117,14 +119,13 @@ const analyzeWithOpenAI = async (imageUrl, apiKey) => {
               }
             ]
           }
-        ],
-        response_format: { type: 'json_object' }
+        ]
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`OpenAI API responded with ${response.status}: ${errText}`);
+      throw new Error(`OpenRouter API responded with ${response.status}: ${errText}`);
     }
 
     const data = await response.json();
@@ -134,76 +135,13 @@ const analyzeWithOpenAI = async (imageUrl, apiKey) => {
     if (result) {
       return {
         ...result,
-        provider: 'openai',
+        provider: 'openrouter',
         rawResponse: data
       };
     }
     return null;
   } catch (error) {
-    console.error('❌ OpenAI Image Analysis failed:', error.message);
-    return null;
-  }
-};
-
-/**
- * Analyze an item image using Gemini API (via HTTP request).
- */
-const analyzeWithGemini = async (imageUrl, apiKey) => {
-  try {
-    // Fetch image data to send inline
-    const imageRes = await fetch(imageUrl);
-    if (!imageRes.ok) throw new Error('Failed to fetch image buffer for Gemini');
-    const arrayBuffer = await imageRes.arrayBuffer();
-    const base64Data = Buffer.from(arrayBuffer).toString('base64');
-    const mimeType = imageRes.headers.get('content-type') || 'image/jpeg';
-
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: 'Analyze this lost/found item image. Return ONLY a JSON object (no markdown, no ```json formatting) with fields: "labels" (array of strings), "colors" (array of strings), "description" (short 1-2 sentence description) and "confidence" (number 0-100).'
-                },
-                {
-                  inlineData: {
-                    mimeType,
-                    data: base64Data
-                  }
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json'
-          }
-        })
-      }
-    );
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Gemini API responded with ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    const result = parseJSONResponse(text);
-
-    if (result) {
-      return {
-        ...result,
-        provider: 'gemini',
-        rawResponse: data
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error('❌ Gemini Image Analysis failed:', error.message);
+    console.error('❌ OpenRouter Image Analysis failed:', error.message);
     return null;
   }
 };
@@ -220,28 +158,22 @@ const analyzeWithGemini = async (imageUrl, apiKey) => {
  * @returns {Promise<ImageAnalysis>} Saved ImageAnalysis document
  */
 const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', description = '') => {
-  const { OPENAI_API_KEY, GEMINI_API_KEY } = process.env;
+  const { OPENROUTER_API_KEY } = process.env;
   let analysis = null;
 
-  // 1. Try OpenAI if configured
-  if (OPENAI_API_KEY && OPENAI_API_KEY !== 'your_openai_api_key' && !imageUrl.startsWith('data:')) {
-    console.log(`🤖 Analyzing image for ${itemType} (${itemId}) using OpenAI...`);
-    analysis = await analyzeWithOpenAI(imageUrl, OPENAI_API_KEY);
+  // 1. Try OpenRouter if configured
+  if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key' && !imageUrl.startsWith('data:')) {
+    console.log(`🤖 Analyzing image for ${itemType} (${itemId}) using OpenRouter (nex-n2-pro)...`);
+    analysis = await analyzeWithOpenRouter(imageUrl, OPENROUTER_API_KEY);
   }
 
-  // 2. Try Gemini as secondary if OpenAI is missing or failed
-  if (!analysis && GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key' && !imageUrl.startsWith('data:')) {
-    console.log(`🤖 Analyzing image for ${itemType} (${itemId}) using Gemini...`);
-    analysis = await analyzeWithGemini(imageUrl, GEMINI_API_KEY);
-  }
-
-  // 3. Fallback if no APIs succeeded or were configured
+  // 2. Fallback if API failed or was not configured
   if (!analysis) {
     console.log(`ℹ️ Using rule-based fallback analysis for ${itemType} (${itemId})...`);
     analysis = getFallbackAnalysis(itemName, description);
   }
 
-  // BUG-008: Save analysis to database using upsert to prevent duplicates
+  // Save analysis to database using upsert to prevent duplicates
   const savedAnalysis = await ImageAnalysis.findOneAndUpdate(
     { itemId, itemType },
     {
@@ -268,21 +200,23 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
  * @returns {Promise<{icon: string, description: string}>}
  */
 const generateCategoryDetails = async (categoryName) => {
-  const { OPENAI_API_KEY, GEMINI_API_KEY } = process.env;
+  const { OPENROUTER_API_KEY } = process.env;
   
   const systemPrompt = `You are an AI assistant for a Lost and Found system. A user has suggested a new item category named "${categoryName}". Provide a JSON object containing two fields: "icon" (a single relevant emoji, fallback to 📦 if unsure) and "description" (a very short 1-sentence description of what items belong in this category). Return ONLY valid JSON.`;
 
-  // 1. Try OpenAI
-  if (OPENAI_API_KEY && OPENAI_API_KEY !== 'your_openai_api_key') {
+  // 1. Try OpenRouter
+  if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key') {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+          'X-Title': 'Smart Lost and Found'
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'nex-agi/nex-n2-pro:free',
           messages: [{ role: 'user', content: systemPrompt }],
           response_format: { type: 'json_object' }
         })
@@ -294,39 +228,14 @@ const generateCategoryDetails = async (categoryName) => {
         if (result && result.icon && result.description) return result;
       }
     } catch (e) {
-      console.error('OpenAI category generation failed:', e.message);
+      console.error('OpenRouter category generation failed:', e.message);
     }
   }
 
-  // 2. Try Gemini
-  if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key') {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: { responseMimeType: 'application/json' }
-          })
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        const result = parseJSONResponse(text);
-        if (result && result.icon && result.description) return result;
-      }
-    } catch (e) {
-      console.error('Gemini category generation failed:', e.message);
-    }
-  }
-
-  // 3. Fallback
+  // 2. Generic fallback
   return {
     icon: '📦',
-    description: `User-suggested category: ${categoryName}`
+    description: `Items related to ${categoryName}.`
   };
 };
 
