@@ -25,12 +25,12 @@ const SpaceBackground = () => {
     // Initialize stars with Z-depth (3D)
     const initStars = () => {
       stars = [];
-      const numStars = 400; 
+      const numStars = 1000; // Increased star count significantly
       
       for (let i = 0; i < numStars; i++) {
         // Z-depth: 1 is very close, 3 is very far
         const z = Math.random() * 2 + 1; 
-        const size = (Math.random() * 2 + 0.5) / z; 
+        const size = (Math.random() * 2.5 + 1.0) / z; // Made base size larger
         
         // Slower movement for further stars (Parallax)
         const speedMultiplier = 0.5 / z;
@@ -62,7 +62,8 @@ const SpaceBackground = () => {
           vy: baseVy,
           baseR: r, baseG: g, baseB: b,
           r: r, g: g, b: b,
-          alpha: (Math.random() * 0.5 + 0.3) / z
+          // Brighter alpha so they are more visible
+          alpha: Math.random() * 0.6 + 0.4 
         });
       }
     };
