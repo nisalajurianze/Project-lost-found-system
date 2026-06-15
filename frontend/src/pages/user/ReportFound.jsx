@@ -112,6 +112,8 @@ export const ReportFound = () => {
         }
       } catch (err) {
         toast.dismiss(loadingToast);
+        console.error("AI Auto-fill failed:", err);
+        toast.error(`AI Auto-fill failed: ${err.message || 'Unknown error'}`);
       }
     }
   };
