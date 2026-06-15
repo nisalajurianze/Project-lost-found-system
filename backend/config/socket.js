@@ -55,12 +55,14 @@ const initSocket = (httpServer) => {
 
     // Parse cookies from socket request
     let userRole = 'user';
+    let authUserId = null;
     try {
       if (socket.request.headers.cookie) {
         const cookies = cookie.parse(socket.request.headers.cookie);
         if (cookies.accessToken) {
           const decoded = jwt.verify(cookies.accessToken, process.env.JWT_ACCESS_SECRET);
           userRole = decoded.role;
+          authUserId = decoded.id;
         }
       }
     } catch (e) {
@@ -69,9 +71,11 @@ const initSocket = (httpServer) => {
 
     // Join user-specific room for targeted notifications
     socket.on('join', (userId) => {
-      if (userId) {
+      if (userId && authUserId === userId) {
         socket.join(`user_${userId}`);
         console.log(`👤 User ${userId} joined room user_${userId}`);
+      } else {
+        console.warn(`⚠️ Unauthorised attempt to join user_${userId} from socket ${socket.id}`);
       }
     });
 

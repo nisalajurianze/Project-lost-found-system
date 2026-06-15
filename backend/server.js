@@ -124,9 +124,31 @@ const startServer = async () => {
   app.use('/api', (req, res, next) => {
     // Only apply to state-changing methods
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+      // 1. Check custom header
       const requestedWith = req.headers['x-requested-with'];
       if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
         return res.status(403).json({ message: 'Potential CSRF attempt blocked. Missing X-Requested-With header.' });
+      }
+
+      // 2. Strict Origin/Referer Validation
+      const origin = req.headers.origin;
+      const referer = req.headers.referer;
+
+      // If Origin is provided, it must match
+      if (origin && !allowedOrigin.includes(origin)) {
+        return res.status(403).json({ message: 'CSRF blocked: Invalid Origin header.' });
+      }
+
+      // If no Origin but Referer exists, check Referer
+      if (!origin && referer) {
+        try {
+          const refererUrl = new URL(referer);
+          if (!allowedOrigin.includes(refererUrl.origin)) {
+            return res.status(403).json({ message: 'CSRF blocked: Invalid Referer header.' });
+          }
+        } catch (err) {
+          return res.status(403).json({ message: 'CSRF blocked: Malformed Referer header.' });
+        }
       }
     }
     next();

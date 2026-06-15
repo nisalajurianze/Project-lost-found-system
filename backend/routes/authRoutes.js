@@ -25,22 +25,36 @@ import {
 
 // Specific rate limiters for auth endpoints
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+
+// Helper for Redis store
+const createRedisStore = (prefix) => new RedisStore({
+  prefix,
+  sendCommand: async (...args) => {
+    const client = (await import('../config/redis.js')).getRedisClient();
+    if (client) return client.call(...args);
+    throw new Error('Redis not available');
+  },
+});
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 mins
   max: 20,
+  store: createRedisStore('rl-auth:'),
   message: { success: false, message: 'Too many authentication attempts. Please try again after 15 minutes.' }
 });
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  store: createRedisStore('rl-login:'),
   message: { success: false, message: 'Too many login attempts. Please try again after 15 minutes.' }
 });
 
 const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5,
+  store: createRedisStore('rl-pwd:'),
   message: { success: false, message: 'Too many password reset requests. Please try again after an hour.' }
 });
 
