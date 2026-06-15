@@ -21,11 +21,13 @@ import {
   paginationQuery
 } from '../utils/validators.js';
 
+import { cacheResponse } from '../middlewares/cacheMiddleware.js';
+
 const router = express.Router();
 
 // Publicly viewable found items
-router.get('/', paginationQuery, validate, getFoundItems);
-router.get('/:id', mongoIdParam, validate, getFoundItemById);
+router.get('/', paginationQuery, validate, cacheResponse(60), getFoundItems);
+router.get('/:id', mongoIdParam, validate, cacheResponse(60), getFoundItemById);
 
 // Protected report/management
 router.post('/', protect, uploadMultiple, createFoundItemValidator, validate, createFoundItem);

@@ -21,11 +21,13 @@ import {
   paginationQuery
 } from '../utils/validators.js';
 
+import { cacheResponse } from '../middlewares/cacheMiddleware.js';
+
 const router = express.Router();
 
 // Publicly viewable items
-router.get('/', paginationQuery, validate, getLostItems);
-router.get('/:id', mongoIdParam, validate, getLostItemById);
+router.get('/', paginationQuery, validate, cacheResponse(60), getLostItems);
+router.get('/:id', mongoIdParam, validate, cacheResponse(60), getLostItemById);
 
 // Protected items reporting/management
 router.post('/', protect, uploadMultiple, createLostItemValidator, validate, createLostItem);

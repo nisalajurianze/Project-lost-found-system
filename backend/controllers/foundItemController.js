@@ -62,7 +62,7 @@ const createFoundItem = asyncHandler(async (req, res) => {
   await categoryExists.save();
 
   // Invalidate cache
-  await deleteCache('foundItems:*');
+  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
 
   // Run AI analysis and AI Matching in background
   (async () => {
@@ -249,7 +249,7 @@ const updateFoundItem = asyncHandler(async (req, res) => {
   })();
 
   // Invalidate cache
-  await deleteCache('foundItems:*');
+  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
 
   ApiResponse.ok(item, 'Found item updated successfully. Rematching completed.').send(res);
 });
@@ -282,7 +282,7 @@ const deleteFoundItem = asyncHandler(async (req, res) => {
   await Match.deleteMany({ foundItemId: item._id });
 
   // Invalidate cache
-  await deleteCache('foundItems:*');
+  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
 
   ApiResponse.noContent('Found item deleted successfully.').send(res);
 });

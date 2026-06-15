@@ -61,7 +61,7 @@ const createLostItem = asyncHandler(async (req, res) => {
   await categoryExists.save();
 
   // Invalidate cache
-  await deleteCache('lostItems:*');
+  await deleteCache(['lostItems:*', 'cache:/api/lost-items*']);
 
   // Run AI Image Analysis and AI Matching in background (avoid blocking client response)
   // We handle errors locally inside the async IIFE to prevent crash
@@ -256,7 +256,7 @@ const updateLostItem = asyncHandler(async (req, res) => {
   })();
 
   // Invalidate cache
-  await deleteCache('lostItems:*');
+  await deleteCache(['lostItems:*', 'cache:/api/lost-items*']);
 
   ApiResponse.ok(item, 'Lost item updated successfully. Rematching completed.').send(res);
 });
@@ -290,7 +290,7 @@ const deleteLostItem = asyncHandler(async (req, res) => {
   await Match.deleteMany({ lostItemId: item._id });
 
   // Invalidate cache
-  await deleteCache('lostItems:*');
+  await deleteCache(['lostItems:*', 'cache:/api/lost-items*']);
 
   ApiResponse.noContent('Lost item deleted successfully.').send(res);
 });
