@@ -141,6 +141,21 @@ export const ReportFound = () => {
       <div className="glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-surface-900 dark:text-white mb-2 flex items-center gap-2">
+              <span className="text-xl">✨</span> Smart Auto-fill
+            </h3>
+            <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
+              Upload an image of the item first, and our AI will automatically suggest the name, category, description, and search tags for you!
+            </p>
+            <ImageUpload
+              images={images}
+              onChange={handleImageChange}
+              maxFiles={5}
+              label="Upload Item Images"
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Input
               label="Item Name / Title"
@@ -217,13 +232,6 @@ export const ReportFound = () => {
             onChange={(e) => setContactPreference(e.target.value)}
           />
 
-          {/* Image Uploader */}
-          <ImageUpload
-            images={images}
-            onChange={handleImageChange}
-            maxFiles={5}
-            label="Upload Item Images (Auto-fill supported via AI)"
-          />
 
           <div className="flex gap-4 pt-4 border-t border-surface-100 dark:border-surface-800">
             <Button
