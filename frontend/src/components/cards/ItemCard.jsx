@@ -3,7 +3,7 @@
 // Layout representation of lost & found item records
 // ============================================
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
 import { getCategoryIcon } from '../../utils/helpers';
@@ -11,6 +11,7 @@ import { formatRelativeTime } from '../../utils/formatDate';
 import { FiMapPin, FiClock } from 'react-icons/fi';
 
 export const ItemCard = React.memo(({ item, type = 'lost' }) => {
+  const [imageError, setImageError] = useState(false);
   const isLost = type === 'lost';
   const detailPath = isLost ? `/lost-items/${item._id}` : `/found-items/${item._id}`;
   
@@ -18,7 +19,7 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   const displayDate = isLost ? item.lostDate : item.foundDate;
 
   // Use first image or a clean CSS placeholder card
-  const mainImage = item.images && item.images.length > 0 ? item.images[0].url : null;
+  const mainImage = !imageError && item.images && item.images.length > 0 ? item.images[0].url : null;
 
   return (
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
@@ -30,12 +31,13 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
             alt={item.itemName}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
+            onError={() => setImageError(true)}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-4xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
             {getCategoryIcon(item.category)}
-            <span className="text-xs font-semibold uppercase tracking-wider text-surface-400 mt-2">
-              No Image Provided
+            <span className="text-xs font-semibold uppercase tracking-wider text-surface-400 mt-2 text-center px-2">
+              {item.images && item.images.length > 0 ? "Image Blocked/Failed" : "No Image Provided"}
             </span>
           </div>
         )}
