@@ -103,6 +103,7 @@ export const ReportLost = () => {
           if (result.data.itemName) setItemName(result.data.itemName);
           if (result.data.category) setCategory(result.data.category);
           if (result.data.description) setDescription(result.data.description);
+          if (result.data.tags) setTags(result.data.tags);
           toast.success('Fields auto-filled by AI!', { id: loadingToast });
         } else {
           toast.dismiss(loadingToast);

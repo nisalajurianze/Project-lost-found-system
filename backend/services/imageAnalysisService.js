@@ -241,7 +241,8 @@ const suggestDetailsFromImage = async (imageUrl) => {
 Look at the image provided and return ONLY a valid JSON object with these exact fields:
 - "itemName": A concise title (max 5 words, e.g. "Apple iPhone 13 Pro Black").
 - "category": The most appropriate category (e.g. "Electronics", "Wallets", "Keys", "Bags", "Clothing", "Documents", "Other").
-- "description": A short descriptive paragraph suitable for a lost/found report (include visible brands, colors, unique marks, or damage).`;
+- "description": A short descriptive paragraph suitable for a lost/found report (include visible brands, colors, unique marks, or damage).
+- "tags": A comma-separated string of 3 to 5 search keywords (e.g. "smartwatch, fitness, wristband, black").`;
 
   try {
     if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key') {
@@ -282,7 +283,8 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
   return {
     itemName: '',
     category: '',
-    description: ''
+    description: '',
+    tags: ''
   };
 };
 
