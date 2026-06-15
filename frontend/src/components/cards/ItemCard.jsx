@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
-import { getCategoryIcon } from '../../utils/helpers';
+import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 import { FiMapPin, FiClock } from 'react-icons/fi';
 
@@ -19,17 +19,18 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   const displayDate = isLost ? item.lostDate : item.foundDate;
 
   // Use first image or a clean CSS placeholder card
-  const mainImage = !imageError && item.images && item.images.length > 0 ? item.images[0].url : null;
+  let mainImage = !imageError && item.images && item.images.length > 0 ? item.images[0].url : null;
+  mainImage = optimizeImageUrl(mainImage, 600);
 
   return (
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
       {/* Image Container */}
-      <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden">
+      <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden flex items-center justify-center">
         {mainImage ? (
           <img
             src={mainImage}
             alt={item.itemName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
             loading="lazy"
             onError={() => setImageError(true)}
           />

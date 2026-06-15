@@ -99,3 +99,18 @@ export const getConfidenceLabel = (score) => {
   if (score >= 40) return 'Low';
   return 'None';
 };
+
+/**
+ * Optimizes a Cloudinary image URL for faster loading.
+ * Injects format, quality, and sizing transformations.
+ */
+export const optimizeImageUrl = (url, width = 800) => {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.includes('res.cloudinary.com')) return url;
+
+  const parts = url.split('/upload/');
+  if (parts.length !== 2) return url;
+
+  // Add format auto, quality auto, and width limit
+  return `${parts[0]}/upload/f_auto,q_auto,w_${width},c_limit/${parts[1]}`;
+};

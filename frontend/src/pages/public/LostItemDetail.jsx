@@ -11,7 +11,7 @@ import { fetchLostItemById, clearCurrentLostItem } from '../../redux/slices/lost
 import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
-import { getCategoryIcon } from '../../utils/helpers';
+import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
 import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
@@ -82,12 +82,12 @@ export const LostItemDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Image Gallery (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-[4/3] rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md">
+            <div className="relative aspect-[4/3] rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md flex items-center justify-center">
               {hasImages && activeImage ? (
                 <img
-                  src={activeImage}
+                  src={optimizeImageUrl(activeImage, 1200)}
                   alt={currentItem.itemName}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-6xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
@@ -116,7 +116,7 @@ export const LostItemDetail = () => {
                         : 'border-transparent hover:border-surface-300 dark:hover:border-surface-700'
                     }`}
                   >
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
+                    <img src={optimizeImageUrl(img.url, 200)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
