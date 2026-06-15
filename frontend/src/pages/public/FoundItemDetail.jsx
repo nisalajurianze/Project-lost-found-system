@@ -16,7 +16,7 @@ import Modal from '../../components/common/Modal';
 import Textarea from '../../components/common/Textarea';
 import ImageUpload from '../../components/common/ImageUpload';
 import { getCategoryIcon } from '../../utils/helpers';
-import { formatDate, formatRelativeTime } from '../../utils/formatDate';
+import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock, FiAlertCircle, FiClipboard } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -148,7 +148,7 @@ export const FoundItemDetail = () => {
                   Reported {formatRelativeTime(currentItem.createdAt)}
                 </span>
                 <span>•</span>
-                <span>Found Date: {formatDate(currentItem.foundDate)}</span>
+                <span>Found Date: {formatAbsoluteDate(currentItem.foundDate)}</span>
               </div>
             </div>
 

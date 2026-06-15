@@ -12,7 +12,7 @@ import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
 import { getCategoryIcon } from '../../utils/helpers';
-import { formatDate, formatRelativeTime } from '../../utils/formatDate';
+import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
 
@@ -137,7 +137,7 @@ export const LostItemDetail = () => {
                   Reported {formatRelativeTime(currentItem.createdAt)}
                 </span>
                 <span>•</span>
-                <span>Lost Date: {formatDate(currentItem.lostDate)}</span>
+                <span>Lost Date: {formatAbsoluteDate(currentItem.lostDate)}</span>
               </div>
             </div>
 
