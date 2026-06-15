@@ -98,7 +98,7 @@ const App = () => {
   useSocket(user);
 
   return (
-    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center"><Loader size="lg" /></div>}>
+    <Suspense fallback={<Loader fullPage={true} />}>
       <Routes>
         {/* Public Routes */}
         <Route element={<PublicLayout />}>

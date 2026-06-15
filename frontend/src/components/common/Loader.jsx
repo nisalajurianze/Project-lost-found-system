@@ -30,10 +30,21 @@ export const Loader = ({
 
   if (fullPage) {
     return (
-      <div className="flex flex-col h-[50vh] w-full items-center justify-center gap-4">
-        {spinner}
+      <div className="flex flex-col h-[60vh] w-full items-center justify-center gap-6">
+        <div className="flex items-center gap-3">
+          <span 
+            className="inline-block animate-spin origin-center text-4xl sm:text-5xl"
+            role="img" 
+            aria-label="loading"
+          >
+            🔍
+          </span>
+          <span className="text-3xl sm:text-4xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
+            Smart L&F
+          </span>
+        </div>
         <span className="text-sm font-medium text-surface-500 dark:text-surface-400 animate-pulse">
-          Loading...
+          Loading application...
         </span>
       </div>
     );
