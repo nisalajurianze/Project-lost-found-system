@@ -25,6 +25,8 @@ export const LostItemDetail = () => {
   const { currentItem, isLoading, error } = useSelector((state) => state.lostItems);
   const [activeImage, setActiveImage] = useState('');
 
+  const loggedInUserId = useSelector((state) => state.auth.user?._id);
+
   useEffect(() => {
     dispatch(fetchLostItemById(id));
     return () => {
@@ -64,7 +66,7 @@ export const LostItemDetail = () => {
   }
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
-  const isOwner = currentItem.user?._id === useSelector((state) => state.auth.user?._id);
+  const isOwner = currentItem.user?._id === loggedInUserId;
 
   return (
     <div className="flex-1 py-8 sm:py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
