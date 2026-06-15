@@ -103,11 +103,12 @@ const startServer = async () => {
   // Global rate limiter (SEC-005) with Redis distributed caching
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // limit each IP to 200 requests per windowMs
+    max: 1000, // Increased limit: allow 1000 requests per 15 mins to prevent false positives
     message: 'Too many requests from this IP, please try again after 15 minutes.',
     standardHeaders: true,
     legacyHeaders: false,
     store: new RedisStore({
+      prefix: 'rl-v2:', // Change prefix to invalidate any currently blocked IPs
       // We pass the ioredis instance from initRedis
       // Note: we fetch it lazily or use the global connection pool if available
       sendCommand: async (...args) => {
