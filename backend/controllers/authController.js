@@ -173,15 +173,17 @@ const login = asyncHandler(async (req, res) => {
   const userData = user.toObject();
   delete userData.password;
 
-  ApiResponse.ok({ user: userData, accessToken: tokens.accessToken }, 'Login successful.').send(res);
+  ApiResponse.ok({ user: userData, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }, 'Login successful.').send(res);
 });
 
 /**
  * Refresh JWT tokens.
  */
 const refreshToken = asyncHandler(async (req, res) => {
-  // Extract refresh token from HTTP-only cookie
-  let rToken = req.cookies?.refreshToken;
+  // Extract refresh token from cookie, body, or Authorization header (fallback for cross-site cookie blocking)
+  let rToken = req.cookies?.refreshToken 
+    || req.body?.refreshToken 
+    || req.query?.refreshToken;
 
   if (!rToken) {
     throw ApiError.unauthorized('No refresh token provided.');
@@ -208,7 +210,7 @@ const refreshToken = asyncHandler(async (req, res) => {
   // Generate new tokens
   const tokens = await generateTokens(user, res);
 
-  ApiResponse.ok({ accessToken: tokens.accessToken }, 'Token refreshed successfully.').send(res);
+  ApiResponse.ok({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }, 'Token refreshed successfully.').send(res);
 });
 
 /**

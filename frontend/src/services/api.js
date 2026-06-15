@@ -79,13 +79,24 @@ api.interceptors.response.use(
 
       try {
         console.log('🔄 Access token expired. Attempting token refresh...');
-        const refreshRes = await axios.get(`${API_URL}/auth/refresh-token`, {
-          withCredentials: true
-        });
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+        
+        const refreshRes = await axios.post(
+          `${API_URL}/auth/refresh-token`,
+          { refreshToken: storedRefreshToken },
+          { 
+            withCredentials: true,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          }
+        );
 
         const newAccessToken = refreshRes.data?.data?.accessToken;
+        const newRefreshToken = refreshRes.data?.data?.refreshToken;
         if (newAccessToken) {
           localStorage.setItem('accessToken', newAccessToken);
+        }
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
         }
 
         processQueue(null, newAccessToken);
@@ -102,6 +113,8 @@ api.interceptors.response.use(
 
         // Clear local storage and dispatch a custom event to redirect to login
         localStorage.removeItem('smart-lf-user');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         window.dispatchEvent(new Event('auth-logout'));
 
         return Promise.reject(refreshError);

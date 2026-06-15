@@ -64,6 +64,7 @@ router.post('/register', authLimiter, registerValidator, validate, register);
 router.get('/verify-email', verifyEmail);
 router.post('/login', loginLimiter, loginValidator, validate, login);
 router.get('/refresh-token', refreshToken);
+router.post('/refresh-token', refreshToken);
 router.post('/logout', protect, logout);
 router.post('/forgot-password', passwordResetLimiter, forgotPasswordValidator, validate, forgotPassword);
 router.post('/reset-password', passwordResetLimiter, resetPasswordValidator, validate, resetPassword);

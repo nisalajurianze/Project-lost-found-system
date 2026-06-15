@@ -20,11 +20,14 @@ const authService = {
    */
   login: async (credentials) => {
     const res = await api.post('/auth/login', credentials);
-    const { user, accessToken } = res.data.data;
+    const { user, accessToken, refreshToken } = res.data.data;
     
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
     if (accessToken) {
       localStorage.setItem('accessToken', accessToken);
+    }
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
     }
     
     return { user };
@@ -73,6 +76,7 @@ const authService = {
     }
     localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   },
 };
 
