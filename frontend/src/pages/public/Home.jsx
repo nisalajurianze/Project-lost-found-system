@@ -3,16 +3,18 @@
 // Hero gradient panels, statistics counts, and listings summaries
 // ============================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlusCircle, FiSearch, FiFileText, FiShield, FiCpu, FiMessageSquare } from 'react-icons/fi';
 import Button from '../../components/common/Button';
 import lostItemService from '../../services/lostItemService';
 import foundItemService from '../../services/foundItemService';
+import SpaceBackground from '../../components/common/SpaceBackground';
 
 export const Home = () => {
   const navigate = useNavigate();
+  const heroRef = useRef(null);
   
   const [latestLost, setLatestLost] = useState([]);
   const [latestFound, setLatestFound] = useState([]);
@@ -35,6 +37,15 @@ export const Home = () => {
     };
     fetchLatest();
   }, []);
+
+  const handleMouseMove = (e) => {
+    if (!heroRef.current) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    heroRef.current.style.setProperty('--mouse-x', `${x}px`);
+    heroRef.current.style.setProperty('--mouse-y', `${y}px`);
+  };
 
   const stats = [
     { label: 'Belongings Recovered', value: '180+', color: 'text-emerald-500' },
@@ -64,8 +75,12 @@ export const Home = () => {
     <div className="flex-1 flex flex-col bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       
       {/* Hero Section */}
-      <section className="relative hero-bg py-20 lg:py-32 flex items-center justify-center text-center text-white">
-        <div className="hero-pattern" />
+      <section 
+        ref={heroRef}
+        onMouseMove={handleMouseMove}
+        className="relative hero-bg py-20 lg:py-32 flex items-center justify-center text-center text-white"
+      >
+        <SpaceBackground />
         <div className="page-container relative z-10 max-w-4xl mx-auto flex flex-col items-center">
           <motion.span
             initial={{ opacity: 0, y: -10 }}
