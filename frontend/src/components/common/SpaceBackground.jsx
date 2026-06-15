@@ -25,15 +25,15 @@ const SpaceBackground = () => {
     // Initialize stars with Z-depth (3D)
     const initStars = () => {
       stars = [];
-      const numStars = 1000; // Increased star count significantly
+      const numStars = 2000; // Increased star count (user point 6)
       
       for (let i = 0; i < numStars; i++) {
         // Z-depth: 1 is very close, 3 is very far
         const z = Math.random() * 2 + 1; 
-        const size = (Math.random() * 2.5 + 1.0) / z; // Made base size larger
+        const size = (Math.random() * 2.0 + 0.8) / z; 
         
-        // Slower movement for further stars (Parallax)
-        const speedMultiplier = 0.5 / z;
+        // Slower movement for further stars (user point 3: "star moving speed ek thwa tikak adu krnna")
+        const speedMultiplier = 0.15 / z;
         const baseVx = (Math.random() - 0.5) * speedMultiplier;
         const baseVy = (Math.random() - 0.5) * speedMultiplier;
         
@@ -41,14 +41,11 @@ const SpaceBackground = () => {
         let r, g, b;
         const rand = Math.random();
         if (rand > 0.8) {
-          // Purple
-          r = 168; g = 85; b = 247;
+          r = 168; g = 85; b = 247; // Purple
         } else if (rand > 0.6) {
-          // Blue
-          r = 59; g = 130; b = 246;
+          r = 59; g = 130; b = 246; // Blue
         } else {
-          // White/Gray
-          r = 255; g = 255; b = 255;
+          r = 255; g = 255; b = 255; // White
         }
 
         stars.push({
@@ -62,81 +59,64 @@ const SpaceBackground = () => {
           vy: baseVy,
           baseR: r, baseG: g, baseB: b,
           r: r, g: g, b: b,
-          // Brighter alpha so they are more visible
-          alpha: Math.random() * 0.6 + 0.4 
+          alpha: Math.random() * 0.8 + 0.2 
         });
       }
     };
 
     // Animation Loop
     const animate = () => {
-      // Clear canvas with a very slight fade for trail effect
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.3)'; // Match dark theme surface-900 roughly
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.3)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.clearRect(0, 0, canvas.width, canvas.height); 
       
-      const maxDistance = 150; // Influence radius
-      const targetOrbit = 40;  // Accretion disk radius
+      const maxDistance = 90; // "podima area" (user point 4)
+      const targetOrbit = 15;
 
       stars.forEach(star => {
-        // Calculate distance to mouse
         const dx = mouse.x - star.x;
         const dy = mouse.y - star.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Reset color to base
         star.r = star.baseR;
         star.g = star.baseG;
         star.b = star.baseB;
 
         if (distance < maxDistance) {
-          // Inside the black hole influence zone
           const angle = Math.atan2(dy, dx);
           const spinAngle = angle + (Math.PI / 2);
           
-          // Distance difference from the ideal orbit
           const radialDist = distance - targetOrbit;
           
-          // Spring force pulling them towards the orbit ring
-          // Closer stars (z=1) are affected more than far stars (z=3)
-          const gravityStrength = (radialDist * 0.04) / star.z;
-          
+          // Strong gravity to pull them strictly into the small area
+          const gravityStrength = radialDist * 0.15;
           star.vx += Math.cos(angle) * gravityStrength;
           star.vy += Math.sin(angle) * gravityStrength;
           
-          // Vortex (spin around mouse)
-          const spinStrength = 3.0 / star.z; 
+          // Fast spin around the mouse
+          const spinStrength = 5.0; 
           star.vx += Math.cos(spinAngle) * spinStrength;
           star.vy += Math.sin(spinAngle) * spinStrength;
 
-          // Heat up color (shift towards bright cyan/white) as they get closer/faster
           const heat = Math.max(0, 1 - (distance / maxDistance));
           star.r = star.baseR + (255 - star.baseR) * heat;
           star.g = star.baseG + (255 - star.baseG) * heat;
           star.b = star.baseB + (255 - star.baseB) * heat;
 
-          // Limit speed to prevent chaotic physics explosions
-          const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
-          const maxSpeed = 8 / star.z;
-          if (speed > maxSpeed) {
-            star.vx = (star.vx / speed) * maxSpeed;
-            star.vy = (star.vy / speed) * maxSpeed;
-          }
+          // High friction inside vortex so they don't sling out
+          star.vx *= 0.75;
+          star.vy *= 0.75;
         } else {
-          // Outside influence: slowly return to normal drift
-          star.vx += (star.baseVx - star.vx) * 0.02;
-          star.vy += (star.baseVy - star.vy) * 0.02;
+          // Slowly return to base slow drift
+          star.vx += (star.baseVx - star.vx) * 0.05;
+          star.vy += (star.baseVy - star.vy) * 0.05;
+          star.vx *= 0.98;
+          star.vy *= 0.98;
         }
 
-        // Apply friction
-        star.vx *= 0.98;
-        star.vy *= 0.98;
+        let prevX = star.x;
+        let prevY = star.y;
 
-        // Remember previous position for motion blur/lensing
-        const prevX = star.x;
-        const prevY = star.y;
-
-        // Move star
         star.x += star.vx;
         star.y += star.vy;
 
