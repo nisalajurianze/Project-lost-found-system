@@ -260,4 +260,74 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
   return savedAnalysis;
 };
 
-export { analyzeItemImage };
+/**
+ * Generate an icon and description for a newly suggested category using AI.
+ * Falls back to generic defaults if APIs are unavailable or fail.
+ *
+ * @param {string} categoryName - The name of the category
+ * @returns {Promise<{icon: string, description: string}>}
+ */
+const generateCategoryDetails = async (categoryName) => {
+  const { OPENAI_API_KEY, GEMINI_API_KEY } = process.env;
+  
+  const systemPrompt = `You are an AI assistant for a Lost and Found system. A user has suggested a new item category named "${categoryName}". Provide a JSON object containing two fields: "icon" (a single relevant emoji, fallback to 📦 if unsure) and "description" (a very short 1-sentence description of what items belong in this category). Return ONLY valid JSON.`;
+
+  // 1. Try OpenAI
+  if (OPENAI_API_KEY && OPENAI_API_KEY !== 'your_openai_api_key') {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: systemPrompt }],
+          response_format: { type: 'json_object' }
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        const result = parseJSONResponse(content);
+        if (result && result.icon && result.description) return result;
+      }
+    } catch (e) {
+      console.error('OpenAI category generation failed:', e.message);
+    }
+  }
+
+  // 2. Try Gemini
+  if (GEMINI_API_KEY && GEMINI_API_KEY !== 'your_gemini_api_key') {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemPrompt }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          })
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const result = parseJSONResponse(text);
+        if (result && result.icon && result.description) return result;
+      }
+    } catch (e) {
+      console.error('Gemini category generation failed:', e.message);
+    }
+  }
+
+  // 3. Fallback
+  return {
+    icon: '📦',
+    description: `User-suggested category: ${categoryName}`
+  };
+};
+
+export { analyzeItemImage, generateCategoryDetails };

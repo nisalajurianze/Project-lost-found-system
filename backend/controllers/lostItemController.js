@@ -13,7 +13,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { paginate, buildSort } from '../utils/pagination.js';
 import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { uploadMultipleImages, deleteMultipleImages } from '../services/cloudinaryService.js';
-import { analyzeItemImage } from '../services/imageAnalysisService.js';
+import { analyzeItemImage, generateCategoryDetails } from '../services/imageAnalysisService.js';
 import { runMatchingForItem } from '../services/aiMatchingService.js';
 
 /**
@@ -24,10 +24,22 @@ const createLostItem = asyncHandler(async (req, res) => {
   const { itemName, category, description, lostLocation, lostDate, tags, contactPreference } = req.body;
   const userId = req.user._id;
 
-  // Verify category exists
-  const categoryExists = await Category.findOne({ name: category, isActive: true });
+  // Verify category exists or auto-create it
+  let categoryExists = await Category.findOne({ name: category, isActive: true });
   if (!categoryExists) {
-    throw ApiError.badRequest(`Category '${category}' is invalid or inactive.`);
+    // Attempt auto-creation with AI
+    try {
+      const details = await generateCategoryDetails(category);
+      categoryExists = await Category.create({
+        name: category,
+        icon: details.icon,
+        description: details.description,
+        isActive: true,
+        itemCount: 0
+      });
+    } catch (e) {
+      throw ApiError.badRequest(`Failed to create new category '${category}'.`);
+    }
   }
 
   // Parse tags if sent as string
@@ -195,9 +207,20 @@ const updateLostItem = asyncHandler(async (req, res) => {
   // Update text fields
   if (itemName) item.itemName = itemName;
   if (category && category !== item.category) {
-    const categoryExists = await Category.findOne({ name: category, isActive: true });
+    let categoryExists = await Category.findOne({ name: category, isActive: true });
     if (!categoryExists) {
-      throw ApiError.badRequest('Invalid category.');
+      try {
+        const details = await generateCategoryDetails(category);
+        categoryExists = await Category.create({
+          name: category,
+          icon: details.icon,
+          description: details.description,
+          isActive: true,
+          itemCount: 0
+        });
+      } catch (e) {
+        throw ApiError.badRequest(`Failed to create new category '${category}'.`);
+      }
     }
     
     // Decrement from old, increment in new

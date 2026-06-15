@@ -10,6 +10,7 @@ import { fetchCategories } from '../../redux/slices/categorySlice';
 import Input from '../../components/common/Input';
 import Textarea from '../../components/common/Textarea';
 import Select from '../../components/common/Select';
+import CreatableCategorySelect from '../../components/common/CreatableCategorySelect';
 import ImageUpload from '../../components/common/ImageUpload';
 import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
@@ -171,8 +172,9 @@ export const EditLostItem = () => {
               required
             />
             
-            <Select
+            <CreatableCategorySelect
               label="Item Category"
+              name="category"
               options={categoryOptions}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
