@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
 // Layouts
@@ -56,6 +56,17 @@ const ManageCategories = lazy(() => import('./pages/admin/ManageCategories'));
 // Fallback loader
 import Loader from './components/common/Loader';
 
+// Scroll to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 // 404 Page (Inline or separate, we will just use a simple one)
 const NotFound = () => (
   <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
@@ -98,10 +109,12 @@ const App = () => {
   useSocket(user);
 
   return (
-    <Suspense fallback={<Loader fullPage={true} />}>
-      <Routes>
-        {/* Public Routes */}
-        <Route element={<PublicLayout />}>
+    <>
+      <ScrollToTop />
+      <Suspense fallback={<Loader fullPage={true} />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route element={<PublicLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -149,6 +162,7 @@ const App = () => {
         </Route>
       </Routes>
     </Suspense>
+    </>
   );
 };
 
