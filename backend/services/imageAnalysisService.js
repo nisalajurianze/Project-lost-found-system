@@ -5,22 +5,14 @@
 
 import ImageAnalysis from '../models/ImageAnalysis.js';
 
-/**
- * Clean up response string to parse JSON safely.
- */
 const parseJSONResponse = (text) => {
   try {
-    // Strip markdown JSON block if present
-    let cleanText = text.trim();
-    if (cleanText.startsWith('```json')) {
-      cleanText = cleanText.substring(7);
-    }
-    if (cleanText.endsWith('```')) {
-      cleanText = cleanText.substring(0, cleanText.length - 3);
-    }
-    return JSON.parse(cleanText.trim());
+    // Extract the first valid JSON object using regex, ignoring surrounding conversational text
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No JSON object found in response');
+    return JSON.parse(match[0]);
   } catch (error) {
-    console.error('❌ Failed to parse AI JSON response:', error);
+    console.error('❌ Failed to parse AI JSON response:', error.message);
     return null;
   }
 };
@@ -111,7 +103,7 @@ const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
             content: [
               {
                 type: 'text',
-                text: 'Analyze this lost/found item image. Return a JSON object with fields: "labels" (array of strings), "colors" (array of strings), "description" (a concise 1-2 sentence description of the item) and "confidence" (number 0-100 representing how confident you are). Do not wrap the JSON in markdown blocks.'
+                text: 'Analyze this lost/found item image. Return a JSON object with strictly these fields: "labels" (array of strings, ALWAYS lowercase, separate brand names from generic items, e.g. ["iphone 13 pro", "apple", "smartphone", "cracked screen"]), "colors" (array of strings, ALWAYS lowercase, e.g. ["space grey", "black"]), "description" (a highly detailed 1-2 sentence description including unique visual features, brands, or damage), and "confidence" (number 0-100 representing how confident you are). Do not wrap the JSON in markdown blocks.'
               },
               {
                 type: 'image_url',
@@ -202,7 +194,7 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
 const generateCategoryDetails = async (categoryName) => {
   const { OPENROUTER_API_KEY } = process.env;
   
-  const systemPrompt = `You are an AI assistant for a Lost and Found system. A user has suggested a new item category named "${categoryName}". Provide a JSON object containing two fields: "icon" (a single relevant emoji, fallback to 📦 if unsure) and "description" (a very short 1-sentence description of what items belong in this category). Return ONLY valid JSON.`;
+  const systemPrompt = `You are an AI for a Lost and Found system. A user suggested a new category named "${categoryName}". Return ONLY a valid JSON object with fields: "icon" (a single relevant emoji) and "description" (a concise 1-sentence description of items belonging here). Example: {"icon":"🛹","description":"Skateboards and accessories."}`;
 
   // 1. Try OpenRouter
   if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key') {

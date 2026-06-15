@@ -10,25 +10,31 @@ import ImageAnalysis from '../models/ImageAnalysis.js';
 import { createNotification } from './notificationService.js';
 
 /**
- * Calculates string similarity using Jaccard Similarity (word-level).
+ * Calculates string similarity using substring subset matching.
  * @param {string} str1
  * @param {string} str2
  * @returns {number} 0 to 1
  */
 const calculateTextSimilarity = (str1 = '', str2 = '') => {
-  const words1 = new Set(str1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-  const words2 = new Set(str2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+  const words1 = str1.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const words2 = str2.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 
-  if (words1.size === 0 || words2.size === 0) return 0;
+  if (words1.length === 0 || words2.length === 0) return 0;
 
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
-  const union = new Set([...words1, ...words2]);
+  let matchCount = 0;
+  for (const w1 of words1) {
+    if (words2.some(w2 => w2.includes(w1) || w1.includes(w2))) {
+      matchCount++;
+    }
+  }
 
-  return intersection.size / union.size;
+  // Use the smaller array size as the denominator to reward partial subset matches
+  const minLen = Math.min(words1.length, words2.length);
+  return Math.min(matchCount / minLen, 1);
 };
 
 /**
- * Calculates array intersection similarity.
+ * Calculates array intersection similarity using substring matching.
  * @param {string[]} arr1
  * @param {string[]} arr2
  * @returns {number} 0 to 1
@@ -36,11 +42,17 @@ const calculateTextSimilarity = (str1 = '', str2 = '') => {
 const calculateArrayOverlap = (arr1 = [], arr2 = []) => {
   if (arr1.length === 0 || arr2.length === 0) return 0;
   
-  const set1 = new Set(arr1.map(s => s.toLowerCase().trim()));
-  const set2 = new Set(arr2.map(s => s.toLowerCase().trim()));
+  const set1 = arr1.map(s => s.toLowerCase().trim());
+  const set2 = arr2.map(s => s.toLowerCase().trim());
   
-  const intersection = [...set1].filter(x => set2.has(x));
-  return intersection.length / Math.min(set1.size, set2.size);
+  let matchCount = 0;
+  for (const item1 of set1) {
+    if (set2.some(item2 => item2.includes(item1) || item1.includes(item2))) {
+      matchCount++;
+    }
+  }
+  
+  return Math.min(matchCount / Math.min(set1.length, set2.length), 1);
 };
 
 /**
@@ -48,11 +60,11 @@ const calculateArrayOverlap = (arr1 = [], arr2 = []) => {
  * Runs in O(1) memory and is highly performant.
  *
  * Weights:
- * - Category: 20%
- * - Text (Name & Description): 40%
- * - Location: 15%
- * - AI Labels (ImageAnalysis): 15%
- * - Colors (ImageAnalysis): 10%
+ * - Category: 15%
+ * - Text (Name & Description): 25%
+ * - Location: 10%
+ * - AI Labels (ImageAnalysis): 35%
+ * - Colors (ImageAnalysis): 15%
  *
  * @param {object} lost - LostItem document
  * @param {object} found - FoundItem document
@@ -64,11 +76,11 @@ const evaluateMatch = (lost, found, lostAnalysis = null, foundAnalysis = null) =
   let score = 0;
   const reasons = [];
 
-  // 1. Category Check (Weight: 20)
+  // 1. Category Check (Weight: 15)
   // Categories must match to get category points, otherwise 0
   const categoryMatch = lost.category.toLowerCase().trim() === found.category.toLowerCase().trim();
   if (categoryMatch) {
-    score += 20;
+    score += 15;
     reasons.push('Same item category');
   } else {
     // Soft match for categories (e.g. Electronics vs Gadgets) - if names overlap, allow continuing
@@ -76,36 +88,36 @@ const evaluateMatch = (lost, found, lostAnalysis = null, foundAnalysis = null) =
     score += catSim * 10;
   }
 
-  // 2. Text Similarity (Weight: 40)
+  // 2. Text Similarity (Weight: 25)
   const nameSim = calculateTextSimilarity(lost.itemName, found.itemName);
   const descSim = calculateTextSimilarity(lost.description, found.description);
   const textSim = (nameSim * 0.6) + (descSim * 0.4);
   
-  score += textSim * 40;
+  score += textSim * 25;
   if (textSim > 0.4) {
     reasons.push(`Similar titles or descriptions (${Math.round(textSim * 100)}% text match)`);
   }
 
-  // 3. Location Similarity (Weight: 15)
+  // 3. Location Similarity (Weight: 10)
   const locSim = calculateTextSimilarity(lost.lostLocation, found.foundLocation);
-  score += locSim * 15;
+  score += locSim * 10;
   if (locSim > 0.5) {
     reasons.push('Similar location reported');
   }
 
-  // 4. AI Image Labels (Weight: 15)
+  // 4. AI Image Labels (Weight: 35)
   if (lostAnalysis && foundAnalysis) {
     const labelSim = calculateArrayOverlap(lostAnalysis.labels, foundAnalysis.labels);
-    score += labelSim * 15;
+    score += labelSim * 35;
     if (labelSim > 0.4) {
-      reasons.push(`AI detected matching visual characteristics (${Math.round(labelSim * 100)}% label match)`);
+      reasons.push(`AI detected highly matching visual features (${Math.round(labelSim * 100)}% label match)`);
     }
   } else {
     // If no AI image analysis is available, distribute weight to text similarity
-    score += textSim * 15;
+    score += textSim * 35;
   }
 
-  // 5. Colors Match (Weight: 10)
+  // 5. Colors Match (Weight: 15)
   let colorSim = 0;
   if (lostAnalysis && foundAnalysis) {
     colorSim = calculateArrayOverlap(lostAnalysis.colors, foundAnalysis.colors);
@@ -117,7 +129,7 @@ const evaluateMatch = (lost, found, lostAnalysis = null, foundAnalysis = null) =
     colorSim = calculateArrayOverlap(lostColors, foundColors);
   }
 
-  score += colorSim * 10;
+  score += colorSim * 15;
   if (colorSim > 0.5) {
     reasons.push('Matching colors identified');
   }
