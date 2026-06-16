@@ -97,13 +97,13 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') return null;
 
   const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-  const visionUrl = process.env.AI_VISION_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  const visionUrl = process.env.AI_VISION_API_URL || primaryUrl;
   
   const isOpencodeText = primaryUrl.includes('opencode');
   const isOpencodeVision = visionUrl.includes('opencode');
 
   const visionModels = isOpencodeVision 
-    ? [process.env.AI_VISION_MODEL || 'DeepSeek V4 Flash Free', 'MiMo-V2.5 Free', 'North Mini Code Free']
+    ? [process.env.AI_VISION_MODEL || 'mimo-v2.5-free', 'DeepSeek V4 Flash Free', 'North Mini Code Free']
     : [
         process.env.AI_VISION_MODEL || 'openrouter/free',
         'google/gemini-2.0-pro-exp-02-05:free',
