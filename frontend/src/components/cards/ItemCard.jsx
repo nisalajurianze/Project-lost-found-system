@@ -25,7 +25,7 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   return (
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
       {/* Image Container */}
-      <div className="relative w-full aspect-[16/10] bg-surface-100 dark:bg-surface-800 overflow-hidden">
+      <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden">
         {mainImage ? (
           <img
             src={mainImage}
