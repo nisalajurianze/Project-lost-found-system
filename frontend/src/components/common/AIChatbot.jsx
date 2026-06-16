@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiMessageSquare, FiX, FiSend, FiMic, FiTrash2 } from 'react-icons/fi';
-import { FaSearch } from 'react-icons/fa';
+import { FaSearch, FaRobot } from 'react-icons/fa';
 import api from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'react-hot-toast';
@@ -153,8 +153,8 @@ const AIChatbot = () => {
               </h3>
             </div>
             <div className="flex items-center gap-1 ml-[30px]">
-              <span className="text-[9px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                ✨ AI Assistant
+              <span className="text-[10px] bg-gradient-to-r from-primary-500 to-primary-600 text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                <FaRobot className="w-3 h-3" /> AI Assistant
               </span>
             </div>
           </div>

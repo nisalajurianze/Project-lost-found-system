@@ -18,6 +18,21 @@ export const Navbar = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    if (profileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileDropdownOpen]);
 
   const themeMode = useSelector((state) => state.theme.mode);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -95,7 +110,7 @@ export const Navbar = () => {
 
             {/* User Profile Dropdown */}
             {isAuthenticated ? (
-              <div className="relative">
+              <div className="relative" ref={profileDropdownRef}>
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none"
@@ -116,7 +131,6 @@ export const Navbar = () => {
                 {/* Dropdown Card */}
                 {profileDropdownOpen && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => setProfileDropdownOpen(false)} />
                     <div className="absolute right-0 mt-2 w-56 rounded-xl border border-surface-200 bg-white p-2 shadow-xl dark:border-surface-700 dark:bg-surface-800 z-20 animate-scale-in">
                       <div className="px-4 py-2.5 border-b border-surface-100 dark:border-surface-700/50 mb-1.5">
                         <p className="text-sm font-semibold text-surface-900 dark:text-white truncate">
