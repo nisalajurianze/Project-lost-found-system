@@ -12,10 +12,13 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const { message } = req.body;
   if (!message) return ApiResponse.success({ text: "Please say something!" }).send(res);
 
-  const { OPENROUTER_API_KEY } = process.env;
-  if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key') {
+  const AI_API_KEY = process.env.AI_API_KEY || process.env.OPENROUTER_API_KEY;
+  if (!AI_API_KEY || AI_API_KEY === 'your_openrouter_api_key') {
     return ApiResponse.success({ text: "AI is currently unavailable. Please use the manual search." }).send(res);
   }
+
+  const AI_API_URL = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
 
   // 1. Analyze the user's intent and extract search keywords
   const extractionPrompt = `You are an AI assistant for a Lost and Found system. 
@@ -30,14 +33,14 @@ Return ONLY a valid JSON object:
   "responseIfGeneral": "If intent is general, put a friendly reply here, else empty"
 }`;
 
-  const extractRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const extractRes = await fetch(AI_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`
+      'Authorization': `Bearer ${AI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      model: AI_CHAT_MODEL,
       messages: [{ role: 'user', content: extractionPrompt }],
       response_format: { type: 'json_object' }
     })
@@ -87,14 +90,14 @@ ${itemSummary}
 
 Draft a friendly, concise response in the SAME LANGUAGE the user used (e.g. if they used Singlish, reply in Singlish or English. If Sinhala, reply in Sinhala). Make sure to include the markdown links to the items exactly as provided.`;
 
-  const replyRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const replyRes = await fetch(AI_API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`
+      'Authorization': `Bearer ${AI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'meta-llama/llama-3.3-70b-instruct:free',
+      model: AI_CHAT_MODEL,
       messages: [{ role: 'user', content: replyPrompt }]
     })
   });
