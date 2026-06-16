@@ -47,7 +47,7 @@ export const SearchFilter = ({
   }));
 
   return (
-    <div className="glass-card mb-8">
+    <div className="glass-card">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5">
         {/* Search Input */}
         <div className="relative md:col-span-2">

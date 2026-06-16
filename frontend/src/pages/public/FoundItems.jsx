@@ -76,32 +76,37 @@ export const FoundItems = () => {
     <div className="flex-1 py-8 sm:py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="page-container max-w-7xl mx-auto">
         
-        {/* Header */}
-        <div className="page-header mb-8">
-          <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
-            Found Property Directory
-          </h1>
-          <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
-            Search or filter through items reported found on campus
-          </p>
-        </div>
+        {/* Header & Search/Filter Container */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
+          {/* Header */}
+          <div className="page-header flex-shrink-0">
+            <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
+              Found Property Directory
+            </h1>
+            <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
+              Search or filter through items found on campus
+            </p>
+          </div>
 
-        {/* Search & Filters */}
-        <SearchFilter
-          search={search}
-          onSearchChange={(val) => { setSearch(val); setPage(1); }}
-          category={category}
-          onCategoryChange={(val) => { setCategory(val); setPage(1); }}
-          status={status}
-          onStatusChange={(val) => { setStatus(val); setPage(1); }}
-          startDate={startDate}
-          onStartDateChange={(val) => { setStartDate(val); setPage(1); }}
-          endDate={endDate}
-          onEndDateChange={(val) => { setEndDate(val); setPage(1); }}
-          categories={categories}
-          statusOptions={statusOptions}
-          onClear={handleClearFilters}
-        />
+          {/* Search & Filters */}
+          <div className="w-full xl:w-auto xl:max-w-4xl flex-1">
+            <SearchFilter
+              search={search}
+              onSearchChange={(val) => { setSearch(val); setPage(1); }}
+              category={category}
+              onCategoryChange={(val) => { setCategory(val); setPage(1); }}
+              status={status}
+              onStatusChange={(val) => { setStatus(val); setPage(1); }}
+              startDate={startDate}
+              onStartDateChange={(val) => { setStartDate(val); setPage(1); }}
+              endDate={endDate}
+              onEndDateChange={(val) => { setEndDate(val); setPage(1); }}
+              categories={categories}
+              statusOptions={statusOptions}
+              onClear={handleClearFilters}
+            />
+          </div>
+        </div>
 
         {/* Listings Grid */}
         {isLoading ? (
