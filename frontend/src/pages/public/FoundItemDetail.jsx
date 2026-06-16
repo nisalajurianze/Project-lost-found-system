@@ -257,7 +257,17 @@ export const FoundItemDetail = () => {
               {isAuthenticated ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
-                    <FiUser className="text-surface-400 text-lg flex-shrink-0" />
+                    {currentItem.userId?.profileImage ? (
+                      <img 
+                        src={currentItem.userId.profileImage} 
+                        alt={currentItem.userId.fullName || 'Finder'} 
+                        className="w-10 h-10 rounded-full object-cover border border-surface-200 dark:border-surface-700 flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center flex-shrink-0 border border-surface-200 dark:border-surface-700">
+                        <FiUser className="text-surface-400 text-lg" />
+                      </div>
+                    )}
                     <div>
                       <p className="text-xs text-surface-400 font-medium">Found By</p>
                       <p className="font-semibold text-surface-800 dark:text-surface-200">
