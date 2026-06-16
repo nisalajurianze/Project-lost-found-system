@@ -98,14 +98,15 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
 
   const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
 
-  // Arrays of reliable free models to try sequentially
   const visionModels = [
     process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
     'qwen/qwen-vl-plus:free'
   ];
   
   const textModels = [
-    process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+    process.env.AI_CHAT_MODEL || 'deepseek/deepseek-chat:free',
+    'deepseek/deepseek-r1:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
     'google/gemma-2-9b-it:free',
     'meta-llama/llama-3.1-8b-instruct:free',
     'qwen/qwen-2.5-7b-instruct:free'
@@ -114,6 +115,18 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   const modelsToTry = type === 'vision' ? visionModels : textModels;
   const apiKeys = PRIMARY_KEY.split(',').map(k => k.trim()).filter(k => k);
   let lastError = null;
+
+  const parseJSONResponse = (text) => {
+    try {
+      const cleanText = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      const match = cleanText.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('No JSON object found');
+      const jsonStr = match[0].replace(/,\s*([}\]])/g, '$1'); // Fix trailing commas
+      return JSON.parse(jsonStr);
+    } catch (e) {
+      throw new Error('Invalid JSON');
+    }
+  };
 
   for (const key of apiKeys) {
     for (const model of modelsToTry) {
@@ -133,7 +146,7 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
         if (res.ok) {
           const text = await res.text();
           try {
-            return JSON.parse(text);
+            return parseJSONResponse(text);
           } catch (e) {
             console.warn(`⚠️ Model ${model} returned invalid JSON with key ${key.substring(0, 8)}...`);
             continue;
