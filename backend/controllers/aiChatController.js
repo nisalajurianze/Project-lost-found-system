@@ -9,7 +9,7 @@ import { parseJSONResponse } from '../services/imageAnalysisService.js';
  * User asks a question, AI translates to a search, we query DB, AI formats answer.
  */
 export const handleAIChat = asyncHandler(async (req, res) => {
-  const { message } = req.body;
+  const { message, history = [] } = req.body;
   if (!message) return ApiResponse.ok({ text: "Please say something!" }).send(res);
 
   const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
@@ -19,11 +19,15 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     return ApiResponse.ok({ text: "AI is currently unavailable. Please use the manual search." }).send(res);
   }
 
+  // Format history for the prompt
+  const historyText = history.length > 0 
+    ? "Conversation History:\n" + history.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n') + "\n\n"
+    : "";
+
   // Helper to make AI calls with automatic fallback to OpenRouter
   const fetchFromAI = async (prompt, format = null) => {
     const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
     const primaryModel = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
-
     const fallbackUrl = 'https://openrouter.ai/api/v1/chat/completions';
     const fallbackModel = 'meta-llama/llama-3.3-70b-instruct:free';
 
@@ -34,7 +38,6 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     if (format) reqBody.response_format = format;
 
     try {
-      // 1. Try Primary Provider (e.g., Opencode DeepSeek)
       const res = await fetch(primaryUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${PRIMARY_KEY}` },
@@ -42,20 +45,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       });
       if (res.ok) {
         const text = await res.text();
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          console.error('Primary Provider returned non-JSON:', text);
-          throw new Error('Invalid JSON from Primary Provider');
-        }
+        try { return JSON.parse(text); } catch (e) { throw new Error('Invalid JSON from Primary Provider'); }
       }
-      const errText = await res.text();
-      console.error(`Primary Provider Failed: ${res.status} - ${errText}`);
       throw new Error(`Primary Provider Failed: ${res.status}`);
     } catch (err) {
       console.warn(`⚠️ AI Primary Provider Failed (${err.message}). Falling back to OpenRouter...`);
-      
-      // 2. Try Fallback Provider (OpenRouter Llama)
       if (OPENROUTER_KEY && OPENROUTER_KEY !== 'your_openrouter_api_key') {
         reqBody.model = fallbackModel;
         const fallbackRes = await fetch(fallbackUrl, {
@@ -65,14 +59,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
         });
         if (fallbackRes.ok) {
           const text = await fallbackRes.text();
-          try {
-            return JSON.parse(text);
-          } catch (e) {
-            throw new Error(`Primary Failed (${err.message}) AND Fallback returned non-JSON: ${text}`);
-          }
-        } else {
-          const errText = await fallbackRes.text();
-          throw new Error(`Primary Failed (${err.message}) AND Fallback Failed: ${fallbackRes.status} - ${errText}`);
+          try { return JSON.parse(text); } catch (e) { throw new Error(`Fallback returned non-JSON`); }
         }
       }
       throw new Error(`Primary API Failed: ${err.message}. (No fallback API key available)`);
@@ -80,28 +67,29 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   };
 
   // 1. Analyze the user's intent and extract search keywords
-  const extractionPrompt = `You are a highly intelligent, conversational, and friendly AI assistant for a Lost and Found system in Sri Lanka. You speak fluent Singlish, Sinhala, and English. You behave like a friendly local assistant. 
-The user said: "${message}"
+  const extractionPrompt = `You are a highly intelligent, conversational, and friendly AI assistant for a Lost and Found system in Sri Lanka. You speak fluent Singlish, Sinhala, and English.
+${historyText}The user just said: "${message}"
 
-Determine their intent:
+Determine their intent based on the context:
 - "lost": They lost a specific item and want to search for it.
 - "found": They found a specific item and want to search if someone reported it.
 - "list_found": They want to see a general list of ALL currently found items.
 - "list_lost": They want to see a general list of ALL currently lost items.
 - "general": They are just saying hi, asking a general question, or making small talk.
 
-Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'.
+Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. Look at the Conversation History to find missing context (e.g., if they previously said "I lost my bike" and now say "it is black", the keywords are ["black", "bike"]).
 
 Return ONLY a valid JSON object exactly like this:
 {
   "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
   "keywords": ["array", "of", "english", "keywords"],
-  "responseIfGeneral": "If intent is 'general', write a natural, super friendly reply in the exact language the user used (Singlish/Sinhala/English). Answer their question directly! If intent is not general, leave empty."
+  "responseIfGeneral": "If intent is 'general', write a natural, super friendly reply in the exact language the user used. Answer their question directly! If intent is not general, leave empty.",
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions/questions the user can click next (max 4 words each). Example: 'Report my item', 'Search again'"]
 }`;
 
   let extractData;
   try {
-    extractData = await fetchFromAI(extractionPrompt);
+    extractData = await fetchFromAI(extractionPrompt, { type: 'json_object' });
   } catch (err) {
     return ApiResponse.ok({ text: `[System Error: API Connection Failed] ${err.message}` }).send(res);
   }
@@ -115,7 +103,10 @@ Return ONLY a valid JSON object exactly like this:
 
   // Handle general chat immediately
   if (analysis.intent === 'general') {
-    return ApiResponse.ok({ text: analysis.responseIfGeneral || "How can I help you find or report an item today?" }).send(res);
+    return ApiResponse.ok({ 
+      text: analysis.responseIfGeneral || "How can I help you find or report an item today?",
+      quickReplies: analysis.quickReplies || ["I lost something", "I found something"]
+    }).send(res);
   }
 
   // Handle generic listings
@@ -125,32 +116,44 @@ Return ONLY a valid JSON object exactly like this:
     const dbItems = await targetModel.find({ status: statusFilter }).sort({ createdAt: -1 }).limit(10).lean();
 
     if (dbItems.length === 0) {
-      return ApiResponse.ok({ text: `Danata ${analysis.intent === 'list_found' ? 'hambawela' : 'nathi wela'} thiyena ewa monawath na. (No items currently reported).` }).send(res);
+      return ApiResponse.ok({ 
+        text: `Danata ${analysis.intent === 'list_found' ? 'hambawela' : 'nathi wela'} thiyena ewa monawath na. (No items currently reported).`,
+        quickReplies: analysis.quickReplies || ["Report an item", "Go to Home"]
+      }).send(res);
     }
 
     const linkPrefix = analysis.intent === 'list_found' ? '/found-items' : '/lost-items';
     const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id})`).join('\n');
     
-    const replyPrompt = `You are a super friendly Lost & Found AI. The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items.
-We retrieved these recent items from the DB:
+    const replyPrompt = `You are a super friendly Lost & Found AI.
+${historyText}The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items. We retrieved these recent items from the DB:
 ${itemSummary}
 
-Write a natural, conversational reply in the user's language (Singlish/Sinhala/English) presenting this list. Use emojis. Include the exact markdown links.`;
+Return ONLY a valid JSON object:
+{
+  "text": "A natural, conversational reply in the user's language presenting this list. Use emojis. Include the exact markdown links.",
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
+}`;
 
-    const replyData = await fetchFromAI(replyPrompt);
-    const finalReply = replyData?.choices?.[0]?.message?.content || "Here are the recent items:\n" + itemSummary;
-    return ApiResponse.ok({ text: finalReply, items: dbItems }).send(res);
+    const replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
+    const replyJson = parseJSONResponse(replyData?.choices?.[0]?.message?.content);
+    const finalReply = replyJson?.text || "Here are the recent items:\n" + itemSummary;
+    const quickReplies = replyJson?.quickReplies || ["Search again", "Report an item"];
+    return ApiResponse.ok({ text: finalReply, quickReplies, items: dbItems }).send(res);
   }
 
   // Handle specific searches (lost / found)
   if (!analysis.keywords || analysis.keywords.length === 0) {
-    return ApiResponse.ok({ text: "Monawada nathi une kiyala hariyatama kiyanna puluwanda? (Please specify what you lost or found)." }).send(res);
+    return ApiResponse.ok({ 
+      text: "Monawada nathi une kiyala hariyatama kiyanna puluwanda? (Please specify what you lost or found).",
+      quickReplies: ["I lost a phone", "I found a wallet", "Cancel"]
+    }).send(res);
   }
 
   const targetModel = analysis.intent === 'lost' ? FoundItem : LostItem;
   const statusFilter = analysis.intent === 'lost' ? { $in: ['available', 'matched'] } : { $in: ['pending', 'matched'] };
 
-  // Escape regex characters to prevent ReDoS/crashes
+  // Escape regex characters
   const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regexPatterns = analysis.keywords.map(kw => new RegExp(escapeRegex(kw), 'i'));
   const dbItems = await targetModel.find({
@@ -163,14 +166,18 @@ Write a natural, conversational reply in the user's language (Singlish/Sinhala/E
   }).limit(5).lean();
 
   if (dbItems.length === 0) {
-    return ApiResponse.ok({ text: `Mata oyaa kiyana jathiye ekak hoyaganna bari wuna. Puluwannam aluthen report ekak danna:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})` }).send(res);
+    return ApiResponse.ok({ 
+      text: `Mata oyaa kiyana jathiye ekak hoyaganna bari wuna. Puluwannam aluthen report ekak danna:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})`,
+      quickReplies: [`Report ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item`, "Try another search"]
+    }).send(res);
   }
 
   // 3. Let AI format the final response
   const linkPrefix = analysis.intent === 'lost' ? '/found-items' : '/lost-items';
   const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id}) (Location: ${item.lostLocation || item.foundLocation})`).join('\n');
   
-  const replyPrompt = `You are a super friendly, intelligent AI assistant. The user searched for: "${message}".
+  const replyPrompt = `You are a super friendly, intelligent AI assistant.
+${historyText}The user searched for: "${message}".
 We found these matches in the DB:
 ${itemSummary}
 
@@ -178,10 +185,18 @@ IMPORTANT RULES:
 1. Only list an item if it TRULY MATCHES what the user is looking for (e.g., if they want a bike, do not show a laptop just because both are black). 
 2. If NONE of the matches are truly relevant, DO NOT list them. Instead, say you couldn't find any.
 3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})"
-4. Draft a friendly, natural reply in the SAME LANGUAGE the user used (Singlish, Sinhala, or English). If there are relevant items, include their markdown links exactly as provided. Use emojis!`;
 
-  const replyData = await fetchFromAI(replyPrompt);
-  const finalReply = replyData?.choices?.[0]?.message?.content || "Here are some matches I found:\n" + itemSummary;
+Return ONLY a valid JSON object:
+{
+  "text": "Draft a friendly, natural reply in the SAME LANGUAGE the user used. If there are relevant items, include their markdown links exactly as provided. Use emojis!",
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
+}`;
 
-  return ApiResponse.ok({ text: finalReply, items: dbItems }).send(res);
+  const replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
+  const replyJson = parseJSONResponse(replyData?.choices?.[0]?.message?.content);
+  
+  const finalReply = replyJson?.text || "Here are some matches I found:\n" + itemSummary;
+  const quickReplies = replyJson?.quickReplies || ["Search again", "Report item"];
+
+  return ApiResponse.ok({ text: finalReply, quickReplies, items: dbItems }).send(res);
 });
