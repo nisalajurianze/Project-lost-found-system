@@ -164,7 +164,17 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
       };
 
       try {
-        const res = await fetch(activeUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+        const res = await fetch(activeUrl, { 
+          method: 'POST', 
+          headers, 
+          body: JSON.stringify(reqBody),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
         
         if (res.ok) {
           const text = await res.text();

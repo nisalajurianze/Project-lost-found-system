@@ -77,6 +77,9 @@ export const handleAIChat = asyncHandler(async (req, res) => {
         if (format) reqBody.response_format = format;
 
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
           const res = await fetch(primaryUrl, {
             method: 'POST',
             headers: { 
@@ -85,8 +88,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
               'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
               'X-Title': 'Smart Lost and Found'
             },
-            body: JSON.stringify(reqBody)
+            body: JSON.stringify(reqBody),
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (res.ok) {
             const text = await res.text();
@@ -154,7 +160,13 @@ Return ONLY a valid JSON object exactly like this:
     analysis = parseJSONResponse(extractContent);
   } catch (err) {
     console.error('Failed to parse inner JSON content:', extractContent);
-    return ApiResponse.ok({ text: `I'm having trouble understanding. Could you rephrase?` }).send(res);
+    // Graceful fallback: If AI completely ignored the JSON instruction and just replied naturally, 
+    // we use its raw text as a general response instead of throwing an error!
+    analysis = {
+       intent: 'general',
+       responseIfGeneral: extractContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(),
+       quickReplies: ["I lost something", "I found something"]
+    };
   }
 
   if (!analysis) {
