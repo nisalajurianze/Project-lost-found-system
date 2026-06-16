@@ -88,14 +88,21 @@ const evaluateMatch = (lost, found, lostAnalysis = null, foundAnalysis = null) =
     score += catSim * 10;
   }
 
-  // 2. Text Similarity (Weight: 25)
+  // 2. Text Similarity & AI Keywords (Weight: 25)
   const nameSim = calculateTextSimilarity(lost.itemName, found.itemName);
   const descSim = calculateTextSimilarity(lost.description, found.description);
-  const textSim = (nameSim * 0.6) + (descSim * 0.4);
+  
+  let keywordSim = 0;
+  if (lost.aiKeywords?.length > 0 && found.aiKeywords?.length > 0) {
+    keywordSim = calculateArrayOverlap(lost.aiKeywords, found.aiKeywords);
+  }
+
+  // If keywordSim is strong, use it to boost textSim (especially useful for cross-language matching)
+  const textSim = Math.max((nameSim * 0.6) + (descSim * 0.4), keywordSim);
   
   score += textSim * 25;
   if (textSim > 0.4) {
-    reasons.push(`Similar titles or descriptions (${Math.round(textSim * 100)}% text match)`);
+    reasons.push(`Similar titles, descriptions, or AI keywords (${Math.round(textSim * 100)}% match)`);
   }
 
   // 3. Location Similarity (Weight: 10)
