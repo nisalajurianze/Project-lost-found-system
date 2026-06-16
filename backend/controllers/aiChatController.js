@@ -143,7 +143,19 @@ Return ONLY a valid JSON object exactly like this:
   }
 
   const extractContent = extractData?.choices?.[0]?.message?.content;
-  const analysis = parseJSONResponse(extractContent);
+  
+  if (!extractContent) {
+    console.error('Opencode returned an unexpected format:', JSON.stringify(extractData));
+    return ApiResponse.ok({ text: `[System Error: API Connection Failed] Unexpected API response format. Check server logs.` }).send(res);
+  }
+
+  let analysis;
+  try {
+    analysis = parseJSONResponse(extractContent);
+  } catch (err) {
+    console.error('Failed to parse inner JSON content:', extractContent);
+    return ApiResponse.ok({ text: `I'm having trouble understanding. Could you rephrase?` }).send(res);
+  }
 
   if (!analysis) {
     return ApiResponse.ok({ text: `I'm having trouble understanding. Could you rephrase?` }).send(res);
@@ -183,8 +195,22 @@ Return ONLY a valid JSON object:
   "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
 }`;
 
-    const replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
-    const replyJson = parseJSONResponse(replyData?.choices?.[0]?.message?.content);
+    let replyData;
+    try {
+      replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
+    } catch (err) {
+      console.error('Third fetchFromAI failed:', err.message);
+    }
+    
+    let replyJson = null;
+    try {
+      const content = replyData?.choices?.[0]?.message?.content;
+      if (content) {
+        replyJson = parseJSONResponse(content);
+      }
+    } catch (err) {
+      console.error('Failed to parse third AI response:', err.message);
+    }
     const finalReply = replyJson?.text || "Here are the recent items:\n" + itemSummary;
     const quickReplies = replyJson?.quickReplies || ["Search again", "Report an item"];
     return ApiResponse.ok({ text: finalReply, quickReplies, items: dbItems }).send(res);
@@ -240,8 +266,22 @@ Return ONLY a valid JSON object:
   "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
 }`;
 
-  const replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
-  const replyJson = parseJSONResponse(replyData?.choices?.[0]?.message?.content);
+  let replyData;
+  try {
+    replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
+  } catch (err) {
+    console.error('Second fetchFromAI failed:', err.message);
+  }
+
+  let replyJson = null;
+  try {
+    const content = replyData?.choices?.[0]?.message?.content;
+    if (content) {
+      replyJson = parseJSONResponse(content);
+    }
+  } catch (err) {
+    console.error('Failed to parse second AI response:', err.message);
+  }
   
   const finalReply = replyJson?.text || "Here are some matches I found:\n" + itemSummary;
   const quickReplies = replyJson?.quickReplies || ["Search again", "Report item"];
