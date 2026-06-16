@@ -12,6 +12,7 @@ import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import { getInitials } from '../../utils/helpers';
 import { FiCamera } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const Profile = () => {
   const dispatch = useDispatch();
@@ -149,11 +150,21 @@ export const Profile = () => {
             <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white">
               Account Information
             </h3>
-            {!isEditing && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                Edit Profile
-              </Button>
-            )}
+            <AnimatePresence mode="wait">
+              {!isEditing && (
+                <motion.div
+                  key="edit-profile"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    Edit Profile
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -224,25 +235,33 @@ export const Profile = () => {
               />
             </div>
 
-            {isEditing && (
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  isLoading={isUpdatingProfile}
+            <AnimatePresence>
+              {isEditing && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex gap-3 pt-2 overflow-hidden"
                 >
-                  Save Changes
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  disabled={isUpdatingProfile}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    isLoading={isUpdatingProfile}
+                  >
+                    Save Changes
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    disabled={isUpdatingProfile}
+                  >
+                    Cancel
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
         </div>
 
@@ -252,68 +271,76 @@ export const Profile = () => {
             <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white">
               Change Password
             </h3>
-            {!isEditingPassword && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditingPassword(true)}>
-                Edit
-              </Button>
-            )}
+            <AnimatePresence mode="wait">
+              {!isEditingPassword && (
+                <motion.div
+                  key="edit-password"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Button variant="outline" size="sm" onClick={() => setIsEditingPassword(true)}>
+                    Edit
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className={`grid transition-all duration-300 ease-in-out ${isEditingPassword ? 'grid-rows-[1fr] opacity-100 mt-2' : 'grid-rows-[0fr] opacity-0'}`}>
-            <div className="overflow-hidden">
-              <form onSubmit={handlePasswordSubmit} className="space-y-4 py-2">
+          <AnimatePresence>
+            {isEditingPassword && (
+              <motion.form 
+                onSubmit={handlePasswordSubmit} 
+                className="space-y-4 overflow-hidden"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
                 <Input
-                  label="Current Password *"
                   type="password"
-                  placeholder="••••••••"
+                  label="Current Password *"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
-                  disabled={!isEditingPassword}
                 />
                 <Input
-                  label="New Password *"
                   type="password"
-                  placeholder="••••••••"
+                  label="New Password *"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  disabled={!isEditingPassword}
+                  helperText="Must be at least 8 characters"
                 />
                 <Input
-                  label="Confirm New Password *"
                   type="password"
-                  placeholder="••••••••"
+                  label="Confirm New Password *"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
                   required
-                  disabled={!isEditingPassword}
                 />
-
-                {isEditingPassword && (
-                  <div className="flex flex-col gap-3 pt-2">
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      className="w-full"
-                      isLoading={isChangingPassword}
-                    >
-                      Update Password
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleCancelPasswordEdit}
-                      disabled={isChangingPassword}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </form>
-            </div>
-          </div>
+                
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    isLoading={isChangingPassword}
+                  >
+                    Update
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancelPasswordEdit}
+                    disabled={isChangingPassword}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
         </div>
 
       </div>
