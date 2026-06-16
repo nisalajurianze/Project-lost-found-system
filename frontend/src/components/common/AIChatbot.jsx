@@ -124,10 +124,15 @@ const AIChatbot = () => {
         style={{ height: '500px', maxHeight: 'calc(100vh - 6rem)' }}
       >
         {/* Header */}
-        <div className="bg-primary-600 text-white p-4 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2">
-            <FiMessageSquare className="w-5 h-5" />
-            <h3 className="font-semibold">AI Search Assistant</h3>
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10">
+          <div className="flex items-center gap-3">
+            <div className="bg-white text-primary-600 w-8 h-8 rounded-xl flex items-center justify-center font-black font-display shadow-inner">
+              <span className="text-sm">L<span className="text-surface-400">&</span>F</span>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="font-bold leading-tight">Lost & Found AI</h3>
+              <span className="text-[10px] text-primary-100 font-medium tracking-wide">SMART ASSISTANT</span>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <button
