@@ -16,6 +16,7 @@ import ImageUpload from '../../components/common/ImageUpload';
 import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import aiService from '../../services/aiService';
+import AILoadingToast from '../../components/common/AILoadingToast';
 
 export const ReportFound = () => {
   const navigate = useNavigate();
@@ -98,14 +99,21 @@ export const ReportFound = () => {
     
     // If it's the first image being added and fields are mostly empty, suggest details
     if (imgs.length === 1 && !itemName && !description) {
-      const loadingToast = toast.loading('✨ AI is analyzing your image...');
+      const loadingToast = toast.custom(
+        (t) => <AILoadingToast t={t} message="✨ AI is analyzing your image..." />,
+        { duration: Infinity, id: 'ai-loading' }
+      );
       try {
         const result = await aiService.suggestDetailsFromImage(imgs[0]);
         if (result && result.data) {
           if (result.data.isSpam) {
+            toast.dismiss(loadingToast);
             toast.error(
-              `⛔ Invalid Image: ${result.data.description || 'Please upload a clear photo of a physical item.'}`, 
-              { id: loadingToast, duration: 6000 }
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-red-600">Image Rejected (Spam)</span>
+                <span className="text-sm">{result.data.description || 'Please upload a clear photo of a physical item.'}</span>
+              </div>,
+              { duration: 5000 }
             );
             setImages([]); // Clear the invalid image
             return;
@@ -117,6 +125,7 @@ export const ReportFound = () => {
           toast.success('Fields auto-filled by AI!', { id: loadingToast });
         } else {
           toast.dismiss(loadingToast);
+          toast.error('AI could not identify the image.');
         }
       } catch (err) {
         toast.dismiss(loadingToast);
