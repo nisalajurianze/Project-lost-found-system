@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiMessageSquare, FiX, FiSend, FiMic, FiTrash2 } from 'react-icons/fi';
+import { FaSearch } from 'react-icons/fa';
 import api from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'react-hot-toast';
@@ -124,27 +125,24 @@ const AIChatbot = () => {
         style={{ height: '500px', maxHeight: 'calc(100vh - 6rem)' }}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-4 flex justify-between items-center shrink-0 shadow-md z-10">
-          <div className="flex items-center gap-3">
-            <div className="bg-white text-primary-600 w-8 h-8 rounded-xl flex items-center justify-center font-black font-display shadow-inner">
-              <span className="text-sm">L<span className="text-surface-400">&</span>F</span>
-            </div>
-            <div className="flex flex-col">
-              <h3 className="font-bold leading-tight">Lost & Found AI</h3>
-              <span className="text-[10px] text-primary-100 font-medium tracking-wide">SMART ASSISTANT</span>
-            </div>
+        <div className="bg-white dark:bg-surface-800 p-4 flex justify-between items-center shrink-0 border-b border-surface-200 dark:border-surface-700 z-10">
+          <div className="flex items-center gap-2 text-primary-500 dark:text-primary-400">
+            <FaSearch className="w-5 h-5 -scale-x-100" />
+            <h3 className="font-extrabold text-xl tracking-tight leading-none">
+              Smart L&F
+            </h3>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={handleClearChat}
               title="Clear Chat"
-              className="text-white/80 hover:text-white p-1.5 rounded-md hover:bg-white/10 transition-colors"
+              className="text-surface-400 hover:text-red-500 p-1.5 rounded-md hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
             >
               <FiTrash2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white/80 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 p-1 rounded-md hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
             >
               <FiX className="w-5 h-5" />
             </button>
