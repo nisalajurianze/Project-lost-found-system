@@ -8,8 +8,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../../redux/slices/themeSlice';
 import { logoutUser } from '../../redux/slices/authSlice';
-import { FiSun, FiMoon, FiBell, FiMenu, FiX, FiUser, FiLogOut, FiSettings } from 'react-icons/fi';
+import { fetchUserNotifications, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/notificationSlice';
+import { FiSun, FiMoon, FiBell, FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiCheckCircle, FiClock } from 'react-icons/fi';
 import { getInitials } from '../../utils/helpers';
+import { formatRelativeTime } from '../../utils/formatDate';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -18,25 +20,38 @@ export const Navbar = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const profileDropdownRef = React.useRef(null);
+  const notificationDropdownRef = React.useRef(null);
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setProfileDropdownOpen(false);
       }
+      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)) {
+        setNotificationDropdownOpen(false);
+      }
     };
-    if (profileDropdownOpen) {
+    if (profileDropdownOpen || notificationDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [profileDropdownOpen]);
+  }, [profileDropdownOpen, notificationDropdownOpen]);
 
   const themeMode = useSelector((state) => state.theme.mode);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
-  const { unreadCount } = useSelector((state) => state.notifications);
+  const { unreadCount, notifications = [] } = useSelector((state) => state.notifications);
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen(!notificationDropdownOpen);
+    setProfileDropdownOpen(false);
+    if (!notificationDropdownOpen && (!notifications || notifications.length === 0)) {
+      dispatch(fetchUserNotifications({ page: 1, limit: 5 }));
+    }
+  };
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -95,24 +110,95 @@ export const Navbar = () => {
 
             {/* Notification Bell */}
             {isAuthenticated && (
-              <Link
-                to="/dashboard/notifications"
-                className="relative p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors"
-              >
-                <FiBell className="text-xl" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
-                    {unreadCount}
-                  </span>
+              <div className="relative" ref={notificationDropdownRef}>
+                <button
+                  onClick={handleBellClick}
+                  className="relative p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors focus:outline-none"
+                  aria-label="Notifications"
+                >
+                  <FiBell className="text-xl" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Notification Dropdown */}
+                {notificationDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 animate-scale-in overflow-hidden flex flex-col">
+                    <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center bg-surface-50 dark:bg-surface-800/50">
+                      <h3 className="font-bold text-surface-900 dark:text-white">Recent Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button 
+                          onClick={() => dispatch(markAllNotificationsRead())}
+                          className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+                      {notifications.length > 0 ? (
+                        notifications.slice(0, 5).map(notification => (
+                          <div 
+                            key={notification._id}
+                            onClick={() => {
+                              if (!notification.isRead) dispatch(markNotificationRead(notification._id));
+                              if (notification.link) {
+                                navigate(notification.link);
+                                setNotificationDropdownOpen(false);
+                              }
+                            }}
+                            className={`p-4 border-b border-surface-100 dark:border-surface-700/50 cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/30 ${
+                              !notification.isRead ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''
+                            }`}
+                          >
+                            <div className="flex gap-3">
+                              <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${!notification.isRead ? 'bg-primary-500' : 'bg-transparent'}`} />
+                              <div className="flex-1">
+                                <p className={`text-sm ${!notification.isRead ? 'font-bold text-surface-900 dark:text-white' : 'font-medium text-surface-700 dark:text-surface-300'}`}>
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 line-clamp-2">
+                                  {notification.message}
+                                </p>
+                                <p className="text-[10px] text-surface-400 dark:text-surface-500 mt-2 flex items-center gap-1 font-medium">
+                                  <FiClock /> {formatRelativeTime(notification.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center">
+                          <FiCheckCircle className="mx-auto text-3xl text-surface-300 dark:text-surface-600 mb-3" />
+                          <p className="text-sm font-medium text-surface-500 dark:text-surface-400">No recent notifications</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Link 
+                      to="/dashboard/notifications" 
+                      onClick={() => setNotificationDropdownOpen(false)}
+                      className="block w-full px-4 py-3 text-center text-sm font-bold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-surface-700/50 transition-colors border-t border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/30"
+                    >
+                      View All Notifications
+                    </Link>
+                  </div>
                 )}
-              </Link>
+              </div>
             )}
 
             {/* User Profile Dropdown */}
             {isAuthenticated ? (
               <div className="relative" ref={profileDropdownRef}>
                 <button
-                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  onClick={() => {
+                    setProfileDropdownOpen(!profileDropdownOpen);
+                    setNotificationDropdownOpen(false);
+                  }}
                   className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none"
                 >
                   {user?.profileImage?.url ? (
