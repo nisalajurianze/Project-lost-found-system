@@ -27,9 +27,7 @@ export const suggestItemDetails = asyncHandler(async (req, res) => {
     const suggestions = await suggestDetailsFromImage(base64Image);
 
     // Return JSON suggestions
-    res.status(200).json(
-      ApiResponse.success(suggestions, 'AI suggestions generated successfully')
-    );
+    ApiResponse.ok(suggestions, 'AI suggestions generated successfully').send(res);
   } catch (error) {
     console.error('AI Suggestion Endpoint Error:', error);
     throw ApiError.internal(`AI auto-fill failed: ${error.message}`);
