@@ -115,7 +115,8 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
         'Big Pickle'
       ]
     : [
-        process.env.AI_CHAT_MODEL || 'deepseek/deepseek-chat:free',
+        process.env.AI_CHAT_MODEL || 'deepseek/deepseek-v4-flash:free',
+        'deepseek/deepseek-chat:free',
         'deepseek/deepseek-r1:free',
         'meta-llama/llama-3.3-70b-instruct:free',
         'google/gemma-2-9b-it:free',
