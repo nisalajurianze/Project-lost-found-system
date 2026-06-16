@@ -96,7 +96,7 @@ const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
         'X-Title': 'Smart Lost and Found'
       },
       body: JSON.stringify({
-        model: 'nex-agi/nex-n2-pro:free',
+        model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
         messages: [
           {
             role: 'user',
@@ -251,11 +251,11 @@ Return ONLY a valid JSON object with these exact fields:
 - "description": A short descriptive paragraph suitable for a lost/found report. If isSpam is true, write a reason why it was rejected.
 - "tags": A comma-separated string of 3 to 5 search keywords. If isSpam is true, leave empty.`;
 
-  // Models ranked by speed and reliability (tested 2026-06-16)
+  // Models ranked by vision capability and JSON reliability
   const models = [
-    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free', // 🥇 1.1s, perfect JSON
-    'nex-agi/nex-n2-pro:free',                             // 🥈 4.5s, most detailed
-    'nvidia/nemotron-nano-12b-v2-vl:free',                  // 🥉 1.8s, backup
+    'meta-llama/llama-3.2-11b-vision-instruct:free', // Fast & reliable free vision model
+    'google/gemini-2.0-pro-exp-02-05:free',          // Highly accurate fallback
+    'nvidia/nemotron-nano-12b-v2-vl:free',           // Alternative vision fallback
   ];
 
   let lastError = null;
@@ -341,7 +341,7 @@ Return ONLY a valid JSON object with the field "keywords" containing an array of
         'X-Title': 'Smart Lost and Found'
       },
       body: JSON.stringify({
-        model: 'nex-agi/nex-n2-pro:free',
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
         messages: [{ role: 'user', content: systemPrompt }],
         response_format: { type: 'json_object' }
       })
