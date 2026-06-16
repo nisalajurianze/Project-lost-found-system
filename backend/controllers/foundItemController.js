@@ -13,7 +13,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { paginate, buildSort } from '../utils/pagination.js';
 import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { uploadMultipleImages, deleteMultipleImages } from '../services/cloudinaryService.js';
-import { analyzeItemImage, generateCategoryDetails } from '../services/imageAnalysisService.js';
+import { analyzeItemImage, generateCategoryDetails, generateKeywordsFromText } from '../services/imageAnalysisService.js';
 import { runMatchingForItem } from '../services/aiMatchingService.js';
 
 /**
@@ -84,6 +84,14 @@ const createFoundItem = asyncHandler(async (req, res) => {
       } else {
         await analyzeItemImage('FoundItem', foundItem._id, '', itemName, description);
       }
+
+      // Generate Keywords from Text (Translates Singlish/Sinhala -> English)
+      const aiKeywords = await generateKeywordsFromText(itemName, description);
+      if (aiKeywords.length > 0) {
+        foundItem.aiKeywords = aiKeywords;
+        await foundItem.save();
+      }
+
       await runMatchingForItem(foundItem, 'FoundItem');
     } catch (err) {
       console.error(`❌ Background processing failed for FoundItem ${foundItem._id}:`, err);

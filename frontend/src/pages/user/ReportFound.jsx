@@ -102,6 +102,14 @@ export const ReportFound = () => {
       try {
         const result = await aiService.suggestDetailsFromImage(imgs[0]);
         if (result && result.data) {
+          if (result.data.isSpam) {
+            toast.error(
+              `⛔ Invalid Image: ${result.data.description || 'Please upload a clear photo of a physical item.'}`, 
+              { id: loadingToast, duration: 6000 }
+            );
+            setImages([]); // Clear the invalid image
+            return;
+          }
           if (result.data.itemName) setItemName(result.data.itemName);
           if (result.data.category) setCategory(result.data.category);
           if (result.data.description) setDescription(result.data.description);

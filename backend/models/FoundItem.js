@@ -81,6 +81,11 @@ const foundItemSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    aiKeywords: {
+      type: [String],
+      default: [],
+      index: true
+    },
     contactPreference: {
       type: String,
       enum: ['email', 'phone', 'both'],

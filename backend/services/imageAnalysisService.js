@@ -242,11 +242,14 @@ const suggestDetailsFromImage = async (imageUrl) => {
   }
 
   const systemPrompt = `You are an AI assistant helping a user fill out a Lost and Found report. 
-Look at the image provided and return ONLY a valid JSON object with these exact fields:
-- "itemName": A concise title (max 5 words, e.g. "Apple iPhone 13 Pro Black").
-- "category": The most appropriate category (e.g. "Electronics", "Wallets", "Keys", "Bags", "Clothing", "Documents", "Other").
-- "description": A short descriptive paragraph suitable for a lost/found report (include visible brands, colors, unique marks, or damage).
-- "tags": A comma-separated string of 3 to 5 search keywords (e.g. "smartwatch, fitness, wristband, black").`;
+First, evaluate if this image is a valid physical object that could be lost or found. If the image is a human face/selfie, a meme, completely blank, explicit/NSFW, or otherwise clearly not an object, you must flag it as spam.
+
+Return ONLY a valid JSON object with these exact fields:
+- "isSpam": Boolean (true if the image is a selfie, meme, explicit, or blank, false otherwise).
+- "itemName": A concise title (max 5 words, e.g. "Apple iPhone 13 Pro Black"). If isSpam is true, leave empty.
+- "category": The most appropriate category (e.g. "Electronics", "Wallets", "Keys", "Bags", "Clothing", "Documents", "Other"). If isSpam is true, leave empty.
+- "description": A short descriptive paragraph suitable for a lost/found report. If isSpam is true, write a reason why it was rejected.
+- "tags": A comma-separated string of 3 to 5 search keywords. If isSpam is true, leave empty.`;
 
   // Models ranked by speed and reliability (tested 2026-06-16)
   const models = [
@@ -287,7 +290,7 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
         const result = parseJSONResponse(content);
-        if (result && result.itemName) {
+        if (result && (result.itemName || result.isSpam)) {
           console.log(`✅ AI suggestion success with ${model}`);
           return result;
         }
@@ -307,10 +310,62 @@ Look at the image provided and return ONLY a valid JSON object with these exact 
   throw lastError || new Error('All AI models failed to generate suggestions.');
 };
 
+/**
+ * Generates searchable English keywords from an item's name and description.
+ * Capable of translating from Sinhala, Tamil, or Singlish to English.
+ */
+const generateKeywordsFromText = async (itemName, description) => {
+  const { OPENROUTER_API_KEY } = process.env;
+
+  if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key') {
+    return [];
+  }
+
+  const systemPrompt = `You are a translation and keyword extraction assistant. 
+A user has reported a lost or found item. The item name is "${itemName}" and the description is "${description}".
+The text might be in English, Sinhala, Tamil, or Singlish (Sinhala written in English letters, e.g. "mage phone eka nathi wuna", "kalu pata kudayak").
+
+Your task:
+1. Understand the language and translate the meaning into English.
+2. Extract 5-10 highly relevant search keywords in English (e.g., color, brand, item type, unique features).
+
+Return ONLY a valid JSON object with the field "keywords" containing an array of lowercase strings. Example: {"keywords": ["iphone 13", "black", "apple", "smartphone", "cracked screen"]}`;
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+        'X-Title': 'Smart Lost and Found'
+      },
+      body: JSON.stringify({
+        model: 'nex-agi/nex-n2-pro:free',
+        messages: [{ role: 'user', content: systemPrompt }],
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      const result = parseJSONResponse(content);
+      if (result && Array.isArray(result.keywords)) {
+        return result.keywords;
+      }
+    }
+  } catch (error) {
+    console.error('Keyword generation failed:', error.message);
+  }
+  return [];
+};
+
 export {
   analyzeItemImage,
   generateCategoryDetails,
   suggestDetailsFromImage,
+  generateKeywordsFromText,
   // Export these for testing if needed
   parseJSONResponse
 };
