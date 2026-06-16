@@ -24,46 +24,63 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     ? "Conversation History:\n" + history.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n') + "\n\n"
     : "";
 
-  // Helper to make AI calls with automatic fallback to OpenRouter
+  // Helper to make AI calls with robust multi-model fallback to ensure it never fails
   const fetchFromAI = async (prompt, format = null) => {
     const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-    const primaryModel = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
-    const fallbackUrl = 'https://openrouter.ai/api/v1/chat/completions';
-    const fallbackModel = 'meta-llama/llama-3.3-70b-instruct:free';
+    
+    // Array of reliable free models to try sequentially if one is rate-limited (429) or fails
+    const modelsToTry = [
+      process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+      'google/gemma-2-9b-it:free',
+      'mistralai/mistral-7b-instruct:free',
+      'qwen/qwen-2-7b-instruct:free',
+      'microsoft/phi-3-mini-128k-instruct:free'
+    ];
 
-    const reqBody = {
-      model: primaryModel,
-      messages: [{ role: 'user', content: prompt }]
-    };
-    if (format) reqBody.response_format = format;
+    let lastError = null;
 
-    try {
-      const res = await fetch(primaryUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${PRIMARY_KEY}` },
-        body: JSON.stringify(reqBody)
-      });
-      if (res.ok) {
-        const text = await res.text();
-        try { return JSON.parse(text); } catch (e) { throw new Error('Invalid JSON from Primary Provider'); }
-      }
-      throw new Error(`Primary Provider Failed: ${res.status}`);
-    } catch (err) {
-      console.warn(`⚠️ AI Primary Provider Failed (${err.message}). Falling back to OpenRouter...`);
-      if (OPENROUTER_KEY && OPENROUTER_KEY !== 'your_openrouter_api_key') {
-        reqBody.model = fallbackModel;
-        const fallbackRes = await fetch(fallbackUrl, {
+    for (const model of modelsToTry) {
+      const reqBody = {
+        model: model,
+        messages: [{ role: 'user', content: prompt }]
+      };
+      if (format) reqBody.response_format = format;
+
+      try {
+        const res = await fetch(primaryUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENROUTER_KEY}` },
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${PRIMARY_KEY}`,
+            'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+            'X-Title': 'Smart Lost and Found'
+          },
           body: JSON.stringify(reqBody)
         });
-        if (fallbackRes.ok) {
-          const text = await fallbackRes.text();
-          try { return JSON.parse(text); } catch (e) { throw new Error(`Fallback returned non-JSON`); }
+        
+        if (res.ok) {
+          const text = await res.text();
+          try { 
+            return JSON.parse(text); 
+          } catch (e) { 
+            console.warn(`⚠️ Model ${model} returned invalid JSON`);
+            continue; // Invalid JSON? Try the next model!
+          }
         }
+        
+        // If it's a 429 Rate Limit or 5xx Server Error, log it and the loop will automatically try the next model
+        const status = res.status;
+        const errText = await res.text();
+        console.warn(`⚠️ Model ${model} failed with ${status}. Trying next...`);
+        lastError = `Status ${status} on ${model}`;
+        
+      } catch (err) {
+        console.warn(`⚠️ Fetch failed for ${model}: ${err.message}`);
+        lastError = err.message;
       }
-      throw new Error(`Primary API Failed: ${err.message}. (No fallback API key available)`);
     }
+    
+    throw new Error(`All AI models failed or rate-limited. Last error: ${lastError}`);
   };
 
   // 1. Analyze the user's intent and extract search keywords

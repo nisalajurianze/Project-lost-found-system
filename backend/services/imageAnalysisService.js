@@ -97,58 +97,60 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') return null;
 
   const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-  const fallbackUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
-  // Define models based on task type
-  let primaryModel = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
-  let fallbackModel = 'meta-llama/llama-3.3-70b-instruct:free';
+  // Arrays of reliable free models to try sequentially
+  const visionModels = [
+    process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
+    'nvidia/nemotron-nano-12b-v2-vl:free',
+    'qwen/qwen-vl-plus:free' // if available
+  ];
+  
+  const textModels = [
+    process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
+    'google/gemma-2-9b-it:free',
+    'mistralai/mistral-7b-instruct:free',
+    'qwen/qwen-2-7b-instruct:free'
+  ];
 
-  if (type === 'vision') {
-    primaryModel = process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free';
-    fallbackModel = 'nvidia/nemotron-nano-12b-v2-vl:free'; // Reliable free vision backup
-  }
+  const modelsToTry = type === 'vision' ? visionModels : textModels;
+  let lastError = null;
 
-  const reqBody = { model: primaryModel, messages };
+  for (const model of modelsToTry) {
+    const reqBody = { model, messages };
+    if (format) reqBody.response_format = format;
 
-  const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${PRIMARY_KEY}`,
-    'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-    'X-Title': 'Smart Lost and Found'
-  };
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${PRIMARY_KEY}`,
+      'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+      'X-Title': 'Smart Lost and Found'
+    };
 
-  try {
-    const res = await fetch(primaryUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
-    if (res.ok) {
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        throw new Error('Invalid JSON from Primary Provider');
-      }
-    }
-    const errText = await res.text();
-    throw new Error(`Primary Provider Failed: ${res.status} - ${errText}`);
-  } catch (err) {
-    console.warn(`⚠️ AI Primary Provider Failed for ${type} task (${err.message}). Falling back to OpenRouter...`);
-    if (OPENROUTER_KEY && OPENROUTER_KEY !== 'your_openrouter_api_key') {
-      reqBody.model = fallbackModel;
-      headers.Authorization = `Bearer ${OPENROUTER_KEY}`;
-      const fallbackRes = await fetch(fallbackUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
-      if (fallbackRes.ok) {
-        const text = await fallbackRes.text();
+    try {
+      const res = await fetch(primaryUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
+      
+      if (res.ok) {
+        const text = await res.text();
         try {
           return JSON.parse(text);
         } catch (e) {
-          throw new Error(`Primary Failed (${err.message}) AND Fallback Provider returned non-JSON`);
+          console.warn(`⚠️ Model ${model} returned invalid JSON`);
+          continue;
         }
-      } else {
-        const errText = await fallbackRes.text();
-        throw new Error(`Primary Failed (${err.message}) AND Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
       }
+      
+      const status = res.status;
+      const errText = await res.text();
+      console.warn(`⚠️ Model ${model} failed with ${status}. Trying next...`);
+      lastError = `Status ${status} on ${model}`;
+      
+    } catch (err) {
+      console.warn(`⚠️ AI Fetch Failed for ${model}: ${err.message}`);
+      lastError = err.message;
     }
-    throw new Error(`Primary API Failed: ${err.message}. (No Fallback API key provided)`);
   }
+
+  throw new Error(`All AI models failed for ${type} task. Last error: ${lastError}`);
 };
 
 /**
