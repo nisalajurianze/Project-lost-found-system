@@ -10,18 +10,21 @@ const AILoadingToast = ({ t, message = "✨ AI is analyzing your image...", isCo
       return;
     }
 
-    // Animate progress bar to 95%
+    // Animate progress bar to 95% slowly (Vision AI takes about 4-8 seconds)
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 95) {
           clearInterval(interval);
           return 95;
         }
-        // Increase faster at the beginning, slower at the end
-        const increment = prev < 50 ? 5 : prev < 80 ? 2 : 1;
+        // 0-40%: 2 per 100ms = 2s
+        // 40-75%: 1 per 100ms = 3.5s
+        // 75-95%: 0.5 per 100ms = 4s
+        // Total time to 95% = ~9.5 seconds
+        const increment = prev < 40 ? 2 : prev < 75 ? 1 : 0.5;
         return prev + increment;
       });
-    }, 50); // Made it 2x faster (50ms instead of 100ms) since AI is fast
+    }, 100);
 
     return () => clearInterval(interval);
   }, [isComplete]);
@@ -61,7 +64,7 @@ const AILoadingToast = ({ t, message = "✨ AI is analyzing your image...", isCo
             {/* Percentage */}
             <div className="mt-1 flex justify-end">
               <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">
-                {progress}%
+                {Math.floor(progress)}%
               </span>
             </div>
           </div>
