@@ -97,16 +97,19 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') return null;
 
   const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-  const isOpencode = primaryUrl.includes('opencode');
+  const visionUrl = process.env.AI_VISION_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  
+  const isOpencodeText = primaryUrl.includes('opencode');
+  const isOpencodeVision = visionUrl.includes('opencode');
 
-  const visionModels = isOpencode 
+  const visionModels = isOpencodeVision 
     ? [process.env.AI_VISION_MODEL || 'DeepSeek V4 Flash Free', 'MiMo-V2.5 Free', 'North Mini Code Free']
     : [
         process.env.AI_VISION_MODEL || 'openrouter/free',
         'nvidia/nemotron-nano-12b-v2-vl:free'
       ];
   
-  const textModels = isOpencode
+  const textModels = isOpencodeText
     ? [
         process.env.AI_CHAT_MODEL || 'DeepSeek V4 Flash Free',
         'MiMo-V2.5 Free',
@@ -123,7 +126,14 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
       ];
 
   const modelsToTry = type === 'vision' ? visionModels : textModels;
-  const apiKeys = PRIMARY_KEY.split(',').map(k => k.trim()).filter(k => k);
+  const activeUrl = type === 'vision' ? visionUrl : primaryUrl;
+  
+  // For vision, prioritize OPENROUTER_KEY if the vision URL is openrouter
+  const activeKeysRaw = (type === 'vision' && !isOpencodeVision && OPENROUTER_KEY) 
+    ? OPENROUTER_KEY 
+    : PRIMARY_KEY;
+    
+  const apiKeys = activeKeysRaw.split(',').map(k => k.trim()).filter(k => k);
   let lastError = null;
 
   const parseJSONResponse = (text) => {
@@ -151,7 +161,7 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
       };
 
       try {
-        const res = await fetch(primaryUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
+        const res = await fetch(activeUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
         
         if (res.ok) {
           const text = await res.text();
