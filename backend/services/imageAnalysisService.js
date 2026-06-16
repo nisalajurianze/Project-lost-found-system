@@ -82,58 +82,75 @@ const getFallbackAnalysis = (itemName = '', description = '') => {
   };
 };
 
+const fetchFromAI = async (messages, type = 'text', format = null) => {
+  const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+  const PRIMARY_KEY = process.env.AI_API_KEY || OPENROUTER_KEY;
+
+  if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') return null;
+
+  const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  const fallbackUrl = 'https://openrouter.ai/api/v1/chat/completions';
+
+  // Define models based on task type
+  let primaryModel = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
+  let fallbackModel = 'meta-llama/llama-3.3-70b-instruct:free';
+
+  if (type === 'vision') {
+    primaryModel = process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free';
+    fallbackModel = 'google/gemini-2.0-pro-exp-02-05:free'; // Reliable vision backup
+  }
+
+  const reqBody = { model: primaryModel, messages };
+  if (format) reqBody.response_format = format;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${PRIMARY_KEY}`,
+    'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+    'X-Title': 'Smart Lost and Found'
+  };
+
+  try {
+    const res = await fetch(primaryUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
+    if (res.ok) return await res.json();
+    throw new Error(`Primary Provider Failed: ${res.status}`);
+  } catch (err) {
+    console.warn(`⚠️ AI Primary Provider Failed for ${type} task (${err.message}). Falling back to OpenRouter...`);
+    if (OPENROUTER_KEY && OPENROUTER_KEY !== 'your_openrouter_api_key') {
+      reqBody.model = fallbackModel;
+      headers.Authorization = `Bearer ${OPENROUTER_KEY}`;
+      const fallbackRes = await fetch(fallbackUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
+      if (fallbackRes.ok) return await fallbackRes.json();
+    }
+  }
+  return null;
+};
+
 /**
  * Analyze an item image using OpenRouter.
  */
-const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
+const analyzeWithOpenRouter = async (imageUrl) => {
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-        'X-Title': 'Smart Lost and Found'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-11b-vision-instruct:free',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Analyze this lost/found item image. Return a JSON object with strictly these fields: "labels" (array of strings, ALWAYS lowercase, separate brand names from generic items, e.g. ["iphone 13 pro", "apple", "smartphone", "cracked screen"]), "colors" (array of strings, ALWAYS lowercase, e.g. ["space grey", "black"]), "description" (a highly detailed 1-2 sentence description including unique visual features, brands, or damage), and "confidence" (number 0-100 representing how confident you are). Do not wrap the JSON in markdown blocks.'
-              },
-              {
-                type: 'image_url',
-                image_url: { url: imageUrl }
-              }
-            ]
-          }
+    const messages = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Analyze this lost/found item image. Return a JSON object with strictly these fields: "labels" (array of strings, ALWAYS lowercase, separate brand names from generic items, e.g. ["iphone 13 pro", "apple", "smartphone", "cracked screen"]), "colors" (array of strings, ALWAYS lowercase, e.g. ["space grey", "black"]), "description" (a highly detailed 1-2 sentence description including unique visual features, brands, or damage), and "confidence" (number 0-100 representing how confident you are). Do not wrap the JSON in markdown blocks.' },
+          { type: 'image_url', image_url: { url: imageUrl } }
         ]
-      })
-    });
+      }
+    ];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenRouter API responded with ${response.status}: ${errText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const data = await fetchFromAI(messages, 'vision');
+    const content = data?.choices?.[0]?.message?.content;
     const result = parseJSONResponse(content);
     
     if (result) {
-      return {
-        ...result,
-        provider: 'openrouter',
-        rawResponse: data
-      };
+      return { ...result, provider: 'ai', rawResponse: data };
     }
     return null;
   } catch (error) {
-    console.error('❌ OpenRouter Image Analysis failed:', error.message);
+    console.error('❌ AI Image Analysis failed:', error.message);
     return null;
   }
 };
@@ -150,22 +167,18 @@ const analyzeWithOpenRouter = async (imageUrl, apiKey) => {
  * @returns {Promise<ImageAnalysis>} Saved ImageAnalysis document
  */
 const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', description = '') => {
-  const { OPENROUTER_API_KEY } = process.env;
   let analysis = null;
 
-  // 1. Try OpenRouter if configured
-  if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key' && !imageUrl.startsWith('data:')) {
-    console.log(`🤖 Analyzing image for ${itemType} (${itemId}) using OpenRouter (nex-n2-pro)...`);
-    analysis = await analyzeWithOpenRouter(imageUrl, OPENROUTER_API_KEY);
+  if (!imageUrl.startsWith('data:')) {
+    console.log(`🤖 Analyzing image for ${itemType} (${itemId}) using AI...`);
+    analysis = await analyzeWithOpenRouter(imageUrl);
   }
 
-  // 2. Fallback if API failed or was not configured
   if (!analysis) {
     console.log(`ℹ️ Using rule-based fallback analysis for ${itemType} (${itemId})...`);
     analysis = getFallbackAnalysis(itemName, description);
   }
 
-  // Save analysis to database using upsert to prevent duplicates
   const savedAnalysis = await ImageAnalysis.findOneAndUpdate(
     { itemId, itemType },
     {
@@ -192,55 +205,21 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
  * @returns {Promise<{icon: string, description: string}>}
  */
 const generateCategoryDetails = async (categoryName) => {
-  const { OPENROUTER_API_KEY } = process.env;
-  
   const systemPrompt = `You are an AI for a Lost and Found system. A user suggested a new category named "${categoryName}". Return ONLY a valid JSON object with fields: "icon" (a single relevant emoji) and "description" (a concise 1-sentence description of items belonging here). Example: {"icon":"🛹","description":"Skateboards and accessories."}`;
+  
+  const data = await fetchFromAI([{ role: 'user', content: systemPrompt }], 'text', { type: 'json_object' });
+  const content = data?.choices?.[0]?.message?.content;
+  const result = parseJSONResponse(content);
+  
+  if (result && result.icon && result.description) return result;
 
-  // 1. Try OpenRouter
-  if (OPENROUTER_API_KEY && OPENROUTER_API_KEY !== 'your_openrouter_api_key') {
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-          'X-Title': 'Smart Lost and Found'
-        },
-        body: JSON.stringify({
-          model: 'nex-agi/nex-n2-pro:free',
-          messages: [{ role: 'user', content: systemPrompt }],
-          response_format: { type: 'json_object' }
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        const result = parseJSONResponse(content);
-        if (result && result.icon && result.description) return result;
-      }
-    } catch (e) {
-      console.error('OpenRouter category generation failed:', e.message);
-    }
-  }
-
-  // 2. Generic fallback
-  return {
-    icon: '📦',
-    description: `Items related to ${categoryName}.`
-  };
+  return { icon: '📦', description: `Items related to ${categoryName}.` };
 };
 
 /**
  * Auto-suggests item details from an image for frontend form auto-fill.
  */
 const suggestDetailsFromImage = async (imageUrl) => {
-  const { OPENROUTER_API_KEY } = process.env;
-
-  if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key') {
-    throw new Error('OPENROUTER_API_KEY is not configured on the server.');
-  }
-
   const systemPrompt = `You are an AI assistant helping a user fill out a Lost and Found report. 
 First, evaluate if this image is a valid physical object that could be lost or found. If the image is a human face/selfie, a meme, completely blank, explicit/NSFW, or otherwise clearly not an object, you must flag it as spam.
 
@@ -251,63 +230,25 @@ Return ONLY a valid JSON object with these exact fields:
 - "description": A short descriptive paragraph suitable for a lost/found report. If isSpam is true, write a reason why it was rejected.
 - "tags": A comma-separated string of 3 to 5 search keywords. If isSpam is true, leave empty.`;
 
-  // Models ranked by vision capability and JSON reliability
-  const models = [
-    'meta-llama/llama-3.2-11b-vision-instruct:free', // Fast & reliable free vision model
-    'google/gemini-2.0-pro-exp-02-05:free',          // Highly accurate fallback
-    'nvidia/nemotron-nano-12b-v2-vl:free',           // Alternative vision fallback
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: systemPrompt },
+        { type: 'image_url', image_url: { url: imageUrl } }
+      ]
+    }
   ];
 
-  let lastError = null;
+  const data = await fetchFromAI(messages, 'vision', { type: 'json_object' });
+  const content = data?.choices?.[0]?.message?.content;
+  const result = parseJSONResponse(content);
 
-  for (const model of models) {
-    try {
-      console.log(`🤖 Trying AI model: ${model}`);
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-          'X-Title': 'Smart Lost and Found'
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: systemPrompt },
-                { type: 'image_url', image_url: { url: imageUrl } }
-              ]
-            }
-          ],
-          response_format: { type: 'json_object' }
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        const result = parseJSONResponse(content);
-        if (result && (result.itemName || result.isSpam)) {
-          console.log(`✅ AI suggestion success with ${model}`);
-          return result;
-        }
-        console.warn(`⚠️ ${model} returned invalid JSON, trying next...`);
-      } else {
-        const errorText = await response.text();
-        console.warn(`⚠️ ${model} failed (${response.status}), trying next...`);
-        lastError = new Error(`${model} returned ${response.status}: ${errorText.substring(0, 200)}`);
-      }
-    } catch (err) {
-      console.warn(`⚠️ ${model} error: ${err.message}, trying next...`);
-      lastError = err;
-    }
+  if (result && (result.itemName || result.isSpam)) {
+    console.log(`✅ AI suggestion success`);
+    return result;
   }
-
-  // All models failed
-  throw lastError || new Error('All AI models failed to generate suggestions.');
+  throw new Error('All AI models failed to generate suggestions.');
 };
 
 /**
@@ -315,12 +256,6 @@ Return ONLY a valid JSON object with these exact fields:
  * Capable of translating from Sinhala, Tamil, or Singlish to English.
  */
 const generateKeywordsFromText = async (itemName, description) => {
-  const { OPENROUTER_API_KEY } = process.env;
-
-  if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key') {
-    return [];
-  }
-
   const systemPrompt = `You are a translation and keyword extraction assistant. 
 A user has reported a lost or found item. The item name is "${itemName}" and the description is "${description}".
 The text might be in English, Sinhala, Tamil, or Singlish (Sinhala written in English letters, e.g. "mage phone eka nathi wuna", "kalu pata kudayak").
@@ -331,32 +266,12 @@ Your task:
 
 Return ONLY a valid JSON object with the field "keywords" containing an array of lowercase strings. Example: {"keywords": ["iphone 13", "black", "apple", "smartphone", "cracked screen"]}`;
 
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-        'X-Title': 'Smart Lost and Found'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
-        messages: [{ role: 'user', content: systemPrompt }],
-        response_format: { type: 'json_object' }
-      })
-    });
+  const data = await fetchFromAI([{ role: 'user', content: systemPrompt }], 'text', { type: 'json_object' });
+  const content = data?.choices?.[0]?.message?.content;
+  const result = parseJSONResponse(content);
 
-    if (response.ok) {
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      const result = parseJSONResponse(content);
-      if (result && Array.isArray(result.keywords)) {
-        return result.keywords;
-      }
-    }
-  } catch (error) {
-    console.error('Keyword generation failed:', error.message);
+  if (result && Array.isArray(result.keywords)) {
+    return result.keywords;
   }
   return [];
 };
