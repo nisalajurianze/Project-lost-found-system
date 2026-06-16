@@ -37,8 +37,8 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 border-r border-surface-200/50 bg-white/50 dark:border-surface-800/50 dark:bg-surface-950/20 backdrop-blur-md transition-colors duration-300 p-4 h-full hidden lg:block no-print">
-      <div className="flex flex-col gap-1.5">
+    <aside className="w-64 flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl transition-colors duration-300 p-5 hidden lg:flex flex-col no-print">
+      <div className="flex flex-col gap-2">
         {links.map((link) => (
           <NavLink
             key={link.path}
@@ -48,10 +48,10 @@ export const Sidebar = () => {
               isActive ? 'sidebar-link-active' : 'sidebar-link'
             }
           >
-            <span className="text-lg">{link.icon}</span>
-            <span className="flex-1">{link.label}</span>
+            <span className="text-[1.15rem] opacity-90">{link.icon}</span>
+            <span className="flex-1 font-semibold tracking-wide">{link.label}</span>
             {link.badge && (
-              <span className="px-2 py-0.5 text-xs font-bold text-white bg-primary-500 rounded-full">
+              <span className="px-2 py-0.5 text-[10px] font-bold text-white bg-primary-500 rounded-full shadow-sm">
                 {link.badge}
               </span>
             )}
