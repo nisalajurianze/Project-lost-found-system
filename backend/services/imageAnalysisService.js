@@ -141,13 +141,32 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
 
   const parseJSONResponse = (text) => {
     try {
-      const cleanText = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      let cleanText = text;
+      
+      // Remove thought process up to the last known think end token
+      const altThinkToken = cleanText.lastIndexOf('<｜end▁of▁thinking｜>');
+      if (altThinkToken !== -1) {
+        cleanText = cleanText.substring(altThinkToken + 19);
+      } else {
+        const lastThinkToken = cleanText.lastIndexOf('</think>');
+        if (lastThinkToken !== -1) {
+          cleanText = cleanText.substring(lastThinkToken + 8);
+        }
+      }
+      
+      // Also try to find markdown json block first
+      const mdMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (mdMatch) {
+        const jsonStr = mdMatch[1].replace(/,\s*([}\]])/g, '$1');
+        return JSON.parse(jsonStr);
+      }
+  
       const match = cleanText.match(/\{[\s\S]*\}/);
       if (!match) throw new Error('No JSON object found');
       const jsonStr = match[0].replace(/,\s*([}\]])/g, '$1'); // Fix trailing commas
       return JSON.parse(jsonStr);
     } catch (e) {
-      throw new Error('Invalid JSON');
+      return null;
     }
   };
 

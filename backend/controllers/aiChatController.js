@@ -27,7 +27,26 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   // Helper to safely parse JSON and ignore <think> tags from DeepSeek R1 reasoning models
   const parseJSONResponse = (text) => {
     try {
-      const cleanText = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      let cleanText = text;
+      
+      // Remove thought process up to the last known think end token
+      const altThinkToken = cleanText.lastIndexOf('<｜end▁of▁thinking｜>');
+      if (altThinkToken !== -1) {
+        cleanText = cleanText.substring(altThinkToken + 19);
+      } else {
+        const lastThinkToken = cleanText.lastIndexOf('</think>');
+        if (lastThinkToken !== -1) {
+          cleanText = cleanText.substring(lastThinkToken + 8);
+        }
+      }
+      
+      // Also try to find markdown json block first
+      const mdMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (mdMatch) {
+        const jsonStr = mdMatch[1].replace(/,\s*([}\]])/g, '$1');
+        return JSON.parse(jsonStr);
+      }
+
       const match = cleanText.match(/\{[\s\S]*\}/);
       if (!match) throw new Error('No JSON object found');
       const jsonStr = match[0].replace(/,\s*([}\]])/g, '$1'); // Fix trailing commas
@@ -131,7 +150,7 @@ Determine their intent based on the context:
 - "list_lost": They want to see a general list of ALL currently lost items.
 - "general": They are just saying hi, asking a general question, or making small talk.
 
-Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. Look at the Conversation History to find missing context (e.g., if they previously said "I lost my bike" and now say "it is black", the keywords are ["black", "bike"]).
+Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. Look at the Conversation History to find missing context (e.g., if they previously said "I lost my bike" and now say "it is black", the keywords are ["black", "bike"]). VERY IMPORTANT: Auto-correct any spelling mistakes in the keywords (e.g. "camra" -> "camera", "phon" -> "phone") so we can search the database accurately.
 
 Return ONLY a valid JSON object exactly like this:
 {
