@@ -68,14 +68,14 @@ export const handleAIChat = asyncHandler(async (req, res) => {
           try {
             return JSON.parse(text);
           } catch (e) {
-            console.error('Fallback Provider returned non-JSON:', text);
+            throw new Error(`Fallback Provider returned non-JSON: ${text}`);
           }
         } else {
           const errText = await fallbackRes.text();
-          console.error(`Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
+          throw new Error(`Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
         }
       }
-      return null;
+      throw new Error(`Primary API Failed and no Fallback API key provided. Details: ${err.message}`);
     }
   };
 
@@ -92,12 +92,18 @@ Return ONLY a valid JSON object:
   "responseIfGeneral": "If intent is general, put a friendly reply here, else empty"
 }`;
 
-  const extractData = await fetchFromAI(extractionPrompt);
+  let extractData;
+  try {
+    extractData = await fetchFromAI(extractionPrompt);
+  } catch (err) {
+    return ApiResponse.ok({ text: `[System Error: API Connection Failed] ${err.message}` }).send(res);
+  }
+
   const extractContent = extractData?.choices?.[0]?.message?.content;
   const analysis = parseJSONResponse(extractContent);
 
   if (!analysis) {
-    return ApiResponse.ok({ text: "I'm having trouble understanding. Could you rephrase?" }).send(res);
+    return ApiResponse.ok({ text: `I'm having trouble understanding. (Error: AI returned invalid format. Raw: ${extractContent?.substring(0, 50)}...). Could you rephrase?` }).send(res);
   }
 
   if (analysis.intent === 'general' || !analysis.keywords || analysis.keywords.length === 0) {
