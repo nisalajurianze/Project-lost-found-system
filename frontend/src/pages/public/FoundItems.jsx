@@ -73,7 +73,7 @@ export const FoundItems = () => {
   ];
 
   return (
-    <div className="flex-1 py-8 sm:py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
+    <div className="flex-1 pt-4 pb-8 sm:pt-6 sm:pb-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="page-container max-w-7xl mx-auto">
         
         {/* Header & Search/Filter Container */}
