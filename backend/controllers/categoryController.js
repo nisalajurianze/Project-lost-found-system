@@ -132,7 +132,15 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
   
   if (!category) {
     // Generate AI details
-    const details = await generateCategoryDetails(name);
+    let details;
+    try {
+      details = await generateCategoryDetails(name);
+    } catch (err) {
+      if (err.message === 'INVALID_CATEGORY') {
+        throw ApiError.badRequest(`'${name}' is not a valid physical item category.`);
+      }
+      throw err;
+    }
     
     category = await Category.create({
       name,

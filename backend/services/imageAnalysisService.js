@@ -230,7 +230,10 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
  * @returns {Promise<{icon: string, description: string}>}
  */
 const generateCategoryDetails = async (categoryName) => {
-  const systemPrompt = `You are an AI for a Lost and Found system. A user suggested a new category named "${categoryName}". Return ONLY a valid JSON object with fields: "icon" (a single relevant emoji) and "description" (a concise 1-sentence description of items belonging here). Example: {"icon":"🛹","description":"Skateboards and accessories."}`;
+  const systemPrompt = `You are an AI for a Lost and Found system. A user suggested a new category named "${categoryName}".
+First, evaluate if this is a realistic physical object or a valid category of objects that someone could lose or find. 
+If it is gibberish (e.g. "loahhfafafaf"), a digital concept/game (e.g. "gta"), or meaningless, return ONLY: {"isValid": false}.
+If it is valid, return ONLY a JSON object with fields: "isValid": true, "icon" (a single relevant emoji), and "description" (a concise 1-sentence description). Example: {"isValid":true,"icon":"🛹","description":"Skateboards and accessories."}`;
   
   let data;
   try {
@@ -243,6 +246,10 @@ const generateCategoryDetails = async (categoryName) => {
   const content = data?.choices?.[0]?.message?.content;
   const result = parseJSONResponse(content);
   
+  if (result && result.isValid === false) {
+    throw new Error('INVALID_CATEGORY');
+  }
+
   if (result && result.icon && result.description) return result;
 
   console.error(`AI Category Suggestion Parse Failed. Raw content: ${content}`);
