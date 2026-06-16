@@ -77,18 +77,29 @@ const createFoundItem = asyncHandler(async (req, res) => {
   await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
 
   // Run AI analysis and AI Matching in background
+  // Background processing
   (async () => {
     try {
+      let analysisResult = null;
       if (images.length > 0) {
-        await analyzeItemImage('FoundItem', foundItem._id, images[0].url, itemName, description);
+        analysisResult = await analyzeItemImage('FoundItem', foundItem._id, images[0].url, itemName, description);
       } else {
-        await analyzeItemImage('FoundItem', foundItem._id, '', itemName, description);
+        analysisResult = await analyzeItemImage('FoundItem', foundItem._id, '', itemName, description);
       }
 
       // Generate Keywords from Text (Translates Singlish/Sinhala -> English)
-      const aiKeywords = await generateKeywordsFromText(itemName, description);
-      if (aiKeywords.length > 0) {
-        foundItem.aiKeywords = aiKeywords;
+      const textKeywords = await generateKeywordsFromText(itemName, description);
+      
+      // Combine text keywords with image labels and colors
+      let finalKeywords = [...textKeywords];
+      if (analysisResult) {
+        const imgLabels = analysisResult.labels ? analysisResult.labels.map(l => l.toLowerCase()) : [];
+        const imgColors = analysisResult.colors ? analysisResult.colors.map(c => c.toLowerCase()) : [];
+        finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
+      }
+
+      if (finalKeywords.length > 0) {
+        foundItem.aiKeywords = finalKeywords;
         await foundItem.save();
       }
 
@@ -275,9 +286,34 @@ const updateFoundItem = asyncHandler(async (req, res) => {
   // Rematching
   (async () => {
     try {
+      let analysisResult = null;
       if (newImages.length > 0) {
-        await analyzeItemImage('FoundItem', item._id, newImages[0].url, item.itemName, item.description);
+        analysisResult = await analyzeItemImage('FoundItem', item._id, newImages[0].url, item.itemName, item.description);
       }
+      
+      const textKeywords = await generateKeywordsFromText(item.itemName, item.description);
+      let finalKeywords = [...textKeywords];
+      
+      if (analysisResult) {
+        const imgLabels = analysisResult.labels ? analysisResult.labels.map(l => l.toLowerCase()) : [];
+        const imgColors = analysisResult.colors ? analysisResult.colors.map(c => c.toLowerCase()) : [];
+        finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
+      } else {
+        // Fetch existing analysis if no new image was added
+        const ImageAnalysis = (await import('../models/ImageAnalysis.js')).default;
+        const existingAnalysis = await ImageAnalysis.findOne({ itemId: item._id, itemType: 'FoundItem' });
+        if (existingAnalysis) {
+          const imgLabels = existingAnalysis.labels ? existingAnalysis.labels.map(l => l.toLowerCase()) : [];
+          const imgColors = existingAnalysis.colors ? existingAnalysis.colors.map(c => c.toLowerCase()) : [];
+          finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
+        }
+      }
+
+      if (finalKeywords.length > 0) {
+        item.aiKeywords = finalKeywords;
+        await item.save();
+      }
+
       await runMatchingForItem(item, 'FoundItem');
     } catch (err) {
       console.error('❌ Background processing on update failed:', err);

@@ -79,18 +79,27 @@ const createLostItem = asyncHandler(async (req, res) => {
   // We handle errors locally inside the async IIFE to prevent crash
   (async () => {
     try {
+      let analysisResult = null;
       // Analyze first image if uploaded
       if (images.length > 0) {
-        await analyzeItemImage('LostItem', lostItem._id, images[0].url, itemName, description);
+        analysisResult = await analyzeItemImage('LostItem', lostItem._id, images[0].url, itemName, description);
       } else {
         // Run analysis on text fallback
-        await analyzeItemImage('LostItem', lostItem._id, '', itemName, description);
+        analysisResult = await analyzeItemImage('LostItem', lostItem._id, '', itemName, description);
       }
       
       // Generate Keywords from Text (Translates Singlish/Sinhala -> English)
-      const aiKeywords = await generateKeywordsFromText(itemName, description);
-      if (aiKeywords.length > 0) {
-        lostItem.aiKeywords = aiKeywords;
+      const textKeywords = await generateKeywordsFromText(itemName, description);
+      
+      let finalKeywords = [...textKeywords];
+      if (analysisResult) {
+        const imgLabels = analysisResult.labels ? analysisResult.labels.map(l => l.toLowerCase()) : [];
+        const imgColors = analysisResult.colors ? analysisResult.colors.map(c => c.toLowerCase()) : [];
+        finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
+      }
+
+      if (finalKeywords.length > 0) {
+        lostItem.aiKeywords = finalKeywords;
         await lostItem.save();
       }
 
@@ -281,9 +290,34 @@ const updateLostItem = asyncHandler(async (req, res) => {
   // Re-run matching and image analysis in background if details changed significantly
   (async () => {
     try {
+      let analysisResult = null;
       if (newImages.length > 0) {
-        await analyzeItemImage('LostItem', item._id, newImages[0].url, item.itemName, item.description);
+        analysisResult = await analyzeItemImage('LostItem', item._id, newImages[0].url, item.itemName, item.description);
       }
+      
+      const textKeywords = await generateKeywordsFromText(item.itemName, item.description);
+      let finalKeywords = [...textKeywords];
+      
+      if (analysisResult) {
+        const imgLabels = analysisResult.labels ? analysisResult.labels.map(l => l.toLowerCase()) : [];
+        const imgColors = analysisResult.colors ? analysisResult.colors.map(c => c.toLowerCase()) : [];
+        finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
+      } else {
+        // Fetch existing analysis if no new image was added
+        const ImageAnalysis = (await import('../models/ImageAnalysis.js')).default;
+        const existingAnalysis = await ImageAnalysis.findOne({ itemId: item._id, itemType: 'LostItem' });
+        if (existingAnalysis) {
+          const imgLabels = existingAnalysis.labels ? existingAnalysis.labels.map(l => l.toLowerCase()) : [];
+          const imgColors = existingAnalysis.colors ? existingAnalysis.colors.map(c => c.toLowerCase()) : [];
+          finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
+        }
+      }
+
+      if (finalKeywords.length > 0) {
+        item.aiKeywords = finalKeywords;
+        await item.save();
+      }
+
       await runMatchingForItem(item, 'LostItem');
     } catch (err) {
       console.error('❌ Background processing on update failed:', err);
