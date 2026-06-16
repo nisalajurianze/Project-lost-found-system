@@ -44,12 +44,31 @@ const AIChatbot = () => {
       const replies = res.data?.data?.quickReplies || [];
       const replyTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
       
-      // Play a subtle pop sound for AI reply
+      // Play a subtle pop sound for AI reply using Web Audio API (no external files needed)
       try {
-        const audio = new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3');
-        audio.volume = 0.3;
-        audio.play();
-      } catch (err) { /* ignore audio errors */ }
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+          
+          osc.type = 'sine';
+          // A quick high-to-low frequency sweep makes a nice "pop" or "bloop" sound
+          osc.frequency.setValueAtTime(600, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.1);
+          
+          gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+          
+          osc.connect(gainNode);
+          gainNode.connect(ctx.destination);
+          
+          osc.start();
+          osc.stop(ctx.currentTime + 0.1);
+        }
+      } catch (err) {
+        console.error("Audio play failed:", err);
+      }
 
       setMessages(prev => [...prev, { role: 'ai', content: reply, timestamp: replyTime }]);
       setQuickReplies(replies);
