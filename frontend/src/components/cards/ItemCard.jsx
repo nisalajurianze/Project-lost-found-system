@@ -25,7 +25,7 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   return (
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
       {/* Image Container */}
-      <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden">
+      <div className="relative w-full aspect-[16/10] bg-surface-100 dark:bg-surface-800 overflow-hidden">
         {mainImage ? (
           <img
             src={mainImage}
@@ -49,14 +49,14 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
       </div>
 
       {/* Item details */}
-      <div className="flex-1 p-5 flex flex-col justify-between">
+      <div className="flex-1 p-4 flex flex-col justify-between">
         <div>
           {/* Category */}
-          <span className="text-xs font-bold text-primary-500 dark:text-primary-400 uppercase tracking-wide">
+          <span className="text-[11px] font-bold text-primary-500 dark:text-primary-400 uppercase tracking-wide">
             {getCategoryIcon(item.category)} {item.category}
           </span>
           {/* Item Name */}
-          <h4 className="text-base font-bold text-surface-900 dark:text-white mt-1 leading-snug line-clamp-1">
+          <h4 className="text-sm font-bold text-surface-900 dark:text-white mt-1 leading-snug line-clamp-1">
             {item.itemName}
           </h4>
           {/* Description */}
