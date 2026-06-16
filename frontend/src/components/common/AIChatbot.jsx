@@ -16,6 +16,25 @@ const AIChatbot = () => {
   const [isListening, setIsListening] = useState(false);
   const [quickReplies, setQuickReplies] = useState(["I lost something", "I found something"]);
   const messagesEndRef = useRef(null);
+  const chatWindowRef = useRef(null);
+  const floatingBtnRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && 
+          chatWindowRef.current && 
+          !chatWindowRef.current.contains(event.target) &&
+          floatingBtnRef.current &&
+          !floatingBtnRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -132,6 +151,7 @@ const AIChatbot = () => {
     <>
       {/* Floating Button */}
       <button
+        ref={floatingBtnRef}
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-6 right-6 p-4 rounded-full bg-primary-600 text-white shadow-xl hover:bg-primary-700 transition-transform duration-300 z-50 ${isOpen ? 'scale-0' : 'scale-100 hover:scale-110'}`}
         aria-label="Open AI Assistant"
@@ -141,6 +161,7 @@ const AIChatbot = () => {
 
       {/* Chat Window */}
       <div
+        ref={chatWindowRef}
         className={`fixed bottom-6 right-6 w-[350px] max-w-[calc(100vw-3rem)] sm:w-[400px] bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700 flex flex-col overflow-hidden transition-all duration-300 z-50 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}
         style={{ height: '500px', maxHeight: 'calc(100vh - 6rem)' }}
       >
