@@ -72,7 +72,7 @@ Return ONLY a valid JSON object:
   "responseIfGeneral": "If intent is general, put a friendly reply here, else empty"
 }`;
 
-  const extractData = await fetchFromAI(extractionPrompt, { type: 'json_object' });
+  const extractData = await fetchFromAI(extractionPrompt);
   const extractContent = extractData?.choices?.[0]?.message?.content;
   const analysis = parseJSONResponse(extractContent);
 

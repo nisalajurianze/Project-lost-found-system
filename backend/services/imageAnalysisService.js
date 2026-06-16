@@ -101,7 +101,6 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   }
 
   const reqBody = { model: primaryModel, messages };
-  if (format) reqBody.response_format = format;
 
   const headers = {
     'Content-Type': 'application/json',
