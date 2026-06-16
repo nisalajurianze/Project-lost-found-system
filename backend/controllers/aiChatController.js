@@ -10,13 +10,13 @@ import { parseJSONResponse } from '../services/imageAnalysisService.js';
  */
 export const handleAIChat = asyncHandler(async (req, res) => {
   const { message } = req.body;
-  if (!message) return ApiResponse.success({ text: "Please say something!" }).send(res);
+  if (!message) return ApiResponse.ok({ text: "Please say something!" }).send(res);
 
   const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
   const PRIMARY_KEY = process.env.AI_API_KEY || OPENROUTER_KEY;
 
   if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') {
-    return ApiResponse.success({ text: "AI is currently unavailable. Please use the manual search." }).send(res);
+    return ApiResponse.ok({ text: "AI is currently unavailable. Please use the manual search." }).send(res);
   }
 
   // Helper to make AI calls with automatic fallback to OpenRouter
@@ -77,11 +77,11 @@ Return ONLY a valid JSON object:
   const analysis = parseJSONResponse(extractContent);
 
   if (!analysis) {
-    return ApiResponse.success({ text: "I'm having trouble understanding. Could you rephrase?" }).send(res);
+    return ApiResponse.ok({ text: "I'm having trouble understanding. Could you rephrase?" }).send(res);
   }
 
   if (analysis.intent === 'general' || !analysis.keywords || analysis.keywords.length === 0) {
-    return ApiResponse.success({ text: analysis.responseIfGeneral || "How can I help you find or report an item today?" }).send(res);
+    return ApiResponse.ok({ text: analysis.responseIfGeneral || "How can I help you find or report an item today?" }).send(res);
   }
 
   // 2. Query the DB based on keywords
@@ -102,7 +102,7 @@ Return ONLY a valid JSON object:
   }).limit(5).lean();
 
   if (dbItems.length === 0) {
-    return ApiResponse.success({ text: `I couldn't find any ${analysis.intent === 'lost' ? 'found' : 'lost'} items matching your description. I recommend submitting a formal report so we can notify you if it turns up!` }).send(res);
+    return ApiResponse.ok({ text: `I couldn't find any ${analysis.intent === 'lost' ? 'found' : 'lost'} items matching your description. I recommend submitting a formal report so we can notify you if it turns up!` }).send(res);
   }
 
   // 3. Let AI format the final response
@@ -118,5 +118,5 @@ Draft a friendly, concise response in the SAME LANGUAGE the user used (e.g. if t
   const replyData = await fetchFromAI(replyPrompt);
   const finalReply = replyData?.choices?.[0]?.message?.content || "Here are some matches I found:\n" + itemSummary;
 
-  return ApiResponse.success({ text: finalReply, items: dbItems }).send(res);
+  return ApiResponse.ok({ text: finalReply, items: dbItems }).send(res);
 });
