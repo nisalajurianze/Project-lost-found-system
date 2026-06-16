@@ -119,8 +119,6 @@ const deleteCategory = asyncHandler(async (req, res) => {
   ApiResponse.noContent('Category deleted successfully.').send(res);
 });
 
-import { generateCategoryDetails } from '../services/imageAnalysisService.js';
-
 /**
  * Auto-create a category with AI generated details.
  */
