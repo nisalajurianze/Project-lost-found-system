@@ -37,7 +37,7 @@ Return ONLY a valid JSON object:
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
       messages: [{ role: 'user', content: extractionPrompt }],
       response_format: { type: 'json_object' }
     })
@@ -94,7 +94,7 @@ Draft a friendly, concise response in the SAME LANGUAGE the user used (e.g. if t
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-lite-preview-02-05:free',
+      model: 'meta-llama/llama-3.3-70b-instruct:free',
       messages: [{ role: 'user', content: replyPrompt }]
     })
   });
