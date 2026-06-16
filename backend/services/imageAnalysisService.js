@@ -106,6 +106,9 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
     ? [process.env.AI_VISION_MODEL || 'DeepSeek V4 Flash Free', 'MiMo-V2.5 Free', 'North Mini Code Free']
     : [
         process.env.AI_VISION_MODEL || 'openrouter/free',
+        'google/gemini-2.0-pro-exp-02-05:free',
+        'meta-llama/llama-3.2-11b-vision-instruct:free',
+        'qwen/qwen-vl-plus:free',
         'nvidia/nemotron-nano-12b-v2-vl:free'
       ];
   
