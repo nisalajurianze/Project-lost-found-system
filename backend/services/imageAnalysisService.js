@@ -270,14 +270,15 @@ const generateCategoryDetails = async (categoryName) => {
   const systemPrompt = `You are an AI for a Lost and Found system. A user suggested a new category named "${categoryName}".
 First, evaluate if this is a realistic physical object or a valid category of objects that someone could lose or find. 
 If it is gibberish (e.g. "loahhfafafaf"), a digital concept/game (e.g. "gta"), or meaningless, return ONLY: {"isValid": false}.
-If it is valid, return ONLY a JSON object with fields: "isValid": true, "icon" (a single relevant emoji), and "description" (a concise 1-sentence description). Example: {"isValid":true,"icon":"🛹","description":"Skateboards and accessories."}`;
+If it is valid, auto-correct any spelling mistakes in the name (e.g. "speeker" -> "Speaker", "phon" -> "Phone") and format it nicely in Title Case.
+Return ONLY a JSON object with fields: "isValid": true, "correctedName" (the fixed, title-cased category name), "icon" (a single relevant emoji), and "description" (a concise 1-sentence description). Example: {"isValid":true,"correctedName":"Skateboard","icon":"🛹","description":"Skateboards and accessories."}`;
   
   let data;
   try {
     data = await fetchFromAI([{ role: 'user', content: systemPrompt }], 'text', { type: 'json_object' });
   } catch (err) {
     console.error(`AI Category Suggestion API Error: ${err.message}`);
-    return { icon: '📦', description: `Items related to ${categoryName}.` };
+    return { icon: '📦', description: `Items related to ${categoryName}.`, correctedName: categoryName };
   }
 
   const content = data?.choices?.[0]?.message?.content;
@@ -287,10 +288,14 @@ If it is valid, return ONLY a JSON object with fields: "isValid": true, "icon" (
     throw new Error('INVALID_CATEGORY');
   }
 
-  if (result && result.icon && result.description) return result;
+  if (result && result.icon && result.description) {
+    // Fallback to original name if correctedName isn't provided by AI
+    result.correctedName = result.correctedName || categoryName;
+    return result;
+  }
 
   console.error(`AI Category Suggestion Parse Failed. Raw content: ${content}`);
-  return { icon: '📦', description: `Items related to ${categoryName}.` };
+  return { icon: '📦', description: `Items related to ${categoryName}.`, correctedName: categoryName };
 };
 
 /**

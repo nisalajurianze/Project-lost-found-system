@@ -143,7 +143,7 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
     }
     
     category = await Category.create({
-      name,
+      name: details.correctedName || name,
       icon: details.icon || '📦',
       description: details.description || '',
       isActive: true,
