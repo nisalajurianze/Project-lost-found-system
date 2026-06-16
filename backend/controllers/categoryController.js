@@ -8,6 +8,7 @@ import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { getCache, setCache, deleteCache } from '../config/redis.js';
+import { generateCategoryDetails } from '../services/imageAnalysisService.js';
 
 const CACHE_KEY_CATEGORIES = 'categories:all';
 const CACHE_TTL_SECONDS = 3600; // Cache for 1 hour
@@ -118,9 +119,42 @@ const deleteCategory = asyncHandler(async (req, res) => {
   ApiResponse.noContent('Category deleted successfully.').send(res);
 });
 
+import { generateCategoryDetails } from '../services/imageAnalysisService.js';
+
+/**
+ * Auto-create a category with AI generated details.
+ */
+const autoCreateCategory = asyncHandler(async (req, res) => {
+  const { name } = req.body;
+  
+  if (!name) throw ApiError.badRequest('Category name is required.');
+
+  // Check if it exists (case insensitive)
+  let category = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+  
+  if (!category) {
+    // Generate AI details
+    const details = await generateCategoryDetails(name);
+    
+    category = await Category.create({
+      name,
+      icon: details.icon || '📦',
+      description: details.description || '',
+      isActive: true,
+      itemCount: 0
+    });
+    
+    // Invalidate cache
+    await deleteCache(CACHE_KEY_CATEGORIES);
+  }
+
+  ApiResponse.ok(category, 'Category processed.').send(res);
+});
+
 export {
   getCategories,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+  autoCreateCategory
 };

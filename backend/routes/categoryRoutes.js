@@ -8,7 +8,8 @@ import {
   getCategories,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+  autoCreateCategory
 } from '../controllers/categoryController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import authorize from '../middlewares/roleMiddleware.js';
@@ -23,6 +24,9 @@ const router = express.Router();
 
 // Publicly viewable categories list
 router.get('/', getCategories);
+
+// Protected: any user can auto-create categories via AI
+router.post('/auto-create', protect, autoCreateCategory);
 
 // Admin-only management endpoints
 router.post('/', protect, authorize('admin'), createCategoryValidator, validate, createCategory);

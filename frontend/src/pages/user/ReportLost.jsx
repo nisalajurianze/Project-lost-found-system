@@ -168,14 +168,14 @@ export const ReportLost = () => {
               images={images}
               onChange={handleImageChange}
               maxFiles={5}
-              label="Upload Item Images"
+              error={errors.images}
             />
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input
-              label="Item Name / Title"
-              placeholder="e.g. Space Grey iPhone 13 Pro"
+              label="Item Name"
+              name="itemName"
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               error={errors.itemName}
@@ -187,7 +187,25 @@ export const ReportLost = () => {
               name="category"
               options={categoryOptions}
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={async (e) => {
+                const val = e.target.value;
+                const isNew = val && !categories.some(c => c.name === val);
+                
+                if (isNew) {
+                  const toastId = toast.loading(`✨ AI is finding an emoji for "${val}"...`);
+                  try {
+                    const res = await aiService.autoCreateCategory(val);
+                    await dispatch(fetchCategories());
+                    setCategory(res.data.data.name);
+                    toast.success('Emoji added!', { id: toastId });
+                  } catch (err) {
+                    toast.dismiss(toastId);
+                    setCategory(val);
+                  }
+                } else {
+                  setCategory(val);
+                }
+              }}
               error={errors.category}
               required
             />

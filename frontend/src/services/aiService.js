@@ -12,6 +12,11 @@ const aiService = {
     });
     return response.data;
   },
+
+  autoCreateCategory: async (name) => {
+    const response = await api.post('/categories/auto-create', { name });
+    return response.data;
+  }
 };
 
 export default aiService;

@@ -167,34 +167,52 @@ export const ReportFound = () => {
             <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
               Upload an image of the item first, and our AI will automatically suggest the name, category, description, and search tags for you!
             </p>
-            <ImageUpload
-              images={images}
-              onChange={handleImageChange}
-              maxFiles={5}
-              label="Upload Item Images"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Input
-              label="Item Name / Title"
-              placeholder="e.g. Mi Smart Band 6"
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
-              error={errors.itemName}
-              required
-            />
+              <ImageUpload
+                images={images}
+                onChange={handleImageChange}
+                maxFiles={5}
+                error={errors.images}
+              />
+            </div>
             
-            <CreatableCategorySelect
-              label="Item Category"
-              name="category"
-              options={categoryOptions}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              error={errors.category}
-              required
-            />
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Item Name"
+                name="itemName"
+                value={itemName}
+                onChange={(e) => setItemName(e.target.value)}
+                error={errors.itemName}
+                required
+              />
+              
+              <CreatableCategorySelect
+                label="Item Category"
+                name="category"
+                options={categoryOptions}
+                value={category}
+                onChange={async (e) => {
+                  const val = e.target.value;
+                  const isNew = val && !categories.some(c => c.name === val);
+                  
+                  if (isNew) {
+                    const toastId = toast.loading(`✨ AI is finding an emoji for "${val}"...`);
+                    try {
+                      const res = await aiService.autoCreateCategory(val);
+                      await dispatch(fetchCategories());
+                      setCategory(res.data.data.name);
+                      toast.success('Emoji added!', { id: toastId });
+                    } catch (err) {
+                      toast.dismiss(toastId);
+                      setCategory(val);
+                    }
+                  } else {
+                    setCategory(val);
+                  }
+                }}
+                error={errors.category}
+                required
+              />
+            </div>
 
           <Textarea
             label="Item Description"
