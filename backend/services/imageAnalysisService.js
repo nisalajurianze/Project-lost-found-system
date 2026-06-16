@@ -114,11 +114,11 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   
   const textModels = isOpencodeText
     ? [
-        process.env.AI_CHAT_MODEL || 'DeepSeek V4 Flash Free',
-        'MiMo-V2.5 Free',
-        'North Mini Code Free',
-        'Nemotron 3 Ultra Free',
-        'Big Pickle'
+        process.env.AI_CHAT_MODEL || 'deepseek-v4-flash-free',
+        'mimo-v2.5-free',
+        'nemotron-3-ultra-free',
+        'north-mini-code-free',
+        'big-pickle'
       ]
     : [
         process.env.AI_CHAT_MODEL || 'openrouter/free',

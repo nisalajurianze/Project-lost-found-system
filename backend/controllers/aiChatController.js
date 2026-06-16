@@ -52,11 +52,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     ];
     
     const opencodeModels = [
-      process.env.AI_CHAT_MODEL || 'DeepSeek V4 Flash Free',
-      'MiMo-V2.5 Free',
-      'North Mini Code Free',
-      'Nemotron 3 Ultra Free',
-      'Big Pickle'
+      process.env.AI_CHAT_MODEL || 'deepseek-v4-flash-free',
+      'mimo-v2.5-free',
+      'nemotron-3-ultra-free',
+      'north-mini-code-free',
+      'big-pickle'
     ];
     
     const modelsToTry = isOpencode ? opencodeModels : openRouterModels;
