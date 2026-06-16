@@ -12,13 +12,52 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const { message } = req.body;
   if (!message) return ApiResponse.success({ text: "Please say something!" }).send(res);
 
-  const AI_API_KEY = process.env.AI_API_KEY || process.env.OPENROUTER_API_KEY;
-  if (!AI_API_KEY || AI_API_KEY === 'your_openrouter_api_key') {
+  const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
+  const PRIMARY_KEY = process.env.AI_API_KEY || OPENROUTER_KEY;
+
+  if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') {
     return ApiResponse.success({ text: "AI is currently unavailable. Please use the manual search." }).send(res);
   }
 
-  const AI_API_URL = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-  const AI_CHAT_MODEL = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
+  // Helper to make AI calls with automatic fallback to OpenRouter
+  const fetchFromAI = async (prompt, format = null) => {
+    const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+    const primaryModel = process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
+
+    const fallbackUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    const fallbackModel = 'meta-llama/llama-3.3-70b-instruct:free';
+
+    const reqBody = {
+      model: primaryModel,
+      messages: [{ role: 'user', content: prompt }]
+    };
+    if (format) reqBody.response_format = format;
+
+    try {
+      // 1. Try Primary Provider (e.g., Opencode DeepSeek)
+      const res = await fetch(primaryUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${PRIMARY_KEY}` },
+        body: JSON.stringify(reqBody)
+      });
+      if (res.ok) return await res.json();
+      throw new Error(`Primary Provider Failed: ${res.status}`);
+    } catch (err) {
+      console.warn(`⚠️ AI Primary Provider Failed (${err.message}). Falling back to OpenRouter...`);
+      
+      // 2. Try Fallback Provider (OpenRouter Llama)
+      if (OPENROUTER_KEY && OPENROUTER_KEY !== 'your_openrouter_api_key') {
+        reqBody.model = fallbackModel;
+        const fallbackRes = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENROUTER_KEY}` },
+          body: JSON.stringify(reqBody)
+        });
+        if (fallbackRes.ok) return await fallbackRes.json();
+      }
+      return null;
+    }
+  };
 
   // 1. Analyze the user's intent and extract search keywords
   const extractionPrompt = `You are an AI assistant for a Lost and Found system. 
@@ -33,21 +72,8 @@ Return ONLY a valid JSON object:
   "responseIfGeneral": "If intent is general, put a friendly reply here, else empty"
 }`;
 
-  const extractRes = await fetch(AI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${AI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: AI_CHAT_MODEL,
-      messages: [{ role: 'user', content: extractionPrompt }],
-      response_format: { type: 'json_object' }
-    })
-  });
-
-  const extractData = await extractRes.json();
-  const extractContent = extractData.choices?.[0]?.message?.content;
+  const extractData = await fetchFromAI(extractionPrompt, { type: 'json_object' });
+  const extractContent = extractData?.choices?.[0]?.message?.content;
   const analysis = parseJSONResponse(extractContent);
 
   if (!analysis) {
@@ -59,7 +85,6 @@ Return ONLY a valid JSON object:
   }
 
   // 2. Query the DB based on keywords
-  // If user LOST something, we search FOUND items. If user FOUND something, we search LOST items.
   const targetModel = analysis.intent === 'lost' ? FoundItem : LostItem;
   const statusFilter = analysis.intent === 'lost' ? { $in: ['available', 'matched'] } : { $in: ['pending', 'matched'] };
 
@@ -90,20 +115,8 @@ ${itemSummary}
 
 Draft a friendly, concise response in the SAME LANGUAGE the user used (e.g. if they used Singlish, reply in Singlish or English. If Sinhala, reply in Sinhala). Make sure to include the markdown links to the items exactly as provided.`;
 
-  const replyRes = await fetch(AI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${AI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: AI_CHAT_MODEL,
-      messages: [{ role: 'user', content: replyPrompt }]
-    })
-  });
-
-  const replyData = await replyRes.json();
-  const finalReply = replyData.choices?.[0]?.message?.content || "Here are some matches I found:\n" + itemSummary;
+  const replyData = await fetchFromAI(replyPrompt);
+  const finalReply = replyData?.choices?.[0]?.message?.content || "Here are some matches I found:\n" + itemSummary;
 
   return ApiResponse.success({ text: finalReply, items: dbItems }).send(res);
 });
