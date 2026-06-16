@@ -117,7 +117,15 @@ export const ReportLost = () => {
             return;
           }
           if (result.data.itemName) setItemName(result.data.itemName);
-          if (result.data.category) setCategory(result.data.category);
+          if (result.data.category) {
+            setCategory(result.data.category);
+            if (result.data.categoryIcon) {
+              setExtraCategory({
+                value: result.data.category,
+                label: `${result.data.categoryIcon} ${result.data.category}`
+              });
+            }
+          }
           if (result.data.description) setDescription(result.data.description);
           if (result.data.tags) setTags(result.data.tags);
           
@@ -140,11 +148,16 @@ export const ReportLost = () => {
       }
     }
   };
+  const [extraCategory, setExtraCategory] = useState(null);
 
   const categoryOptions = categories.map((cat) => ({
     value: cat.name,
     label: `${cat.icon} ${cat.name}`
   }));
+  
+  if (extraCategory && !categories.some(c => c.name === extraCategory.value)) {
+    categoryOptions.push(extraCategory);
+  }
 
   const contactOptions = [
     { value: 'both', label: 'Email & Phone Number' },

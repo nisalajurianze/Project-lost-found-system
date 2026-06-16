@@ -311,7 +311,8 @@ First, evaluate if this image is a valid physical object that could be lost or f
 Return ONLY a valid JSON object with these exact fields:
 - "isSpam": Boolean (true if the image is a selfie, meme, explicit, or blank, false otherwise).
 - "itemName": A concise title (max 5 words, e.g. "Apple iPhone 13 Pro Black"). If isSpam is true, leave empty.
-- "category": The most appropriate category (e.g. "Electronics", "Wallets", "Keys", "Bags", "Clothing", "Documents", "Other"). If isSpam is true, leave empty.
+- "category": The most specific and accurate category for the item (e.g. "Speaker", "Laptop", "Wallet", "Keys", "Water Bottle"). Capitalize the first letter. Do NOT use broad categories like "Electronics" if you know exactly what the item is.
+- "categoryIcon": A single relevant emoji for the category (e.g. "🔊", "💻", "👛", "🔑", "💧").
 - "description": A short descriptive paragraph suitable for a lost/found report. If isSpam is true, write a reason why it was rejected.
 - "tags": A comma-separated string of 3 to 5 search keywords. If isSpam is true, leave empty.`;
 
