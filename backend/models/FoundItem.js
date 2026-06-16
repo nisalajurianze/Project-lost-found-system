@@ -71,15 +71,32 @@ const foundItemSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['available', 'matched', 'claimed'],
-        message: 'Status must be available, matched, or claimed',
+        values: ['available', 'matched', 'in_progress', 'claimed'],
+        message: 'Status must be available, matched, in_progress, or claimed',
       },
       default: 'available',
       index: true,
     },
+    connectedUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    connectedAt: {
+      type: Date,
+      default: null,
+    },
+    reminderSent: {
+      type: Boolean,
+      default: false,
+    },
     tags: {
       type: [String],
       default: [],
+    },
+    resolvedAt: {
+      type: Date,
+      default: null,
     },
     aiKeywords: {
       type: [String],

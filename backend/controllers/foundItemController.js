@@ -327,7 +327,7 @@ const updateFoundItem = asyncHandler(async (req, res) => {
 });
 
 /**
- * Delete a found item (soft delete).
+ * Delete a found item. (Hard or soft delete depending on logic, here we do soft delete for safety)
  */
 const deleteFoundItem = asyncHandler(async (req, res) => {
   const item = await FoundItem.findById(req.params.id);
@@ -359,10 +359,128 @@ const deleteFoundItem = asyncHandler(async (req, res) => {
   ApiResponse.noContent('Found item deleted successfully.').send(res);
 });
 
+/**
+ * Connect to a found item (This is mine).
+ */
+const connectFoundItem = asyncHandler(async (req, res) => {
+  const foundItem = await FoundItem.findById(req.params.id).populate('userId', 'name email phoneNumber');
+  
+  if (!foundItem || foundItem.isDeleted) {
+    throw ApiError.notFound('Found item not found');
+  }
+
+  if (foundItem.status !== 'available' && foundItem.status !== 'matched') {
+    throw ApiError.badRequest('This item is no longer available to connect.');
+  }
+
+  if (foundItem.userId._id.toString() === req.user._id.toString()) {
+    throw ApiError.badRequest('You cannot connect to your own reported item.');
+  }
+
+  foundItem.status = 'in_progress';
+  foundItem.connectedUserId = req.user._id;
+  foundItem.connectedAt = new Date();
+  foundItem.reminderSent = false;
+  await foundItem.save();
+
+  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
+
+  import('../services/emailService.js').then((emailService) => {
+    // Send email to Founder
+    emailService.sendEmail(
+      foundItem.userId.email,
+      'Someone Claimed Your Found Item',
+      emailService.templates.claimReceived(
+        foundItem.userId.name,
+        foundItem.itemName,
+        req.user.name
+      )
+    ).catch(err => console.error('Failed to send connect email:', err));
+
+    // Send email to Requester
+    emailService.sendEmail(
+      req.user.email,
+      'Contact Details - You Claimed an Item',
+      emailService.templates.claimApprovedFounder(
+        req.user.name,
+        foundItem.itemName,
+        `Name: ${foundItem.userId.name}\nEmail: ${foundItem.userId.email}\nPhone: ${foundItem.userId.phoneNumber || 'N/A'}`
+      )
+    ).catch(err => console.error('Failed to send connect email:', err));
+  });
+
+  ApiResponse.ok(foundItem, 'Connected successfully. Contact details will be emailed.').send(res);
+});
+
+/**
+ * Resolve a found item (Mark as Done).
+ */
+const resolveFoundItem = asyncHandler(async (req, res) => {
+  const foundItem = await FoundItem.findById(req.params.id);
+
+  if (!foundItem || foundItem.isDeleted) {
+    throw ApiError.notFound('Found item not found');
+  }
+
+  if (foundItem.status !== 'in_progress') {
+    throw ApiError.badRequest('Item must be connected (in progress) before resolving.');
+  }
+
+  const isOwner = foundItem.userId.toString() === req.user._id.toString();
+  const isConnectedUser = foundItem.connectedUserId && foundItem.connectedUserId.toString() === req.user._id.toString();
+
+  if (!isOwner && !isConnectedUser && req.user.role !== 'admin') {
+    throw ApiError.forbidden('Not authorized to resolve this item');
+  }
+
+  foundItem.status = 'claimed';
+  foundItem.resolvedAt = new Date();
+  await foundItem.save();
+
+  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
+
+  ApiResponse.ok(foundItem, 'Item resolved successfully').send(res);
+});
+
+/**
+ * Cancel a found item connection (No, not resolved).
+ */
+const cancelConnectionFoundItem = asyncHandler(async (req, res) => {
+  const foundItem = await FoundItem.findById(req.params.id);
+
+  if (!foundItem || foundItem.isDeleted) {
+    throw ApiError.notFound('Found item not found');
+  }
+
+  if (foundItem.status !== 'in_progress') {
+    throw ApiError.badRequest('Item must be connected to cancel the connection.');
+  }
+
+  const isOwner = foundItem.userId.toString() === req.user._id.toString();
+  const isConnectedUser = foundItem.connectedUserId && foundItem.connectedUserId.toString() === req.user._id.toString();
+
+  if (!isOwner && !isConnectedUser && req.user.role !== 'admin') {
+    throw ApiError.forbidden('Not authorized to cancel this connection');
+  }
+
+  foundItem.status = 'available';
+  foundItem.connectedUserId = null;
+  foundItem.connectedAt = null;
+  foundItem.reminderSent = false;
+  await foundItem.save();
+
+  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
+
+  ApiResponse.ok(foundItem, 'Connection cancelled. Item is available again.').send(res);
+});
+
 export {
   createFoundItem,
   getFoundItems,
   getFoundItemById,
   updateFoundItem,
-  deleteFoundItem
+  deleteFoundItem,
+  connectFoundItem,
+  resolveFoundItem,
+  cancelConnectionFoundItem
 };

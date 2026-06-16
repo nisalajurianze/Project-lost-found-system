@@ -9,7 +9,10 @@ import {
   getFoundItems,
   getFoundItemById,
   updateFoundItem,
-  deleteFoundItem
+  deleteFoundItem,
+  connectFoundItem,
+  resolveFoundItem,
+  cancelConnectionFoundItem
 } from '../controllers/foundItemController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { uploadMultiple } from '../middlewares/uploadMiddleware.js';
@@ -33,5 +36,8 @@ router.get('/:id', mongoIdParam, validate, cacheResponse(60), getFoundItemById);
 router.post('/', protect, uploadMultiple, createFoundItemValidator, validate, createFoundItem);
 router.put('/:id', protect, uploadMultiple, mongoIdParam, updateFoundItemValidator, validate, updateFoundItem);
 router.delete('/:id', protect, mongoIdParam, validate, deleteFoundItem);
+router.post('/:id/connect', protect, mongoIdParam, validate, connectFoundItem);
+router.post('/:id/resolve', protect, mongoIdParam, validate, resolveFoundItem);
+router.post('/:id/cancel-connection', protect, mongoIdParam, validate, cancelConnectionFoundItem);
 
 export default router;

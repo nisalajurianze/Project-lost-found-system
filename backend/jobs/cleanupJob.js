@@ -12,14 +12,14 @@ export const runCleanupTask = async () => {
   try {
     console.log('🧹 Running automated cleanup job for old resolved items...');
     
-    // Calculate 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Calculate 3 days ago
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
     // Filter for items to clean up
     const query = {
       status: { $in: ['claimed', 'closed'] },
-      resolvedAt: { $lte: sevenDaysAgo },
+      resolvedAt: { $lte: threeDaysAgo },
       isArchived: false,
     };
 

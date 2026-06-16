@@ -1,25 +1,69 @@
 // ============================================
 // My Claims Page Component
 // Lists ownership claim requests submitted by student
+// and allows founders to review claims on their items
 // ============================================
 
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchClaims } from '../../redux/slices/claimSlice';
+import { fetchClaims, reviewClaimRequest } from '../../redux/slices/claimSlice';
 import ClaimCard from '../../components/cards/ClaimCard';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import Pagination from '../../components/common/Pagination';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
+import Textarea from '../../components/common/Textarea';
+import toast from 'react-hot-toast';
 
 export const MyClaims = () => {
   const dispatch = useDispatch();
   const { claims, pagination, isLoading } = useSelector((state) => state.claims);
+  const { user } = useSelector((state) => state.auth);
 
   const [page, setPage] = useState(1);
+
+  // Review Dialog state
+  const [reviewDialog, setReviewDialog] = useState(null); // { id, status }
+  const [remark, setRemark] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchClaims({ page, limit: 9 }));
   }, [dispatch, page]);
+
+  const handleOpenReview = (claimId, reviewStatus) => {
+    setReviewDialog({ id: claimId, status: reviewStatus });
+    setRemark('');
+  };
+
+  const handleCloseReview = () => {
+    setReviewDialog(null);
+    setRemark('');
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!reviewDialog) return;
+
+    setIsSubmitting(true);
+    try {
+      await dispatch(reviewClaimRequest({ 
+        id: reviewDialog.id, 
+        status: reviewDialog.status, 
+        adminRemark: remark 
+      })).unwrap();
+
+      toast.success(`Claim request successfully ${reviewDialog.status}.`);
+      handleCloseReview();
+      // Reload current page
+      dispatch(fetchClaims({ page, limit: 9 }));
+    } catch (err) {
+      toast.error(err || 'Failed to submit claim review.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -28,7 +72,7 @@ export const MyClaims = () => {
           My Ownership Claims
         </h1>
         <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
-          Monitor status approvals for claim requests submitted by you
+          Monitor your claims, or review claims made by others on items you found
         </p>
       </div>
 
@@ -42,9 +86,18 @@ export const MyClaims = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {claims.map((claim) => (
-              <ClaimCard key={claim._id} claim={claim} />
-            ))}
+            {claims.map((claim) => {
+              const isFounder = claim.foundItemId && claim.foundItemId.userId && claim.foundItemId.userId._id === user?._id;
+              
+              return (
+                <ClaimCard 
+                  key={claim._id} 
+                  claim={claim} 
+                  canReview={isFounder}
+                  onReview={handleOpenReview}
+                />
+              );
+            })}
           </div>
 
           <Pagination
@@ -55,6 +108,55 @@ export const MyClaims = () => {
             onPageChange={(nextPage) => setPage(nextPage)}
           />
         </>
+      )}
+
+      {/* Review Remarks Modal */}
+      {reviewDialog && (
+        <Modal
+          isOpen={!!reviewDialog}
+          onClose={handleCloseReview}
+          title={reviewDialog.status === 'approved' ? 'Approve Claim Request' : 'Reject Claim Request'}
+          size="md"
+        >
+          <form onSubmit={handleSubmitReview} className="space-y-4 pt-2">
+            <p className="text-sm text-surface-500 dark:text-surface-400">
+              {reviewDialog.status === 'approved' 
+                ? 'Approve this claim. This will mark the found listing as claimed, and share your contact details with the claimant to coordinate.' 
+                : 'Reject this claim. This will notify the claimant that the claim has been declined. The item will remain available.'
+              }
+            </p>
+
+            <Textarea 
+              label="Remark / Message to Claimant"
+              placeholder={reviewDialog.status === 'approved' 
+                ? 'Optional: Specify instructions or a preferred time to meet and hand over the item.' 
+                : 'Specify reason for rejection (e.g., "Provided details do not match the found item characteristics.")'
+              }
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              required={reviewDialog.status === 'rejected'}
+              rows={4}
+            />
+
+            <div className="flex gap-2 justify-end border-t border-surface-100 dark:border-surface-800 pt-4 mt-6">
+              <Button 
+                variant="secondary" 
+                onClick={handleCloseReview}
+                disabled={isSubmitting}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant={reviewDialog.status === 'approved' ? 'success' : 'danger'}
+                type="submit"
+                loading={isSubmitting}
+              >
+                {reviewDialog.status === 'approved' ? 'Approve' : 'Reject'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
     </div>

@@ -73,12 +73,15 @@ export const FoundItemDetail = () => {
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
   const isFinder = currentItem.userId?._id === loggedInUserId;
-  const isClaimable = currentItem.status === 'available' && !isFinder;
+  const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
+  const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser;
+  const isHandoverInProgress = currentItem.status === 'in_progress';
+  const canSeeContact = isFinder || isConnectedUser || currentItem.status === 'claimed';
 
 
 
   return (
-    <div className="flex-1 py-8 sm:py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
+    <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back navigation */}
         <button
@@ -91,12 +94,12 @@ export const FoundItemDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Image Gallery (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-[4/3] rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md">
+            <div className="relative aspect-[4/3] sm:aspect-video rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md flex items-center justify-center">
               {hasImages && activeImage ? (
                 <img
                   src={optimizeImageUrl(activeImage, 1200)}
                   alt={currentItem.itemName}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-6xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
@@ -155,44 +158,61 @@ export const FoundItemDetail = () => {
             {/* Resolution Actions */}
             <div className="p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <p className="text-sm font-extrabold text-surface-900 dark:text-white">Is this your property?</p>
+                <p className="text-sm font-extrabold text-surface-900 dark:text-white">
+                  {isHandoverInProgress ? 'Item Handover in Progress' : 'Is this your property?'}
+                </p>
                 <p className="text-xs text-surface-500 dark:text-surface-400">
-                  Contact the finder using the details below to arrange collection.
+                  {isHandoverInProgress 
+                    ? 'Contact the other party to arrange a handover.' 
+                    : 'Connect with the finder to get your item back.'}
                 </p>
               </div>
               <div>
-                {isFinder && currentItem.status !== 'claimed' ? (
+                {currentItem.status === 'claimed' ? (
+                  <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
+                    Item Resolved
+                  </span>
+                ) : isHandoverInProgress && (isFinder || isConnectedUser) ? (
                   <Button 
                     onClick={async () => {
-                      if (window.confirm('Are you sure you want to mark this item as returned/resolved?')) {
+                      if (window.confirm('Are you sure you have physically resolved/returned this item?')) {
                         try {
-                          await foundItemService.updateFoundItem(currentItem._id, { status: 'claimed' });
+                          await foundItemService.resolveFoundItem(currentItem._id);
                           dispatch(fetchFoundItemById(id));
                           toast.success('Item marked as resolved!');
                         } catch (err) {
-                          toast.error('Failed to update status.');
+                          toast.error(err?.message || 'Failed to resolve item.');
                         }
                       }
                     }} 
                     variant="primary"
                   >
-                    Mark as Returned
+                    Mark as Done
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (
-                    <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} variant="primary">
-                      View Contact Details
+                    <Button 
+                      onClick={async () => {
+                        if (window.confirm('Your contact details will be shared with the finder. Proceed?')) {
+                          try {
+                            await foundItemService.connectFoundItem(currentItem._id);
+                            dispatch(fetchFoundItemById(id));
+                            toast.success('Connected! Contact details exchanged via email.');
+                          } catch (err) {
+                            toast.error(err?.message || 'Failed to connect.');
+                          }
+                        }
+                      }} 
+                      variant="primary"
+                    >
+                      This is mine
                     </Button>
                   ) : (
                     <Link to="/login">
-                      <Button variant="primary">Log In to View Details</Button>
+                      <Button variant="primary">Log In to Connect</Button>
                     </Link>
                   )
-                ) : (
-                  <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                    Item Resolved
-                  </span>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -254,7 +274,7 @@ export const FoundItemDetail = () => {
                 Finder Contact Details
               </h3>
 
-              {isAuthenticated ? (
+              {canSeeContact ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                     {currentItem.userId?.profileImage ? (
@@ -318,15 +338,15 @@ export const FoundItemDetail = () => {
                       Finder info is protected
                     </p>
                     <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-                      Please log in to view the finder's contact details and coordinate collection.
+                      {isAuthenticated ? "You must click 'This is mine' to exchange contact details." : "Please log in to connect and view contact details."}
                     </p>
                   </div>
                   <div className="pt-2">
-                    <Link to="/login">
+                    {!isAuthenticated && (
                       <Button variant="primary" size="sm" className="px-6">
                         Log In to Contact Finder
                       </Button>
-                    </Link>
+                    )}
                   </div>
                 </div>
               )}

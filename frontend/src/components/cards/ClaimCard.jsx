@@ -10,7 +10,7 @@ import Button from '../common/Button';
 import { FiExternalLink, FiCheck, FiX } from 'react-icons/fi';
 import { formatRelativeTime } from '../../utils/formatDate';
 
-export const ClaimCard = ({ claim, onReview, isAdmin = false, isLoading = false }) => {
+export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false, isLoading = false }) => {
   const claimant = claim.claimantId;
   const foundItem = claim.foundItemId;
   
@@ -97,8 +97,8 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, isLoading = false 
         </div>
       </div>
 
-      {/* Admin Review Action Buttons */}
-      {isAdmin && claim.status === 'pending' && (
+      {/* Review Action Buttons */}
+      {(isAdmin || canReview) && claim.status === 'pending' && (
         <div className="flex gap-2 mt-6 pt-4 border-t border-surface-100 dark:border-surface-700/50 justify-end">
           <Button
             variant="outline"

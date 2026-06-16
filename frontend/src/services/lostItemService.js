@@ -54,6 +54,21 @@ const lostItemService = {
   deleteLostItem: async (id) => {
     const res = await api.delete(`/lost-items/${id}`);
     return res.data;
+  },
+
+  connectLostItem: async (id) => {
+    const res = await api.post(`/lost-items/${id}/connect`);
+    return res.data.data;
+  },
+
+  cancelConnection: async (id) => {
+    const res = await api.post(`/lost-items/${id}/cancel-connection`);
+    return res.data.data;
+  },
+
+  resolveLostItem: async (id) => {
+    const res = await api.post(`/lost-items/${id}/resolve`);
+    return res.data.data;
   }
 };
 

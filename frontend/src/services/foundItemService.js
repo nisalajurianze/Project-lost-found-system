@@ -53,6 +53,21 @@ const foundItemService = {
   deleteFoundItem: async (id) => {
     const res = await api.delete(`/found-items/${id}`);
     return res.data;
+  },
+
+  connectFoundItem: async (id) => {
+    const res = await api.post(`/found-items/${id}/connect`);
+    return res.data.data;
+  },
+
+  cancelConnection: async (id) => {
+    const res = await api.post(`/found-items/${id}/cancel-connection`);
+    return res.data.data;
+  },
+
+  resolveFoundItem: async (id) => {
+    const res = await api.post(`/found-items/${id}/resolve`);
+    return res.data.data;
   }
 };
 

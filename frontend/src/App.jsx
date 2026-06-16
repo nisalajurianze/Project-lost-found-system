@@ -43,6 +43,7 @@ const MyLostItems = lazy(() => import('./pages/user/MyLostItems'));
 const MyFoundItems = lazy(() => import('./pages/user/MyFoundItems'));
 const MyMatches = lazy(() => import('./pages/user/MyMatches'));
 const Notifications = lazy(() => import('./pages/user/Notifications'));
+const VerifyResolution = lazy(() => import('./pages/protected/VerifyResolution'));
 
 // Admin Pages (Lazy Loaded)
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -148,6 +149,7 @@ const App = () => {
             <Route path="/dashboard/my-found" element={<MyFoundItems />} />
             <Route path="/dashboard/my-matches" element={<MyMatches />} />
             <Route path="/dashboard/notifications" element={<Notifications />} />
+            <Route path="/dashboard/verify-resolution/:type/:id" element={<VerifyResolution />} />
           </Route>
         </Route>
 

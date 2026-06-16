@@ -65,11 +65,24 @@ const lostItemSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ['pending', 'matched', 'claimed', 'closed'],
-        message: 'Status must be pending, matched, claimed, or closed',
+        values: ['pending', 'matched', 'in_progress', 'claimed', 'closed'],
+        message: 'Status must be pending, matched, in_progress, claimed, or closed',
       },
       default: 'pending',
       index: true,
+    },
+    connectedUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    connectedAt: {
+      type: Date,
+      default: null,
+    },
+    reminderSent: {
+      type: Boolean,
+      default: false,
     },
     tags: {
       type: [String],

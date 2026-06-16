@@ -23,7 +23,7 @@ const createClaimRequest = asyncHandler(async (req, res) => {
   const claimantId = req.user._id;
 
   // Verify found item exists and is not already claimed
-  const foundItem = await FoundItem.findOne({ _id: foundItemId, isDeleted: { $ne: true } });
+  const foundItem = await FoundItem.findOne({ _id: foundItemId, isDeleted: { $ne: true } }).populate('userId');
   if (!foundItem) {
     throw ApiError.notFound('Found item not found.');
   }
@@ -33,7 +33,8 @@ const createClaimRequest = asyncHandler(async (req, res) => {
   }
 
   // Prevent user claiming their own found item
-  if (foundItem.userId.toString() === claimantId.toString()) {
+  const reporterIdStr = foundItem.userId ? foundItem.userId._id.toString() : null;
+  if (reporterIdStr === claimantId.toString()) {
     throw ApiError.badRequest('You cannot submit a claim for an item you reported yourself.');
   }
 
@@ -66,11 +67,22 @@ const createClaimRequest = asyncHandler(async (req, res) => {
   // Notify item reporter (if reported by a user)
   if (foundItem.userId) {
     await createNotification({
-      userId: foundItem.userId,
+      userId: foundItem.userId._id,
       title: '📦 New Claim Submitted',
       message: `Someone has submitted a claim for the "${foundItem.itemName}" you reported.`,
       type: 'claim_submitted',
       relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
+    });
+
+    // Send email to Founder
+    await sendEmail({
+      to: foundItem.userId.email,
+      template: 'claimReceived',
+      data: {
+        name: foundItem.userId.fullName,
+        itemName: foundItem.itemName,
+        claimantName: req.user.fullName
+      }
     });
   }
 
@@ -83,7 +95,7 @@ const createClaimRequest = asyncHandler(async (req, res) => {
     relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
   });
 
-  ApiResponse.created(claim, 'Claim request submitted successfully. Admin review pending.').send(res);
+  ApiResponse.created(claim, 'Claim request submitted successfully.').send(res);
 });
 
 /**
@@ -165,7 +177,7 @@ const getClaimRequestById = asyncHandler(async (req, res) => {
 
 /**
  * Review a claim request (Approve / Reject).
- * Admin only.
+ * Admin and Founder.
  */
 const reviewClaimRequest = asyncHandler(async (req, res) => {
   const { status, adminRemark } = req.body; // 'approved' or 'rejected'
@@ -173,10 +185,21 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
 
   const claim = await ClaimRequest.findById(req.params.id)
     .populate('claimantId')
-    .populate('foundItemId');
+    .populate({
+      path: 'foundItemId',
+      populate: { path: 'userId' }
+    });
 
   if (!claim) {
     throw ApiError.notFound('Claim request not found.');
+  }
+
+  // Authorize: Only Admin or Founder can review
+  const isAdmin = req.user.role === 'admin';
+  const isFounder = claim.foundItemId.userId && claim.foundItemId.userId._id.toString() === adminId.toString();
+
+  if (!isAdmin && !isFounder) {
+    throw ApiError.forbidden('You do not have permission to review this claim.');
   }
 
   if (claim.status !== 'pending') {
@@ -225,23 +248,41 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
       }
     }
 
-    // 3. Send approval email
-    const collectionDetails = adminRemark || 'Please visit the University Student Affairs Office (Monday to Friday, 9 AM to 4 PM) to collect your item. Bring your Student ID Card for verification.';
+    // 3. Send approval emails (Peer-to-Peer Contact Exchange)
+    const founder = foundItem.userId;
+    const claimant = claim.claimantId;
+
+    const collectionDetails = adminRemark || `The owner has been notified to contact you.`;
+    
+    // Email to Claimant
     await sendEmail({
-      to: claim.claimantId.email,
+      to: claimant.email,
       template: 'claimApproved',
       data: {
-        name: claim.claimantId.fullName,
+        name: claimant.fullName,
         itemName: foundItem.itemName,
-        collectionDetails
+        collectionDetails: `${collectionDetails}\n\nFounder Contact Details:\nName: ${founder?.fullName || 'N/A'}\nEmail: ${founder?.email || 'N/A'}\nPhone: ${founder?.phone || 'N/A'}`
       }
     });
 
+    // Email to Founder
+    if (founder?.email) {
+      await sendEmail({
+        to: founder.email,
+        template: 'claimApprovedFounder',
+        data: {
+          name: founder.fullName,
+          itemName: foundItem.itemName,
+          claimantDetails: `Name: ${claimant.fullName}\nEmail: ${claimant.email}\nPhone: ${claimant.phone || 'N/A'}\nRemark: ${adminRemark || 'N/A'}`
+        }
+      });
+    }
+
     // 4. Create in-app notification
     await createNotification({
-      userId: claim.claimantId._id,
+      userId: claimant._id,
       title: '✅ Claim Request Approved!',
-      message: `Your claim for "${foundItem.itemName}" has been approved. Review collection instructions.`,
+      message: `Your claim for "${foundItem.itemName}" has been approved. Check your email for contact details.`,
       type: 'claim_approved',
       relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
     });

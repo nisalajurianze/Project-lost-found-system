@@ -15,6 +15,8 @@ import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
 import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
+import lostItemService from '../../services/lostItemService';
+import toast from 'react-hot-toast';
 
 export const LostItemDetail = () => {
   const { id } = useParams();
@@ -67,9 +69,13 @@ export const LostItemDetail = () => {
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
   const isOwner = currentItem.userId?._id === loggedInUserId;
+  const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
+  const isClaimable = (currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser;
+  const isHandoverInProgress = currentItem.status === 'in_progress';
+  const canSeeContact = isOwner || isConnectedUser || currentItem.status === 'claimed';
 
   return (
-    <div className="flex-1 py-8 sm:py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
+    <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back navigation */}
         <button
@@ -82,12 +88,12 @@ export const LostItemDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Image Gallery (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-[4/3] rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md">
+            <div className="relative aspect-[4/3] sm:aspect-video rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md flex items-center justify-center">
               {hasImages && activeImage ? (
                 <img
                   src={optimizeImageUrl(activeImage, 1200)}
                   alt={currentItem.itemName}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-6xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
@@ -153,6 +159,67 @@ export const LostItemDetail = () => {
               </p>
             </div>
 
+            {/* Resolution Actions */}
+            <div className="p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <p className="text-sm font-extrabold text-surface-900 dark:text-white">
+                  {isHandoverInProgress ? 'Item Handover in Progress' : 'Do you have this item?'}
+                </p>
+                <p className="text-xs text-surface-500 dark:text-surface-400">
+                  {isHandoverInProgress 
+                    ? 'Contact the other party to arrange a handover.' 
+                    : 'Connect with the reporter to return their item.'}
+                </p>
+              </div>
+              <div>
+                {currentItem.status === 'claimed' ? (
+                  <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
+                    Item Resolved
+                  </span>
+                ) : isHandoverInProgress && (isOwner || isConnectedUser) ? (
+                  <Button 
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you have physically resolved/returned this item?')) {
+                        try {
+                          await lostItemService.resolveLostItem(currentItem._id);
+                          dispatch(fetchLostItemById(id));
+                          toast.success('Item marked as resolved!');
+                        } catch (err) {
+                          toast.error(err?.message || 'Failed to resolve item.');
+                        }
+                      }
+                    }} 
+                    variant="primary"
+                  >
+                    Mark as Done
+                  </Button>
+                ) : isClaimable ? (
+                  isAuthenticated ? (
+                    <Button 
+                      onClick={async () => {
+                        if (window.confirm('Your contact details will be shared with the owner. Proceed?')) {
+                          try {
+                            await lostItemService.connectLostItem(currentItem._id);
+                            dispatch(fetchLostItemById(id));
+                            toast.success('Connected! Contact details exchanged via email.');
+                          } catch (err) {
+                            toast.error(err?.message || 'Failed to connect.');
+                          }
+                        }
+                      }} 
+                      variant="primary"
+                    >
+                      I have this
+                    </Button>
+                  ) : (
+                    <Link to="/login">
+                      <Button variant="primary">Log In to Connect</Button>
+                    </Link>
+                  )
+                ) : null}
+              </div>
+            </div>
+
             {/* Location & Tags details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Location Card */}
@@ -196,7 +263,7 @@ export const LostItemDetail = () => {
                 Contact Information
               </h3>
 
-              {isAuthenticated ? (
+              {canSeeContact ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                     {currentItem.userId?.profileImage ? (
@@ -266,15 +333,17 @@ export const LostItemDetail = () => {
                       Contact details are protected
                     </p>
                     <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-                      Please log in to view the reporter's contact details and coordinate return.
+                      {isAuthenticated ? "You must click 'I have this' to exchange contact details." : "Please log in to connect and view contact details."}
                     </p>
                   </div>
                   <div className="pt-2">
-                    <Link to="/login">
-                      <Button variant="primary" size="sm" className="px-6">
-                        Log In to Contact
-                      </Button>
-                    </Link>
+                    {!isAuthenticated && (
+                      <Link to="/login">
+                        <Button variant="primary" size="sm" className="px-6">
+                          Log In to Contact
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               )}

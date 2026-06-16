@@ -9,7 +9,10 @@ import {
   getLostItems,
   getLostItemById,
   updateLostItem,
-  deleteLostItem
+  deleteLostItem,
+  connectLostItem,
+  resolveLostItem,
+  cancelConnectionLostItem
 } from '../controllers/lostItemController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { uploadMultiple } from '../middlewares/uploadMiddleware.js';
@@ -33,5 +36,8 @@ router.get('/:id', mongoIdParam, validate, cacheResponse(60), getLostItemById);
 router.post('/', protect, uploadMultiple, createLostItemValidator, validate, createLostItem);
 router.put('/:id', protect, uploadMultiple, mongoIdParam, updateLostItemValidator, validate, updateLostItem);
 router.delete('/:id', protect, mongoIdParam, validate, deleteLostItem);
+router.post('/:id/connect', protect, mongoIdParam, validate, connectLostItem);
+router.post('/:id/resolve', protect, mongoIdParam, validate, resolveLostItem);
+router.post('/:id/cancel-connection', protect, mongoIdParam, validate, cancelConnectionLostItem);
 
 export default router;

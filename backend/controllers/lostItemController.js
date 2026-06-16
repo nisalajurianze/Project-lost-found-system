@@ -364,10 +364,128 @@ const deleteLostItem = asyncHandler(async (req, res) => {
   ApiResponse.noContent('Lost item deleted successfully.').send(res);
 });
 
+/**
+ * Connect to a lost item (I have this).
+ */
+const connectLostItem = asyncHandler(async (req, res) => {
+  const lostItem = await LostItem.findById(req.params.id).populate('userId', 'name email phoneNumber');
+  
+  if (!lostItem || lostItem.isDeleted) {
+    throw ApiError.notFound('Lost item not found');
+  }
+
+  if (lostItem.status !== 'pending' && lostItem.status !== 'matched') {
+    throw ApiError.badRequest('This item is no longer available to connect.');
+  }
+
+  if (lostItem.userId._id.toString() === req.user._id.toString()) {
+    throw ApiError.badRequest('You cannot connect to your own reported item.');
+  }
+
+  lostItem.status = 'in_progress';
+  lostItem.connectedUserId = req.user._id;
+  lostItem.connectedAt = new Date();
+  lostItem.reminderSent = false;
+  await lostItem.save();
+
+  await deleteCache(['lostItems:*', 'cache:/api/lost-items*']);
+
+  import('../services/emailService.js').then((emailService) => {
+    // Send email to Loser
+    emailService.sendEmail(
+      lostItem.userId.email,
+      'Someone Found Your Lost Item',
+      emailService.templates.claimReceived(
+        lostItem.userId.name,
+        lostItem.itemName,
+        req.user.name
+      )
+    ).catch(err => console.error('Failed to send connect email:', err));
+
+    // Send email to Finder
+    emailService.sendEmail(
+      req.user.email,
+      'Contact Details - You Found an Item',
+      emailService.templates.claimApprovedFounder(
+        req.user.name,
+        lostItem.itemName,
+        `Name: ${lostItem.userId.name}\nEmail: ${lostItem.userId.email}\nPhone: ${lostItem.userId.phoneNumber || 'N/A'}`
+      )
+    ).catch(err => console.error('Failed to send connect email:', err));
+  });
+
+  ApiResponse.ok(lostItem, 'Connected successfully. Contact details will be emailed.').send(res);
+});
+
+/**
+ * Resolve a lost item (Mark as Done).
+ */
+const resolveLostItem = asyncHandler(async (req, res) => {
+  const lostItem = await LostItem.findById(req.params.id);
+
+  if (!lostItem || lostItem.isDeleted) {
+    throw ApiError.notFound('Lost item not found');
+  }
+
+  if (lostItem.status !== 'in_progress') {
+    throw ApiError.badRequest('Item must be connected (in progress) before resolving.');
+  }
+
+  const isOwner = lostItem.userId.toString() === req.user._id.toString();
+  const isConnectedUser = lostItem.connectedUserId && lostItem.connectedUserId.toString() === req.user._id.toString();
+
+  if (!isOwner && !isConnectedUser && req.user.role !== 'admin') {
+    throw ApiError.forbidden('Not authorized to resolve this item');
+  }
+
+  lostItem.status = 'claimed';
+  lostItem.resolvedAt = new Date();
+  await lostItem.save();
+
+  await deleteCache(['lostItems:*', 'cache:/api/lost-items*']);
+
+  ApiResponse.ok(lostItem, 'Item resolved successfully').send(res);
+});
+
+/**
+ * Cancel a lost item connection (No, not resolved).
+ */
+const cancelConnectionLostItem = asyncHandler(async (req, res) => {
+  const lostItem = await LostItem.findById(req.params.id);
+
+  if (!lostItem || lostItem.isDeleted) {
+    throw ApiError.notFound('Lost item not found');
+  }
+
+  if (lostItem.status !== 'in_progress') {
+    throw ApiError.badRequest('Item must be connected to cancel the connection.');
+  }
+
+  const isOwner = lostItem.userId.toString() === req.user._id.toString();
+  const isConnectedUser = lostItem.connectedUserId && lostItem.connectedUserId.toString() === req.user._id.toString();
+
+  if (!isOwner && !isConnectedUser && req.user.role !== 'admin') {
+    throw ApiError.forbidden('Not authorized to cancel this connection');
+  }
+
+  lostItem.status = 'pending';
+  lostItem.connectedUserId = null;
+  lostItem.connectedAt = null;
+  lostItem.reminderSent = false;
+  await lostItem.save();
+
+  await deleteCache(['lostItems:*', 'cache:/api/lost-items*']);
+
+  ApiResponse.ok(lostItem, 'Connection cancelled. Item is pending again.').send(res);
+});
+
 export {
   createLostItem,
   getLostItems,
   getLostItemById,
   updateLostItem,
-  deleteLostItem
+  deleteLostItem,
+  connectLostItem,
+  resolveLostItem,
+  cancelConnectionLostItem
 };

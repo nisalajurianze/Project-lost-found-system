@@ -200,7 +200,7 @@ const templates = {
       `
       <h2 style="margin:0 0 16px;color:#1f2937;font-size:20px;">Claim Approved! ✅</h2>
       <p style="color:#4b5563;font-size:15px;line-height:1.6;">
-        Hi ${name}, your claim for <strong>"${itemName}"</strong> has been approved by an administrator.
+        Hi ${name}, your claim for <strong>"${itemName}"</strong> has been approved.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
              style="background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:20px;margin:16px 0;">
@@ -242,6 +242,44 @@ const templates = {
         If you believe this was a mistake, you can submit a new claim with additional proof or contact the administration.
       </p>
       ${buttonHtml('Submit New Claim', process.env.CLIENT_URL || 'http://localhost:5173')}
+      `
+    ),
+
+  // 7. Claim Received (to Founder)
+  claimReceived: (name, itemName, claimantName) =>
+    baseTemplate(
+      'New Claim Request',
+      `
+      <h2 style="margin:0 0 16px;color:#1f2937;font-size:20px;">New Claim Request 🛡️</h2>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;">
+        Hi ${name}, <strong>${claimantName}</strong> has submitted a claim with proof for the item you found: <strong>"${itemName}"</strong>.
+      </p>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;">
+        Please log in to your dashboard to review the proof and approve or reject the claim.
+      </p>
+      ${buttonHtml('Review Claim', process.env.CLIENT_URL || 'http://localhost:5173')}
+      `
+    ),
+
+  // 8. Claim Approved (to Founder)
+  claimApprovedFounder: (name, itemName, claimantDetails) =>
+    baseTemplate(
+      'Claim Approved - Contact Details',
+      `
+      <h2 style="margin:0 0 16px;color:#1f2937;font-size:20px;">Claim Approved! ✅</h2>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;">
+        Hi ${name}, you (or an administrator) have approved the claim for <strong>"${itemName}"</strong>.
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:20px;margin:16px 0;">
+        <tr>
+          <td>
+            <p style="margin:0 0 8px;color:#1e40af;font-size:14px;font-weight:600;">Claimant Contact Information:</p>
+            <pre style="margin:0;color:#1d4ed8;font-size:14px;font-family:inherit;white-space:pre-wrap;">${claimantDetails}</pre>
+          </td>
+        </tr>
+      </table>
+      <p style="color:#6b7280;font-size:13px;">Please contact them to coordinate returning the item.</p>
       `
     ),
 };

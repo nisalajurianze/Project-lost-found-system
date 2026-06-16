@@ -29,7 +29,7 @@ router.post('/', uploadProofImages, createClaimValidator, validate, createClaimR
 router.get('/', getClaimRequests);
 router.get('/:id', mongoIdParam, validate, getClaimRequestById);
 
-// Admin-only claim verification reviews
-router.put('/:id/review', authorize('admin'), mongoIdParam, reviewClaimValidator, validate, reviewClaimRequest);
+// Claim verification reviews (Admin and Founder)
+router.put('/:id/review', mongoIdParam, reviewClaimValidator, validate, reviewClaimRequest);
 
 export default router;
