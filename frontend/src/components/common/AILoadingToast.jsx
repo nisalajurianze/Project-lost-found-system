@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
-const AILoadingToast = ({ t, message = "✨ AI is analyzing your image..." }) => {
+const AILoadingToast = ({ t, message = "✨ AI is analyzing your image...", isComplete = false }) => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Animate progress bar to 95% over ~5 seconds (deepseek is fast, but visual feedback is nice)
-    // We slow down as it gets closer to 90%
+    if (isComplete) {
+      setProgress(100);
+      return;
+    }
+
+    // Animate progress bar to 95%
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 95) {
@@ -17,10 +21,10 @@ const AILoadingToast = ({ t, message = "✨ AI is analyzing your image..." }) =>
         const increment = prev < 50 ? 5 : prev < 80 ? 2 : 1;
         return prev + increment;
       });
-    }, 100);
+    }, 50); // Made it 2x faster (50ms instead of 100ms) since AI is fast
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isComplete]);
 
   return (
     <div

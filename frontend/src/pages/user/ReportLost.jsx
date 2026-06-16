@@ -120,7 +120,16 @@ export const ReportLost = () => {
           if (result.data.category) setCategory(result.data.category);
           if (result.data.description) setDescription(result.data.description);
           if (result.data.tags) setTags(result.data.tags);
-          toast.success('Fields auto-filled by AI!', { id: loadingToast });
+          
+          // Show 100% complete before disappearing
+          toast.custom(
+            (t) => <AILoadingToast t={t} message="✨ AI is analyzing your image..." isComplete={true} />,
+            { id: 'ai-loading' }
+          );
+          await new Promise(r => setTimeout(r, 500));
+          
+          toast.dismiss('ai-loading');
+          toast.success('Fields auto-filled by AI!');
         } else {
           toast.dismiss(loadingToast);
           toast.error('AI could not identify the image.');
