@@ -97,7 +97,7 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
 
   if (type === 'vision') {
     primaryModel = process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free';
-    fallbackModel = 'google/gemini-2.0-pro-exp-02-05:free'; // Reliable vision backup
+    fallbackModel = 'nvidia/nemotron-nano-12b-v2-vl:free'; // Reliable free vision backup
   }
 
   const reqBody = { model: primaryModel, messages };
