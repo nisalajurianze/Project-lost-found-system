@@ -112,44 +112,47 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   ];
 
   const modelsToTry = type === 'vision' ? visionModels : textModels;
+  const apiKeys = PRIMARY_KEY.split(',').map(k => k.trim()).filter(k => k);
   let lastError = null;
 
-  for (const model of modelsToTry) {
-    const reqBody = { model, messages };
-    if (format) reqBody.response_format = format;
+  for (const key of apiKeys) {
+    for (const model of modelsToTry) {
+      const reqBody = { model, messages };
+      if (format) reqBody.response_format = format;
 
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${PRIMARY_KEY}`,
-      'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-      'X-Title': 'Smart Lost and Found'
-    };
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
+        'X-Title': 'Smart Lost and Found'
+      };
 
-    try {
-      const res = await fetch(primaryUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
-      
-      if (res.ok) {
-        const text = await res.text();
-        try {
-          return JSON.parse(text);
-        } catch (e) {
-          console.warn(`⚠️ Model ${model} returned invalid JSON`);
-          continue;
+      try {
+        const res = await fetch(primaryUrl, { method: 'POST', headers, body: JSON.stringify(reqBody) });
+        
+        if (res.ok) {
+          const text = await res.text();
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            console.warn(`⚠️ Model ${model} returned invalid JSON with key ${key.substring(0, 8)}...`);
+            continue;
+          }
         }
+        
+        const status = res.status;
+        const errText = await res.text();
+        console.warn(`⚠️ Model ${model} failed with ${status} using key ${key.substring(0, 8)}...`);
+        lastError = `Status ${status} on ${model}`;
+        
+      } catch (err) {
+        console.warn(`⚠️ AI Fetch Failed for ${model}: ${err.message}`);
+        lastError = err.message;
       }
-      
-      const status = res.status;
-      const errText = await res.text();
-      console.warn(`⚠️ Model ${model} failed with ${status}. Trying next...`);
-      lastError = `Status ${status} on ${model}`;
-      
-    } catch (err) {
-      console.warn(`⚠️ AI Fetch Failed for ${model}: ${err.message}`);
-      lastError = err.message;
     }
   }
 
-  throw new Error(`All AI models failed for ${type} task. Last error: ${lastError}`);
+  throw new Error(`All AI models and API keys failed for ${type} task. Last error: ${lastError}`);
 };
 
 /**
