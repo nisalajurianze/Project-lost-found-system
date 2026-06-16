@@ -41,8 +41,9 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const fetchFromAI = async (prompt, format = null) => {
     const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
     
-    // Array of reliable free models to try sequentially (DeepSeek added for extreme stability!)
-    const modelsToTry = [
+    const isOpencode = primaryUrl.includes('opencode');
+    
+    const openRouterModels = [
       process.env.AI_CHAT_MODEL || 'deepseek/deepseek-chat:free',
       'deepseek/deepseek-r1:free',
       'meta-llama/llama-3.3-70b-instruct:free',
@@ -50,6 +51,16 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       'meta-llama/llama-3.1-8b-instruct:free',
       'qwen/qwen-2.5-7b-instruct:free'
     ];
+    
+    const opencodeModels = [
+      process.env.AI_CHAT_MODEL || 'DeepSeek V4 Flash Free',
+      'MiMo-V2.5 Free',
+      'North Mini Code Free',
+      'Nemotron 3 Ultra Free',
+      'Big Pickle'
+    ];
+    
+    const modelsToTry = isOpencode ? opencodeModels : openRouterModels;
 
     // Support multiple API keys separated by commas for load balancing / fallback
     const apiKeys = PRIMARY_KEY.split(',').map(k => k.trim()).filter(k => k);

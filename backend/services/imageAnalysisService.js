@@ -97,20 +97,31 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') return null;
 
   const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  const isOpencode = primaryUrl.includes('opencode');
 
-  const visionModels = [
-    process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
-    'qwen/qwen-vl-plus:free'
-  ];
+  const visionModels = isOpencode 
+    ? [process.env.AI_VISION_MODEL || 'DeepSeek V4 Flash Free', 'MiMo-V2.5 Free', 'North Mini Code Free']
+    : [
+        process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
+        'qwen/qwen-vl-plus:free'
+      ];
   
-  const textModels = [
-    process.env.AI_CHAT_MODEL || 'deepseek/deepseek-chat:free',
-    'deepseek/deepseek-r1:free',
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'google/gemma-2-9b-it:free',
-    'meta-llama/llama-3.1-8b-instruct:free',
-    'qwen/qwen-2.5-7b-instruct:free'
-  ];
+  const textModels = isOpencode
+    ? [
+        process.env.AI_CHAT_MODEL || 'DeepSeek V4 Flash Free',
+        'MiMo-V2.5 Free',
+        'North Mini Code Free',
+        'Nemotron 3 Ultra Free',
+        'Big Pickle'
+      ]
+    : [
+        process.env.AI_CHAT_MODEL || 'deepseek/deepseek-chat:free',
+        'deepseek/deepseek-r1:free',
+        'meta-llama/llama-3.3-70b-instruct:free',
+        'google/gemma-2-9b-it:free',
+        'meta-llama/llama-3.1-8b-instruct:free',
+        'qwen/qwen-2.5-7b-instruct:free'
+      ];
 
   const modelsToTry = type === 'vision' ? visionModels : textModels;
   const apiKeys = PRIMARY_KEY.split(',').map(k => k.trim()).filter(k => k);
