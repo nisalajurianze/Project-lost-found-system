@@ -4,6 +4,7 @@ import { FaSearch, FaRobot } from 'react-icons/fa';
 import api from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'react-hot-toast';
+import { Link, useNavigate } from 'react-router-dom';
 
 const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -191,7 +192,28 @@ const AIChatbot = () => {
                 ) : (
                   <ReactMarkdown
                     components={{
-                      a: ({ node, ...props }) => <a {...props} className="text-primary-600 dark:text-primary-400 font-semibold underline" target="_blank" rel="noopener noreferrer" />
+                      a: ({ node, ...props }) => {
+                        const isInternal = props.href && props.href.startsWith('/');
+                        if (isInternal) {
+                          return (
+                            <Link 
+                              to={props.href} 
+                              className="text-primary-600 dark:text-primary-400 font-semibold underline hover:text-primary-700 dark:hover:text-primary-300"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              {props.children}
+                            </Link>
+                          );
+                        }
+                        return (
+                          <a 
+                            {...props} 
+                            className="text-primary-600 dark:text-primary-400 font-semibold underline hover:text-primary-700 dark:hover:text-primary-300" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                          />
+                        );
+                      }
                     }}
                   >
                     {msg.content}

@@ -253,7 +253,7 @@ Return ONLY a valid JSON object:
 
   if (dbItems.length === 0) {
     return ApiResponse.ok({ 
-      text: `Mata oyaa kiyana jathiye ekak hoyaganna bari wuna. Puluwannam aluthen report ekak danna:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})`,
+      text: `Mata oyaa kiyana jathiye ekak hoyaganna bari wuna. Puluwannam aluthen report ekak danna:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})`,
       quickReplies: [`Report ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item`, "Try another search"]
     }).send(res);
   }
@@ -270,7 +270,7 @@ ${itemSummary}
 IMPORTANT RULES:
 1. Only list an item if it TRULY MATCHES what the user is looking for (e.g., if they want a bike, do not show a laptop just because both are black). 
 2. If NONE of the matches are truly relevant, DO NOT list them. Instead, say you couldn't find any.
-3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})"
+3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})"
 
 Return ONLY a valid JSON object:
 {
