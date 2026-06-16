@@ -14,7 +14,7 @@ const router = express.Router();
 // Route for AI Image Suggestion
 router.post('/suggest-details', protect, uploadSingle, suggestItemDetails);
 
-// Route for AI Chat Assistant
-router.post('/chat', protect, handleAIChat);
+// Route for AI Chat Assistant (Publicly accessible)
+router.post('/chat', handleAIChat);
 
 export default router;

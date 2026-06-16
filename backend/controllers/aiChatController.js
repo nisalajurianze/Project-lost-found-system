@@ -61,7 +61,9 @@ Return ONLY a valid JSON object:
   const statusFilter = analysis.intent === 'lost' ? { $in: ['available', 'matched'] } : { $in: ['pending', 'matched'] };
 
   // Build an OR query: regex match on itemName, description, or aiKeywords
-  const regexPatterns = analysis.keywords.map(kw => new RegExp(kw, 'i'));
+  // Escape regex characters to prevent ReDoS/crashes
+  const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+  const regexPatterns = analysis.keywords.map(kw => new RegExp(escapeRegex(kw), 'i'));
   const dbItems = await targetModel.find({
     status: statusFilter,
     $or: [
@@ -76,7 +78,8 @@ Return ONLY a valid JSON object:
   }
 
   // 3. Let AI format the final response
-  const itemSummary = dbItems.map(item => `- [${item.itemName}](/item/${item._id}) (Location: ${item.lostLocation || item.foundLocation})`).join('\n');
+  const linkPrefix = analysis.intent === 'lost' ? '/found-items' : '/lost-items';
+  const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id}) (Location: ${item.lostLocation || item.foundLocation})`).join('\n');
   
   const replyPrompt = `You are a helpful Lost & Found AI. The user asked: "${message}".
 We searched the database and found these potential matches:
