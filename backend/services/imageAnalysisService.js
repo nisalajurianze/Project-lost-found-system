@@ -140,14 +140,14 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
         try {
           return JSON.parse(text);
         } catch (e) {
-          throw new Error('Fallback Provider returned non-JSON');
+          throw new Error(`Primary Failed (${err.message}) AND Fallback Provider returned non-JSON`);
         }
       } else {
         const errText = await fallbackRes.text();
-        throw new Error(`Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
+        throw new Error(`Primary Failed (${err.message}) AND Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
       }
     }
-    throw new Error(`Primary API Failed and no Fallback API key provided. Details: ${err.message}`);
+    throw new Error(`Primary API Failed: ${err.message}. (No Fallback API key provided)`);
   }
 };
 

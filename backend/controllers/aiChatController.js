@@ -68,14 +68,14 @@ export const handleAIChat = asyncHandler(async (req, res) => {
           try {
             return JSON.parse(text);
           } catch (e) {
-            throw new Error(`Fallback Provider returned non-JSON: ${text}`);
+            throw new Error(`Primary Failed (${err.message}) AND Fallback returned non-JSON: ${text}`);
           }
         } else {
           const errText = await fallbackRes.text();
-          throw new Error(`Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
+          throw new Error(`Primary Failed (${err.message}) AND Fallback Failed: ${fallbackRes.status} - ${errText}`);
         }
       }
-      throw new Error(`Primary API Failed and no Fallback API key provided. Details: ${err.message}`);
+      throw new Error(`Primary API Failed: ${err.message}. (No fallback API key available)`);
     }
   };
 
