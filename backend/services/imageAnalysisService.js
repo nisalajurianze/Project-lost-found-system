@@ -102,8 +102,8 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   const visionModels = isOpencode 
     ? [process.env.AI_VISION_MODEL || 'DeepSeek V4 Flash Free', 'MiMo-V2.5 Free', 'North Mini Code Free']
     : [
-        process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
-        'qwen/qwen-vl-plus:free'
+        process.env.AI_VISION_MODEL || 'openrouter/free',
+        'nvidia/nemotron-nano-12b-v2-vl:free'
       ];
   
   const textModels = isOpencode
@@ -115,13 +115,11 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
         'Big Pickle'
       ]
     : [
-        process.env.AI_CHAT_MODEL || 'deepseek/deepseek-v4-flash:free',
-        'deepseek/deepseek-chat:free',
-        'deepseek/deepseek-r1:free',
+        process.env.AI_CHAT_MODEL || 'openrouter/free',
         'meta-llama/llama-3.3-70b-instruct:free',
-        'google/gemma-2-9b-it:free',
-        'meta-llama/llama-3.1-8b-instruct:free',
-        'qwen/qwen-2.5-7b-instruct:free'
+        'google/gemma-4-31b-it:free',
+        'qwen/qwen3-coder:free',
+        'openai/gpt-oss-120b:free'
       ];
 
   const modelsToTry = type === 'vision' ? visionModels : textModels;

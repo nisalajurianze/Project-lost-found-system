@@ -44,13 +44,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     const isOpencode = primaryUrl.includes('opencode');
     
     const openRouterModels = [
-      process.env.AI_CHAT_MODEL || 'deepseek/deepseek-v4-flash:free',
-      'deepseek/deepseek-chat:free',
-      'deepseek/deepseek-r1:free',
+      process.env.AI_CHAT_MODEL || 'openrouter/free',
       'meta-llama/llama-3.3-70b-instruct:free',
-      'google/gemma-2-9b-it:free',
-      'meta-llama/llama-3.1-8b-instruct:free',
-      'qwen/qwen-2.5-7b-instruct:free'
+      'google/gemma-4-31b-it:free',
+      'qwen/qwen3-coder:free',
+      'openai/gpt-oss-120b:free'
     ];
     
     const opencodeModels = [
