@@ -40,7 +40,17 @@ export const handleAIChat = asyncHandler(async (req, res) => {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${PRIMARY_KEY}` },
         body: JSON.stringify(reqBody)
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Primary Provider returned non-JSON:', text);
+          throw new Error('Invalid JSON from Primary Provider');
+        }
+      }
+      const errText = await res.text();
+      console.error(`Primary Provider Failed: ${res.status} - ${errText}`);
       throw new Error(`Primary Provider Failed: ${res.status}`);
     } catch (err) {
       console.warn(`⚠️ AI Primary Provider Failed (${err.message}). Falling back to OpenRouter...`);
@@ -53,7 +63,17 @@ export const handleAIChat = asyncHandler(async (req, res) => {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENROUTER_KEY}` },
           body: JSON.stringify(reqBody)
         });
-        if (fallbackRes.ok) return await fallbackRes.json();
+        if (fallbackRes.ok) {
+          const text = await fallbackRes.text();
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            console.error('Fallback Provider returned non-JSON:', text);
+          }
+        } else {
+          const errText = await fallbackRes.text();
+          console.error(`Fallback Provider Failed: ${fallbackRes.status} - ${errText}`);
+        }
       }
       return null;
     }
