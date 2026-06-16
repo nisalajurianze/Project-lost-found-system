@@ -80,16 +80,23 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   };
 
   // 1. Analyze the user's intent and extract search keywords
-  const extractionPrompt = `You are an AI assistant for a Lost and Found system. 
-The user said: "${message}" (They might speak in English, Sinhala, Tamil, or Singlish).
-Determine their intent (are they looking for something they "lost", or did they "find" something?).
-Extract search keywords in English (e.g., color, brand, object type).
+  const extractionPrompt = `You are a highly intelligent, conversational, and friendly AI assistant for a Lost and Found system in Sri Lanka. You speak fluent Singlish, Sinhala, and English. You behave like a friendly local assistant. 
+The user said: "${message}"
 
-Return ONLY a valid JSON object:
+Determine their intent:
+- "lost": They lost a specific item and want to search for it.
+- "found": They found a specific item and want to search if someone reported it.
+- "list_found": They want to see a general list of ALL currently found items.
+- "list_lost": They want to see a general list of ALL currently lost items.
+- "general": They are just saying hi, asking a general question, or making small talk.
+
+Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'.
+
+Return ONLY a valid JSON object exactly like this:
 {
-  "intent": "lost" or "found" or "general",
+  "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
   "keywords": ["array", "of", "english", "keywords"],
-  "responseIfGeneral": "If intent is general, put a friendly reply here, else empty"
+  "responseIfGeneral": "If intent is 'general', write a natural, super friendly reply in the exact language the user used (Singlish/Sinhala/English). Answer their question directly! If intent is not general, leave empty."
 }`;
 
   let extractData;
@@ -103,20 +110,48 @@ Return ONLY a valid JSON object:
   const analysis = parseJSONResponse(extractContent);
 
   if (!analysis) {
-    return ApiResponse.ok({ text: `I'm having trouble understanding. (Error: AI returned invalid format. Raw: ${extractContent?.substring(0, 50)}...). Could you rephrase?` }).send(res);
+    return ApiResponse.ok({ text: `I'm having trouble understanding. Could you rephrase?` }).send(res);
   }
 
-  if (analysis.intent === 'general' || !analysis.keywords || analysis.keywords.length === 0) {
+  // Handle general chat immediately
+  if (analysis.intent === 'general') {
     return ApiResponse.ok({ text: analysis.responseIfGeneral || "How can I help you find or report an item today?" }).send(res);
   }
 
-  // 2. Query the DB based on keywords
+  // Handle generic listings
+  if (analysis.intent === 'list_found' || analysis.intent === 'list_lost') {
+    const targetModel = analysis.intent === 'list_found' ? FoundItem : LostItem;
+    const statusFilter = analysis.intent === 'list_found' ? { $in: ['available'] } : { $in: ['pending'] };
+    const dbItems = await targetModel.find({ status: statusFilter }).sort({ createdAt: -1 }).limit(10).lean();
+
+    if (dbItems.length === 0) {
+      return ApiResponse.ok({ text: `Danata ${analysis.intent === 'list_found' ? 'hambawela' : 'nathi wela'} thiyena ewa monawath na. (No items currently reported).` }).send(res);
+    }
+
+    const linkPrefix = analysis.intent === 'list_found' ? '/found-items' : '/lost-items';
+    const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id})`).join('\n');
+    
+    const replyPrompt = `You are a super friendly Lost & Found AI. The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items.
+We retrieved these recent items from the DB:
+${itemSummary}
+
+Write a natural, conversational reply in the user's language (Singlish/Sinhala/English) presenting this list. Use emojis. Include the exact markdown links.`;
+
+    const replyData = await fetchFromAI(replyPrompt);
+    const finalReply = replyData?.choices?.[0]?.message?.content || "Here are the recent items:\n" + itemSummary;
+    return ApiResponse.ok({ text: finalReply, items: dbItems }).send(res);
+  }
+
+  // Handle specific searches (lost / found)
+  if (!analysis.keywords || analysis.keywords.length === 0) {
+    return ApiResponse.ok({ text: "Monawada nathi une kiyala hariyatama kiyanna puluwanda? (Please specify what you lost or found)." }).send(res);
+  }
+
   const targetModel = analysis.intent === 'lost' ? FoundItem : LostItem;
   const statusFilter = analysis.intent === 'lost' ? { $in: ['available', 'matched'] } : { $in: ['pending', 'matched'] };
 
-  // Build an OR query: regex match on itemName, description, or aiKeywords
   // Escape regex characters to prevent ReDoS/crashes
-  const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');
+  const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regexPatterns = analysis.keywords.map(kw => new RegExp(escapeRegex(kw), 'i'));
   const dbItems = await targetModel.find({
     status: statusFilter,
@@ -128,18 +163,22 @@ Return ONLY a valid JSON object:
   }).limit(5).lean();
 
   if (dbItems.length === 0) {
-    return ApiResponse.ok({ text: `I couldn't find any ${analysis.intent === 'lost' ? 'found' : 'lost'} items matching your description. I recommend submitting a formal report so we can notify you if it turns up!` }).send(res);
+    return ApiResponse.ok({ text: `Mata oyaa kiyana jathiye ekak hoyaganna bari wuna. Puluwannam aluthen report ekak danna:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})` }).send(res);
   }
 
   // 3. Let AI format the final response
   const linkPrefix = analysis.intent === 'lost' ? '/found-items' : '/lost-items';
   const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id}) (Location: ${item.lostLocation || item.foundLocation})`).join('\n');
   
-  const replyPrompt = `You are a helpful Lost & Found AI. The user asked: "${message}".
-We searched the database and found these potential matches:
+  const replyPrompt = `You are a super friendly, intelligent AI assistant. The user searched for: "${message}".
+We found these matches in the DB:
 ${itemSummary}
 
-Draft a friendly, concise response in the SAME LANGUAGE the user used (e.g. if they used Singlish, reply in Singlish or English. If Sinhala, reply in Sinhala). Make sure to include the markdown links to the items exactly as provided.`;
+IMPORTANT RULES:
+1. Only list an item if it TRULY MATCHES what the user is looking for (e.g., if they want a bike, do not show a laptop just because both are black). 
+2. If NONE of the matches are truly relevant, DO NOT list them. Instead, say you couldn't find any.
+3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/report-${analysis.intent})"
+4. Draft a friendly, natural reply in the SAME LANGUAGE the user used (Singlish, Sinhala, or English). If there are relevant items, include their markdown links exactly as provided. Use emojis!`;
 
   const replyData = await fetchFromAI(replyPrompt);
   const finalReply = replyData?.choices?.[0]?.message?.content || "Here are some matches I found:\n" + itemSummary;
