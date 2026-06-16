@@ -57,6 +57,7 @@ const ManageCategories = lazy(() => import('./pages/admin/ManageCategories'));
 
 // Fallback loader
 import Loader from './components/common/Loader';
+import AIChatbot from './components/common/AIChatbot';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -165,6 +166,7 @@ const App = () => {
           </Route>
         </Route>
       </Routes>
+      <AIChatbot />
     </Suspense>
     </>
   );
