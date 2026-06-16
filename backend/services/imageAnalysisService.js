@@ -102,14 +102,15 @@ const fetchFromAI = async (messages, type = 'text', format = null) => {
   const visionModels = [
     process.env.AI_VISION_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
     'nvidia/nemotron-nano-12b-v2-vl:free',
-    'qwen/qwen-vl-plus:free' // if available
+    'meta-llama/llama-3.2-90b-vision-instruct:free'
   ];
   
   const textModels = [
     process.env.AI_CHAT_MODEL || 'meta-llama/llama-3.3-70b-instruct:free',
     'google/gemma-2-9b-it:free',
-    'mistralai/mistral-7b-instruct:free',
-    'qwen/qwen-2-7b-instruct:free'
+    'meta-llama/llama-3.1-8b-instruct:free',
+    'qwen/qwen-2.5-7b-instruct:free',
+    'nvidia/llama-3.1-nemotron-70b-instruct:free'
   ];
 
   const modelsToTry = type === 'vision' ? visionModels : textModels;
