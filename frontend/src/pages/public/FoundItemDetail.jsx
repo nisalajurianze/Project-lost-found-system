@@ -72,7 +72,7 @@ export const FoundItemDetail = () => {
   }
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
-  const isFinder = currentItem.user?._id === loggedInUserId;
+  const isFinder = currentItem.userId?._id === loggedInUserId;
   const isClaimable = currentItem.status === 'available' && !isFinder;
 
 
@@ -261,38 +261,38 @@ export const FoundItemDetail = () => {
                     <div>
                       <p className="text-xs text-surface-400 font-medium">Found By</p>
                       <p className="font-semibold text-surface-800 dark:text-surface-200">
-                        {currentItem.user?.fullName || 'Anonymous Finder'}
+                        {currentItem.userId?.fullName || 'Anonymous Finder'}
                       </p>
                     </div>
                   </div>
 
                   {/* Email */}
-                  {(currentItem.contactPreference === 'email' || currentItem.contactPreference === 'both') && currentItem.user?.email && (
+                  {(currentItem.contactPreference === 'email' || currentItem.contactPreference === 'both') && currentItem.userId?.email && (
                     <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                       <FiMail className="text-surface-400 text-lg flex-shrink-0" />
                       <div>
                         <p className="text-xs text-surface-400 font-medium">Email Address</p>
                         <a
-                          href={`mailto:${currentItem.user.email}`}
+                          href={`mailto:${currentItem.userId.email}`}
                           className="font-semibold text-primary-500 hover:underline"
                         >
-                          {currentItem.user.email}
+                          {currentItem.userId.email}
                         </a>
                       </div>
                     </div>
                   )}
 
                   {/* Phone */}
-                  {(currentItem.contactPreference === 'phone' || currentItem.contactPreference === 'both') && currentItem.user?.phone && (
+                  {(currentItem.contactPreference === 'phone' || currentItem.contactPreference === 'both') && currentItem.userId?.phone && (
                     <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                       <FiPhone className="text-surface-400 text-lg flex-shrink-0" />
                       <div>
                         <p className="text-xs text-surface-400 font-medium">Phone Number</p>
                         <a
-                          href={`tel:${currentItem.user.phone}`}
+                          href={`tel:${currentItem.userId.phone}`}
                           className="font-semibold text-primary-500 hover:underline"
                         >
-                          {currentItem.user.phone}
+                          {currentItem.userId.phone}
                         </a>
                       </div>
                     </div>
