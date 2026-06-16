@@ -47,72 +47,68 @@ export const SearchFilter = ({
   }));
 
   return (
-    <div className="w-full flex flex-col gap-3">
-      {/* Top Row: Search & Dropdowns */}
-      <div className="flex flex-col md:flex-row gap-3 w-full">
-        {/* Search Input */}
-        <div className="flex-1 min-w-[200px]">
-          <Input
-            placeholder="Search items by name, details..."
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            className="w-full shadow-sm"
-            icon={<FiSearch className="text-surface-400" />}
-          />
-        </div>
-
-        {/* Dropdowns & Actions Row */}
-        <div className="flex flex-row gap-3 overflow-x-auto pb-1 md:pb-0 items-center">
-          <div className="w-40 flex-shrink-0">
-            <Select
-              placeholder="All Categories"
-              options={categoryOptions}
-              value={category}
-              onChange={(e) => onCategoryChange(e.target.value)}
-            />
-          </div>
-
-          <div className="w-36 flex-shrink-0">
-            <Select
-              placeholder="All Statuses"
-              options={statusOptions}
-              value={status}
-              onChange={(e) => onStatusChange(e.target.value)}
-            />
-          </div>
-
-          <button
-            onClick={onClear}
-            className="text-xs font-bold text-surface-500 hover:text-primary-500 dark:text-surface-400 dark:hover:text-primary-400 whitespace-nowrap px-2 transition-colors duration-200 uppercase tracking-wider"
-          >
-            Clear
-          </button>
-        </div>
+  return (
+    <div className="w-full flex flex-row flex-wrap items-center xl:justify-end gap-3">
+      {/* Search Input */}
+      <div className="flex-1 min-w-[220px] xl:max-w-[300px]">
+        <Input
+          placeholder="Search items by name, details..."
+          value={localSearch}
+          onChange={(e) => setLocalSearch(e.target.value)}
+          className="w-full shadow-sm"
+          icon={<FiSearch className="text-surface-400" />}
+        />
       </div>
 
-      {/* Bottom Row: Date Pickers */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700/50 p-1.5 shadow-sm">
-          <div className="flex items-center justify-center px-2 text-surface-400">
-            <FiCalendar className="w-4 h-4" />
-          </div>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => onStartDateChange(e.target.value)}
-            className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-28"
-            title="Start Date"
-          />
-          <span className="text-surface-300 dark:text-surface-600">-</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-            className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-28 pr-2"
-            title="End Date"
-          />
-        </div>
+      {/* Category Dropdown */}
+      <div className="w-[140px] flex-shrink-0">
+        <Select
+          placeholder="All Categories"
+          options={categoryOptions}
+          value={category}
+          onChange={(e) => onCategoryChange(e.target.value)}
+        />
       </div>
+
+      {/* Status Dropdown */}
+      <div className="w-[130px] flex-shrink-0">
+        <Select
+          placeholder="All Statuses"
+          options={statusOptions}
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
+        />
+      </div>
+
+      {/* Date Pickers */}
+      <div className="flex items-center gap-2 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700/50 p-1.5 shadow-sm">
+        <div className="flex items-center justify-center px-1 text-surface-400">
+          <FiCalendar className="w-4 h-4" />
+        </div>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => onStartDateChange(e.target.value)}
+          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[105px]"
+          title="Start Date"
+        />
+        <span className="text-surface-300 dark:text-surface-600">-</span>
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => onEndDateChange(e.target.value)}
+          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[105px] pr-1"
+          title="End Date"
+        />
+      </div>
+
+      {/* Clear Button */}
+      <button
+        onClick={onClear}
+        className="text-[11px] font-bold text-surface-500 hover:text-primary-500 dark:text-surface-400 dark:hover:text-primary-400 whitespace-nowrap px-2 transition-colors duration-200 uppercase tracking-wider"
+      >
+        Clear
+      </button>
     </div>
   );
 };
