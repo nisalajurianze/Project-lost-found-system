@@ -59,6 +59,7 @@ const ManageCategories = lazy(() => import('./pages/admin/ManageCategories'));
 // Fallback loader
 import Loader from './components/common/Loader';
 import AIChatbot from './components/common/AIChatbot';
+import MobileBottomNav from './components/layout/MobileBottomNav';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -169,6 +170,7 @@ const App = () => {
         </Route>
       </Routes>
       <AIChatbot />
+      <MobileBottomNav />
     </Suspense>
     </>
   );
