@@ -600,6 +600,26 @@
   transform: translateY(-2px);
 }
 
+@media (max-width: 640px) {
+  .dashboard-hero {
+    padding: 1.5rem 1.25rem;
+  }
+  .dashboard-hero-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .hero-btn-primary, .hero-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ── Stat Cards ── */
 .dashboard-stats-grid {
   display: grid;
