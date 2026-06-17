@@ -26,7 +26,8 @@ const SpaceBackground = () => {
     // Initialize stars with Z-depth (3D) and Galaxies
     const initStars = () => {
       stars = [];
-      const numStars = 2000; 
+      const isMobile = window.innerWidth < 768;
+      const numStars = isMobile ? 600 : 1500; 
       
       for (let i = 0; i < numStars; i++) {
         const z = Math.random() * 2 + 1; 
@@ -195,19 +196,20 @@ const SpaceBackground = () => {
           
           ctx.restore();
         } else {
-          // Normal stars
-          ctx.shadowBlur = 0;
-          ctx.strokeStyle = colorStr;
-          ctx.lineWidth = star.radius;
-          ctx.lineCap = 'round';
-          
+          // Normal stars - High performance rendering
           if (speed > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = colorStr;
+            ctx.lineWidth = star.radius;
+            ctx.lineCap = 'round';
             ctx.moveTo(star.x - star.vx * 2.0, star.y - star.vy * 2.0); // Longer lensing trail
+            ctx.lineTo(star.x, star.y);
+            ctx.stroke();
           } else {
-            ctx.moveTo(star.x, star.y);
+            // fillRect is significantly faster than beginPath + stroke for static/slow particles
+            ctx.fillStyle = colorStr;
+            ctx.fillRect(star.x - star.radius/2, star.y - star.radius/2, star.radius, star.radius);
           }
-          ctx.lineTo(star.x, star.y);
-          ctx.stroke();
         }
       });
 
