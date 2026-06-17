@@ -72,6 +72,7 @@ export const CreatableCategorySelect = React.forwardRef(({
   const handleChange = (selected) => {
     // Return an event-like object to be compatible with existing onChange handlers
     onChange({ target: { name, value: selected ? selected.value : '' } });
+    setInputValue(''); // Clear typed text so the selected option shows properly
   };
 
   const handleInputChange = (newInputValue, actionMeta) => {
