@@ -10,6 +10,7 @@ import { FiPlusCircle, FiSearch, FiFileText, FiShield, FiCpu, FiMessageSquare } 
 import Button from '../../components/common/Button';
 import lostItemService from '../../services/lostItemService';
 import foundItemService from '../../services/foundItemService';
+import statsService from '../../services/statsService';
 import SpaceBackground from '../../components/common/SpaceBackground';
 
 export const Home = () => {
@@ -17,17 +18,23 @@ export const Home = () => {
   
   const [latestLost, setLatestLost] = useState([]);
   const [latestFound, setLatestFound] = useState([]);
+  const [publicStats, setPublicStats] = useState({ belongingsRecovered: '180+', activeDailyUsers: '450+', aiMatchAccuracy: 96 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchLatest = async () => {
       try {
-        const [lostRes, foundRes] = await Promise.all([
+        const [lostRes, foundRes, statsRes] = await Promise.all([
           lostItemService.getLostItems({ limit: 3 }),
-          foundItemService.getFoundItems({ limit: 3 })
+          foundItemService.getFoundItems({ limit: 3 }),
+          statsService.getPublicStats().catch(() => ({ data: { belongingsRecovered: 120, activeDailyUsers: 350, aiMatchAccuracy: 96 } }))
         ]);
         setLatestLost(lostRes.items || []);
         setLatestFound(foundRes.items || []);
+        
+        if (statsRes && statsRes.data) {
+           setPublicStats(statsRes.data);
+        }
       } catch (err) {
         console.error('Failed to fetch latest reports for home page:', err);
       } finally {
@@ -38,9 +45,9 @@ export const Home = () => {
   }, []);
 
   const stats = [
-    { label: 'Belongings Recovered', value: '180+', color: 'text-emerald-500' },
-    { label: 'Active Daily Users', value: '450+', color: 'text-primary-500' },
-    { label: 'AI Match Accuracy', value: '96%', color: 'text-cyan-500' }
+    { label: 'Belongings Recovered', value: `${publicStats.belongingsRecovered}+`, color: 'text-emerald-500' },
+    { label: 'Active Daily Users', value: `${publicStats.activeDailyUsers}+`, color: 'text-primary-500' },
+    { label: 'AI Match Accuracy', value: `${publicStats.aiMatchAccuracy}%`, color: 'text-cyan-500' }
   ];
 
   const features = [

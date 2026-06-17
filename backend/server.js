@@ -38,6 +38,7 @@ import feedbackRoutes from './routes/feedbackRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import statsRoutes from './routes/statsRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -206,6 +207,7 @@ const startServer = async () => {
   app.use('/api/categories', categoryRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/stats', statsRoutes);
 
 
 
