@@ -473,6 +473,10 @@
   filter: blur(60px);
   pointer-events: none;
   z-index: 1;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .orb-1 {
@@ -494,8 +498,18 @@
 }
 
 @keyframes orbFloat {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  50% { transform: translateY(-20px) scale(1.05); }
+  0%, 100% { transform: translate3d(0px, 0px, 0px) scale(1); }
+  50% { transform: translate3d(0px, -20px, 0px) scale(1.05); }
+}
+
+@media (max-width: 768px) {
+  .dashboard-hero-orb {
+    filter: blur(30px);
+  }
+  .orb-1, .orb-2 {
+    animation: none; /* Disable expensive animations on mobile to prevent lagging */
+    transform: translate3d(0px, 0px, 0px);
+  }
 }
 
 .dashboard-hero-content {
