@@ -115,7 +115,6 @@ export const FoundItems = () => {
               onClear={handleClearFilters}
             />
           </div>
-        </div>
 
         {/* Listings Grid */}
         {isLoading ? (

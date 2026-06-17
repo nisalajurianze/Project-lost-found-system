@@ -116,7 +116,6 @@ export const LostItems = () => {
               onClear={handleClearFilters}
             />
           </div>
-        </div>
 
         {/* Listings Grid */}
         {isLoading ? (
