@@ -1,5 +1,6 @@
 import SystemSetting from '../models/SystemSetting.js';
 import ApiResponse from '../utils/apiResponse.js';
+import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { getCache, setCache, deleteCache } from '../config/redis.js';
 
@@ -21,7 +22,7 @@ export const getPublicSetting = asyncHandler(async (req, res) => {
   const setting = await SystemSetting.findOne({ key: key.toLowerCase() });
   
   if (!setting) {
-    return ApiResponse.notFound('Setting not found').send(res);
+    throw ApiError.notFound('Setting not found');
   }
 
   // Cache for 1 hour
@@ -38,7 +39,7 @@ export const updateSetting = asyncHandler(async (req, res) => {
   const { value, description } = req.body;
 
   if (value === undefined) {
-    return ApiResponse.badRequest('Value is required').send(res);
+    throw ApiError.badRequest('Value is required');
   }
 
   const lowerKey = key.toLowerCase();
