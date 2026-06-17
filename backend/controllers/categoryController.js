@@ -131,10 +131,13 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
   let category = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
   
   if (!category) {
-    // Generate AI details
+    // Generate AI details with existing categories context
+    const existingCats = await Category.find({ isActive: true }).select('name').lean();
+    const existingNames = existingCats.map(c => c.name);
+
     let details;
     try {
-      details = await generateCategoryDetails(name);
+      details = await generateCategoryDetails(name, existingNames);
     } catch (err) {
       if (err.message === 'INVALID_CATEGORY') {
         throw ApiError.badRequest(`'${name}' is not a valid physical item category.`);
@@ -142,8 +145,16 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
       throw err;
     }
     
+    const correctedName = details.correctedName || name;
+    
+    // Check if the AI corrected name ALREADY exists (case-insensitive)
+    let existingCorrected = await Category.findOne({ name: { $regex: new RegExp(`^${correctedName}$`, 'i') } });
+    if (existingCorrected) {
+      return ApiResponse.ok(existingCorrected, 'Category mapped to existing.').send(res);
+    }
+    
     category = await Category.create({
-      name: details.correctedName || name,
+      name: correctedName,
       icon: details.icon || '📦',
       description: details.description || '',
       isActive: true,

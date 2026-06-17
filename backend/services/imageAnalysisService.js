@@ -298,12 +298,17 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
  * @param {string} categoryName - The name of the category
  * @returns {Promise<{icon: string, description: string}>}
  */
-const generateCategoryDetails = async (categoryName) => {
+const generateCategoryDetails = async (categoryName, existingCategories = []) => {
+  const existingNamesList = existingCategories.join(', ');
   const systemPrompt = `You are an AI for a Lost and Found system. A user suggested a new category named "${categoryName}".
 First, evaluate if this is a realistic physical object or a valid category of objects that someone could lose or find. 
 If it is gibberish (e.g. "loahhfafafaf"), a digital concept/game (e.g. "gta"), or meaningless, return ONLY: {"isValid": false}.
-If it is valid, auto-correct any spelling mistakes in the name (e.g. "speeker" -> "Speaker", "phon" -> "Phone") and format it nicely in Title Case.
-Return ONLY a JSON object with fields: "isValid": true, "correctedName" (the fixed, title-cased category name), "icon" (a single relevant emoji), and "description" (a concise 1-sentence description). Example: {"isValid":true,"correctedName":"Skateboard","icon":"🛹","description":"Skateboards and accessories."}`;
+
+If it is valid:
+1. Check if it means the exact same thing as any of these existing categories: [${existingNamesList}]. If it is a synonym or variation (e.g. "id" is the same as "ID Card", "cellphone" is the same as "Phone", "specs" is the same as "Glasses"), you MUST set "correctedName" to that EXACT existing category name!
+2. If it does not match an existing category, auto-correct spelling mistakes (e.g. "speeker" -> "Speaker") and format it nicely in Title Case.
+
+Return ONLY a JSON object with fields: "isValid": true, "correctedName" (the existing category name OR the fixed, title-cased new category name), "icon" (a single relevant emoji), and "description" (a concise 1-sentence description). Example: {"isValid":true,"correctedName":"Skateboard","icon":"🛹","description":"Skateboards and accessories."}`;
   
   let data;
   try {

@@ -24,23 +24,40 @@ const createLostItem = asyncHandler(async (req, res) => {
   const { itemName, category, description, lostLocation, lostDate, tags, contactPreference } = req.body;
   const userId = req.user._id;
 
-  // Verify category exists or auto-create it
-  let categoryExists = await Category.findOne({ name: category, isActive: true });
+  // Verify category exists or auto-create it (case-insensitive check first)
+  let categoryExists = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') }, isActive: true });
   if (!categoryExists) {
-    // Attempt auto-creation with AI
+    // Attempt auto-creation with AI using existing categories context
     try {
-      const details = await generateCategoryDetails(category);
-      categoryExists = await Category.create({
-        name: category,
-        icon: details.icon,
-        description: details.description,
-        isActive: true,
-        itemCount: 0
-      });
+      const existingCats = await Category.find({ isActive: true }).select('name').lean();
+      const existingNames = existingCats.map(c => c.name);
+
+      const details = await generateCategoryDetails(category, existingNames);
+      const correctedName = details.correctedName || category;
+
+      // Check again with the corrected name
+      categoryExists = await Category.findOne({ name: { $regex: new RegExp(`^${correctedName}$`, 'i') }, isActive: true });
+      
+      if (!categoryExists) {
+        categoryExists = await Category.create({
+          name: correctedName,
+          icon: details.icon,
+          description: details.description,
+          isActive: true,
+          itemCount: 0
+        });
+        
+        // Clear redis cache for categories since we created a new one
+        const { deleteCache } = await import('../config/redis.js');
+        await deleteCache('categories:all');
+      }
     } catch (e) {
       throw ApiError.badRequest(`Failed to create new category '${category}'.`);
     }
   }
+
+  // Use the exact database name so that items are grouped properly
+  const finalCategoryName = categoryExists.name;
 
   // Parse tags if sent as string
   let parsedTags = [];
@@ -58,7 +75,7 @@ const createLostItem = asyncHandler(async (req, res) => {
   const lostItem = await LostItem.create({
     userId,
     itemName,
-    category,
+    category: finalCategoryName,
     description,
     lostLocation,
     lostDate,
