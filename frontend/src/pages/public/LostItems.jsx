@@ -80,7 +80,7 @@ export const LostItems = () => {
       <div className="page-container max-w-7xl mx-auto">
         
         {/* Header & Controls Single Row */}
-        <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
           
           <div className="flex-shrink-0 flex items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-extrabold font-display text-surface-900 dark:text-white whitespace-nowrap">
@@ -91,8 +91,8 @@ export const LostItems = () => {
             </span>
           </div>
 
-          <div className="flex-1 flex flex-col xl:flex-row xl:items-center gap-4 xl:justify-end">
-            <div className="flex-1 xl:max-w-[800px]">
+          <div className="flex-1 flex flex-row flex-wrap items-center justify-end gap-3 sm:gap-4">
+            <div className="flex-1 min-w-[280px] max-w-full">
               <SearchFilter
                 search={search}
                 onSearchChange={(val) => { setSearch(val); setPage(1); }}

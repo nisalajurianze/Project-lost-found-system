@@ -47,9 +47,9 @@ export const SearchFilter = ({
   }));
 
   return (
-    <div className="w-full flex flex-row flex-wrap items-center justify-start gap-3">
+    <div className="w-full flex flex-row flex-wrap xl:flex-nowrap items-center justify-start gap-2">
       {/* Search Input */}
-      <div className="flex-1 min-w-[220px] xl:max-w-[300px]">
+      <div className="flex-1 min-w-[150px] md:min-w-[200px] xl:max-w-[260px]">
         <Input
           placeholder="Search items by name, details..."
           value={localSearch}
@@ -60,7 +60,7 @@ export const SearchFilter = ({
       </div>
 
       {/* Category Dropdown */}
-      <div className="w-[140px] flex-shrink-0">
+      <div className="w-[130px] flex-shrink-0">
         <Select
           placeholder="All Categories"
           options={categoryOptions}
@@ -70,7 +70,7 @@ export const SearchFilter = ({
       </div>
 
       {/* Status Dropdown */}
-      <div className="w-[130px] flex-shrink-0">
+      <div className="w-[120px] flex-shrink-0">
         <Select
           placeholder="All Statuses"
           options={statusOptions}
@@ -88,7 +88,7 @@ export const SearchFilter = ({
           type="date"
           value={startDate}
           onChange={(e) => onStartDateChange(e.target.value)}
-          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[105px]"
+          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[95px]"
           title="Start Date"
         />
         <span className="text-surface-300 dark:text-surface-600">-</span>
@@ -96,7 +96,7 @@ export const SearchFilter = ({
           type="date"
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
-          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[105px] pr-1"
+          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[95px] pr-1"
           title="End Date"
         />
       </div>
