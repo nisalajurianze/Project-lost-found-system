@@ -98,6 +98,11 @@ const lostItemSchema = new mongoose.Schema(
       enum: ['email', 'phone', 'both'],
       default: 'email',
     },
+    contactVisibility: {
+      type: String,
+      enum: ['public', 'request_only'],
+      default: 'request_only',
+    },
     isDeleted: {
       type: Boolean,
       default: false,

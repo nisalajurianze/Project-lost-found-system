@@ -33,6 +33,7 @@ export const ReportLost = () => {
   const [lostLocation, setLostLocation] = useState('');
   const [lostDate, setLostDate] = useState('');
   const [contactPreference, setContactPreference] = useState('both');
+  const [contactVisibility, setContactVisibility] = useState('request_only');
   const [tags, setTags] = useState('');
   const [images, setImages] = useState([]);
 
@@ -92,6 +93,7 @@ export const ReportLost = () => {
       formData.append('lostLocation', lostLocation);
       formData.append('lostDate', new Date(lostDate).toISOString());
       formData.append('contactPreference', contactPreference);
+      formData.append('contactVisibility', contactVisibility);
       formData.append('tags', tags);
 
       // Append images
@@ -297,6 +299,17 @@ export const ReportLost = () => {
               options={contactOptions}
               value={contactPreference}
               onChange={(e) => setContactPreference(e.target.value)}
+            />
+
+            <Select
+              label="Contact Visibility"
+              options={[
+                { value: 'public', label: 'Public - Anyone can see' },
+                { value: 'request_only', label: 'Request Only - Must connect first' }
+              ]}
+              value={contactVisibility}
+              onChange={(e) => setContactVisibility(e.target.value)}
+              helperText="If 'Request Only', contact info is hidden until a user connects."
             />
 
             <Input

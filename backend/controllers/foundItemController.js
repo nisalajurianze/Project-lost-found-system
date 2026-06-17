@@ -21,7 +21,7 @@ import { runMatchingForItem } from '../services/aiMatchingService.js';
  * Uploads images, runs image analysis in background, and triggers matching.
  */
 const createFoundItem = asyncHandler(async (req, res) => {
-  const { itemName, category, description, foundLocation, foundDate, storedAt, tags, contactPreference } = req.body;
+  const { itemName, category, description, foundLocation, foundDate, storedAt, tags, contactPreference, contactVisibility } = req.body;
   const userId = req.user._id;
 
   // Verify category exists or auto-create it (case-insensitive check first)
@@ -81,6 +81,7 @@ const createFoundItem = asyncHandler(async (req, res) => {
     foundDate,
     storedAt: storedAt || '',
     contactPreference: contactPreference || 'both',
+    contactVisibility: contactVisibility || 'request_only',
     tags: parsedTags,
     images,
     status: 'available'
@@ -221,7 +222,7 @@ const getFoundItemById = asyncHandler(async (req, res) => {
  * Update found item.
  */
 const updateFoundItem = asyncHandler(async (req, res) => {
-  const { itemName, category, description, foundLocation, foundDate, storedAt, status, tags, contactPreference, deletedImages } = req.body;
+  const { itemName, category, description, foundLocation, foundDate, storedAt, status, tags, contactPreference, contactVisibility, deletedImages } = req.body;
   const item = await FoundItem.findById(req.params.id);
 
   if (!item || item.isDeleted) {
@@ -270,6 +271,7 @@ const updateFoundItem = asyncHandler(async (req, res) => {
     }
   }
   if (contactPreference) item.contactPreference = contactPreference;
+  if (contactVisibility) item.contactVisibility = contactVisibility;
   if (tags) {
     item.tags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim());
   }

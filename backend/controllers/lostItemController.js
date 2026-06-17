@@ -21,7 +21,7 @@ import { runMatchingForItem } from '../services/aiMatchingService.js';
  * Uploads images, runs image analysis in background, and triggers matching.
  */
 const createLostItem = asyncHandler(async (req, res) => {
-  const { itemName, category, description, lostLocation, lostDate, tags, contactPreference } = req.body;
+  const { itemName, category, description, lostLocation, lostDate, tags, contactPreference, contactVisibility } = req.body;
   const userId = req.user._id;
 
   // Verify category exists or auto-create it (case-insensitive check first)
@@ -80,6 +80,7 @@ const createLostItem = asyncHandler(async (req, res) => {
     lostLocation,
     lostDate,
     contactPreference: contactPreference || 'both',
+    contactVisibility: contactVisibility || 'request_only',
     tags: parsedTags,
     images,
     status: 'pending'
@@ -223,7 +224,7 @@ const getLostItemById = asyncHandler(async (req, res) => {
  * Update a lost item.
  */
 const updateLostItem = asyncHandler(async (req, res) => {
-  const { itemName, category, description, lostLocation, lostDate, status, tags, contactPreference, deletedImages } = req.body;
+  const { itemName, category, description, lostLocation, lostDate, status, tags, contactPreference, contactVisibility, deletedImages } = req.body;
   const item = await LostItem.findById(req.params.id);
 
   if (!item || item.isDeleted) {
@@ -271,6 +272,7 @@ const updateLostItem = asyncHandler(async (req, res) => {
     }
   }
   if (contactPreference) item.contactPreference = contactPreference;
+  if (contactVisibility) item.contactVisibility = contactVisibility;
   if (tags) {
     item.tags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim());
   }

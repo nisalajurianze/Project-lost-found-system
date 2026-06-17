@@ -33,6 +33,7 @@ export const EditLostItem = () => {
   const [lostLocation, setLostLocation] = useState('');
   const [lostDate, setLostDate] = useState('');
   const [contactPreference, setContactPreference] = useState('both');
+  const [contactVisibility, setContactVisibility] = useState('request_only');
   const [tags, setTags] = useState('');
   
   // Images
@@ -63,6 +64,7 @@ export const EditLostItem = () => {
       }
       
       setContactPreference(currentItem.contactPreference || 'both');
+      setContactVisibility(currentItem.contactVisibility || 'request_only');
       setTags(currentItem.tags ? currentItem.tags.join(', ') : '');
       
       setExistingImages(currentItem.images || []);
@@ -109,6 +111,7 @@ export const EditLostItem = () => {
       formData.append('lostLocation', lostLocation);
       formData.append('lostDate', new Date(lostDate).toISOString());
       formData.append('contactPreference', contactPreference);
+      formData.append('contactVisibility', contactVisibility);
       formData.append('tags', tags);
 
       // Append deleted images
@@ -219,6 +222,17 @@ export const EditLostItem = () => {
               options={contactOptions}
               value={contactPreference}
               onChange={(e) => setContactPreference(e.target.value)}
+            />
+
+            <Select
+              label="Contact Visibility"
+              options={[
+                { value: 'public', label: 'Public - Anyone can see' },
+                { value: 'request_only', label: 'Request Only - Must connect first' }
+              ]}
+              value={contactVisibility}
+              onChange={(e) => setContactVisibility(e.target.value)}
+              helperText="If 'Request Only', contact info is hidden until a user claims the item."
             />
 
             <Input
