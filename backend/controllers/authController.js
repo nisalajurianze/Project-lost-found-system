@@ -123,7 +123,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
  * User login.
  */
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
 
   // Fetch user with password
   const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
@@ -168,7 +168,7 @@ const login = asyncHandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // Generate tokens and set cookies
-  const tokens = await generateTokens(user, res);
+  const tokens = await generateTokens(user, res, rememberMe);
 
   const userData = user.toObject();
   delete userData.password;

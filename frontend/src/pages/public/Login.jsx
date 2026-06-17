@@ -19,8 +19,9 @@ export const Login = () => {
 
   const { isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(localStorage.getItem('rememberedEmail') || '');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('rememberedEmail'));
   const [fieldErrors, setFieldErrors] = useState({});
 
   // Redirect path from location state
@@ -56,7 +57,13 @@ export const Login = () => {
     }
 
     try {
-      await dispatch(loginUser({ email, password })).unwrap();
+      if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
+
+      await dispatch(loginUser({ email, password, rememberMe })).unwrap();
       toast.success('Welcome back!');
     } catch (err) {
       const msg = err?.message || (typeof err === 'string' ? err : 'Failed to authenticate.');
@@ -119,6 +126,20 @@ export const Login = () => {
               error={fieldErrors.password}
               required
             />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500 dark:border-surface-600 dark:bg-surface-800 dark:ring-offset-surface-900 cursor-pointer"
+            />
+            <label htmlFor="remember-me" className="ml-2 block text-sm text-surface-700 dark:text-surface-300 cursor-pointer select-none">
+              Remember me
+            </label>
           </div>
 
           <Button

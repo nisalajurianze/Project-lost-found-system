@@ -9,9 +9,10 @@
  *
  * @param {import('mongoose').Document} user - Mongoose user document
  * @param {import('express').Response}  res  - Express response object
+ * @param {boolean} rememberMe - Whether to persist the refresh token cookie
  * @returns {Promise<{accessToken: string, refreshToken: string}>}
  */
-const generateTokens = async (user, res) => {
+const generateTokens = async (user, res, rememberMe = false) => {
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
@@ -31,9 +32,12 @@ const generateTokens = async (user, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/api/auth/refresh-token', // Only sent on refresh endpoint
   };
+
+  if (rememberMe) {
+    refreshCookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+  }
 
   // Set cookies
   res.cookie('accessToken', accessToken, accessCookieOptions);
