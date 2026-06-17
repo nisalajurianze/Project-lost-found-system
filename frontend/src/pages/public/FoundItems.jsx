@@ -79,8 +79,8 @@ export const FoundItems = () => {
       <div className="page-container max-w-7xl mx-auto">
         
         {/* Header & Button Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-          <div className="page-header flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex-shrink-0">
             <h1 className="page-title text-2xl font-extrabold font-display text-surface-900 dark:text-white">
               Found Property Directory
             </h1>
