@@ -158,7 +158,7 @@ export const Home = () => {
         </div>
       </section>
 
-      {/* Latest Listings Summary Section */}
+      {/* Latest Lost Listings Summary Section */}
       <section className="py-16 bg-surface-100 dark:bg-surface-950/20 border-t border-surface-200/50 dark:border-surface-800/50">
         <div className="page-container max-w-6xl mx-auto">
           <div className="flex justify-between items-end mb-8">
@@ -199,6 +199,55 @@ export const Home = () => {
                   <div className="mt-4 pt-3 border-t border-surface-100 dark:border-surface-700/50 flex flex-col gap-1 text-xs text-surface-400">
                     <p>📍 Location: <strong>{item.lostLocation}</strong></p>
                     <p>📅 Reported: <strong>{new Date(item.createdAt).toLocaleDateString()}</strong></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Latest Found Listings Summary Section */}
+      <section className="py-16 bg-white dark:bg-surface-900 border-t border-surface-200/50 dark:border-surface-800/50">
+        <div className="page-container max-w-6xl mx-auto">
+          <div className="flex justify-between items-end mb-8">
+            <div>
+              <h2 className="text-2xl font-bold font-display text-surface-900 dark:text-white">
+                Latest Found Items
+              </h2>
+              <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">
+                Recent items found and secured on campus
+              </p>
+            </div>
+            <Link to="/found-items" className="text-sm font-semibold text-primary-500 hover:text-primary-600">
+              View All &rarr;
+            </Link>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className="h-64 bg-surface-250 animate-pulse rounded-2xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {latestFound.slice(0, 3).map((item) => (
+                <div key={item._id} className="card bg-surface-50 dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-emerald-500 uppercase">
+                      {item.category}
+                    </span>
+                    <h4 className="text-base font-bold text-surface-900 dark:text-white mt-1 leading-snug truncate">
+                      {item.itemName}
+                    </h4>
+                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-2 line-clamp-2 leading-relaxed">
+                      {item.description}
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-surface-100 dark:border-surface-700/50 flex flex-col gap-1 text-xs text-surface-400">
+                    <p>📍 Location: <strong>{item.foundLocation}</strong></p>
+                    <p>📅 Found: <strong>{new Date(item.foundDate || item.createdAt).toLocaleDateString()}</strong></p>
                   </div>
                 </div>
               ))}
