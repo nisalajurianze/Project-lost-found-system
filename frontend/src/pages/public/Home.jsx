@@ -79,10 +79,10 @@ export const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-display leading-tight tracking-tight text-shadow"
+            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold font-display leading-tight sm:leading-tight tracking-tight text-shadow break-words w-full px-2"
           >
             Recover Your Lost Belongings{' '}
-            <span className="text-primary-300">Intelligently</span>
+            <span className="text-primary-300 inline-block">Intelligently</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}

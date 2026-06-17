@@ -272,13 +272,30 @@ export const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex md:hidden items-center gap-1 sm:gap-2">
             <button
               onClick={() => dispatch(toggleTheme())}
               className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors"
             >
-              {themeMode === 'dark' ? <FiSun /> : <FiMoon />}
+              {themeMode === 'dark' ? <FiSun className="text-xl" /> : <FiMoon className="text-xl" />}
             </button>
+            
+            {/* Mobile Notification Bell */}
+            {isAuthenticated && (
+              <Link
+                to="/dashboard/notifications"
+                className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FiBell className="text-xl" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors"
