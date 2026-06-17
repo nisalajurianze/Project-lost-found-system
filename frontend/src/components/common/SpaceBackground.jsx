@@ -34,7 +34,7 @@ const SpaceBackground = () => {
         const isMedium = !isGalaxy && Math.random() > 0.95; // 5% chance to be a medium star
         
         let size;
-        if (isGalaxy) size = Math.random() * 8 + 4;
+        if (isGalaxy) size = Math.random() * 30 + 20; // 20 to 50 pixels for galaxies
         else if (isMedium) size = Math.random() * 3 + 1.5;
         else size = (Math.random() * 2.0 + 0.8) / z; 
         
@@ -168,25 +168,40 @@ const SpaceBackground = () => {
         const glowAlpha = Math.min(star.alpha + (speed * 0.03), 1);
         
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(${Math.floor(star.r)}, ${Math.floor(star.g)}, ${Math.floor(star.b)}, ${glowAlpha})`;
-        ctx.lineWidth = star.radius;
-        ctx.lineCap = 'round';
+        const colorStr = `rgba(${Math.floor(star.r)}, ${Math.floor(star.g)}, ${Math.floor(star.b)}, ${glowAlpha})`;
         
-        // Galaxies have soft glow
         if (star.isGalaxy) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = ctx.strokeStyle;
+          // Milky Way style large nebulas
+          ctx.shadowBlur = 25;
+          ctx.shadowColor = colorStr;
+          ctx.fillStyle = colorStr;
+          
+          // Rotate oval based on movement direction
+          const moveAngle = Math.atan2(star.vy, star.vx);
+          
+          if (typeof ctx.ellipse === 'function') {
+            // x, y, radiusX, radiusY, rotation, startAngle, endAngle
+            ctx.ellipse(star.x, star.y, star.radius, star.radius * 0.35, moveAngle, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fill();
+          }
         } else {
+          // Normal stars
           ctx.shadowBlur = 0;
+          ctx.strokeStyle = colorStr;
+          ctx.lineWidth = star.radius;
+          ctx.lineCap = 'round';
+          
+          if (speed > 1) {
+            ctx.moveTo(star.x - star.vx * 2.0, star.y - star.vy * 2.0); // Longer lensing trail
+          } else {
+            ctx.moveTo(star.x, star.y);
+          }
+          ctx.lineTo(star.x, star.y);
+          ctx.stroke();
         }
-        
-        if (speed > 1 && !star.isGalaxy) {
-          ctx.moveTo(star.x - star.vx * 2.0, star.y - star.vy * 2.0); // Longer lensing trail
-        } else {
-          ctx.moveTo(star.x, star.y);
-        }
-        ctx.lineTo(star.x, star.y);
-        ctx.stroke();
       });
 
       // Disable shadow for UI
