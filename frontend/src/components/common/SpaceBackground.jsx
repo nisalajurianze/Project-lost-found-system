@@ -229,26 +229,15 @@ const SpaceBackground = () => {
 
         const bhRadius = 8;
         
-        // 1. Gravitational Lensing Halo (creates the optical illusion of warped space)
-        const lensingRadius = 50 + (accretionHeat * 10);
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, lensingRadius, 0, Math.PI * 2);
-        const lensingGrad = ctx.createRadialGradient(mouse.x, mouse.y, bhRadius, mouse.x, mouse.y, lensingRadius);
-        lensingGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        lensingGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.05)'); // subtle warp highlight
-        lensingGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.3)'); // dark warp band distorting background
-        lensingGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = lensingGrad;
-        ctx.fill();
-
-        // 2. Accretion Disk Glow (Ring)
-        const diskRadius = 18 + (accretionHeat * 10); // Smaller ring
+        // 1. Accretion Disk Glow (Ring) - Larger and softer
+        const diskRadius = 28 + (accretionHeat * 15); 
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, diskRadius, 0, Math.PI * 2);
         const gradient = ctx.createRadialGradient(mouse.x, mouse.y, bhRadius, mouse.x, mouse.y, diskRadius);
         
-        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.8)`); 
-        gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, 0.3)`); 
+        // Intense core fading into space
+        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.9)`); 
+        gradient.addColorStop(0.3, `rgba(${midR}, ${midG}, ${midB}, 0.5)`); 
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
         ctx.fillStyle = gradient;
