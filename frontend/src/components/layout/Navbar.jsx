@@ -140,7 +140,7 @@ export const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-surface-200/50 bg-white/75 backdrop-blur-md dark:border-surface-800/50 dark:bg-surface-900/75 transition-colors duration-300">
-      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
