@@ -229,15 +229,21 @@ const SpaceBackground = () => {
 
         const bhRadius = 8;
         
-        // 1. Accretion Disk Glow (Ring) - Larger and softer
-        const diskRadius = 28 + (accretionHeat * 15); 
+        // 1. Accretion Disk Glow (Ring-shaped intensity)
+        const diskRadius = 40 + (accretionHeat * 15); 
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, diskRadius, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, bhRadius, mouse.x, mouse.y, diskRadius);
+        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, diskRadius);
         
-        // Intense core fading into space
-        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.9)`); 
-        gradient.addColorStop(0.3, `rgba(${midR}, ${midG}, ${midB}, 0.5)`); 
+        // Dark space immediately around the black hole
+        gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        gradient.addColorStop(0.2, `rgba(${midR}, ${midG}, ${midB}, 0.05)`); 
+        
+        // Intense blinding peak exactly where the stars form the ring
+        gradient.addColorStop(0.4, `rgba(${innerR}, ${innerG}, ${innerB}, 0.95)`); 
+        
+        // Fading out into deep space
+        gradient.addColorStop(0.65, `rgba(${midR}, ${midG}, ${midB}, 0.4)`); 
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
         ctx.fillStyle = gradient;
