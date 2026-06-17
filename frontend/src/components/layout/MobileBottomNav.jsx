@@ -1,27 +1,26 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiHome, FiPlusCircle, FiActivity, FiUser, FiPackage } from 'react-icons/fi';
+import { FiHome, FiSearch, FiPackage, FiGrid, FiLogIn } from 'react-icons/fi';
 import { useSelector } from 'react-redux';
 
 export const MobileBottomNav = () => {
   const location = useLocation();
   const { isAuthenticated } = useSelector((state) => state.auth);
-  
-  // Only show bottom nav for authenticated users
-  if (!isAuthenticated) return null;
 
   // Mobile bottom navigation bar links
   const mobileNavLinks = [
     { label: 'Home', path: '/', icon: <FiHome /> },
-    { label: 'Dashboard', path: '/dashboard', icon: <FiActivity /> },
-    { label: 'Lost', path: '/dashboard/report-lost', icon: <FiPlusCircle /> },
-    { label: 'Found', path: '/dashboard/report-found', icon: <FiPackage /> },
-    { label: 'Profile', path: '/dashboard/profile', icon: <FiUser /> }
+    { label: 'Lost', path: '/lost-items', icon: <FiSearch /> },
+    { label: 'Found', path: '/found-items', icon: <FiPackage /> },
+    isAuthenticated
+      ? { label: 'Dashboard', path: '/dashboard', icon: <FiGrid /> }
+      : { label: 'Log In', path: '/login', icon: <FiLogIn /> }
   ];
 
   const isMobileActive = (path) => {
     if (path === '/') return location.pathname === '/';
     if (path === '/dashboard') return location.pathname === '/dashboard';
+    if (path === '/login') return location.pathname === '/login';
     return location.pathname.startsWith(path);
   };
 
