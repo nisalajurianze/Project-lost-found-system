@@ -307,9 +307,25 @@ export const Navbar = () => {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors"
+              className="p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none ml-1"
             >
-              {mobileMenuOpen ? <FiX className="text-xl" /> : <FiMenu className="text-xl" />}
+              {mobileMenuOpen ? (
+                <div className="h-8 w-8 flex items-center justify-center"><FiX className="text-xl text-surface-500 dark:text-surface-400" /></div>
+              ) : isAuthenticated ? (
+                user?.profileImage?.url ? (
+                  <img
+                    src={user.profileImage.url}
+                    alt={user.fullName}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold font-display">
+                    {getInitials(user?.fullName)}
+                  </div>
+                )
+              ) : (
+                <div className="h-8 w-8 flex items-center justify-center"><FiMenu className="text-xl text-surface-500 dark:text-surface-400" /></div>
+              )}
             </button>
           </div>
         </div>
