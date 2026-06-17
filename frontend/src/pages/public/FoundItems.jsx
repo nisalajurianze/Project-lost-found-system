@@ -98,7 +98,7 @@ export const FoundItems = () => {
         </div>
 
         {/* Search & Filters */}
-        <div className="w-full mb-8 bg-white dark:bg-surface-800 p-4 rounded-2xl shadow-sm border border-surface-200 dark:border-surface-700">
+        <div className="w-full mb-8">
             <SearchFilter
               search={search}
               onSearchChange={(val) => { setSearch(val); setPage(1); }}

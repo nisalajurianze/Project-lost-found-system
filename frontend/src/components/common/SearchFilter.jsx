@@ -47,7 +47,7 @@ export const SearchFilter = ({
   }));
 
   return (
-    <div className="w-full flex flex-row flex-wrap items-center xl:justify-end gap-3">
+    <div className="w-full flex flex-row flex-wrap items-center justify-start gap-3">
       {/* Search Input */}
       <div className="flex-1 min-w-[220px] xl:max-w-[300px]">
         <Input
