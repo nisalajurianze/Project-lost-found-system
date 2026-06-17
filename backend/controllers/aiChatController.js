@@ -156,8 +156,10 @@ Return ONLY a valid JSON object exactly like this:
 {
   "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
   "keywords": ["array", "of", "english", "keywords"],
-  "responseIfGeneral": "If intent is 'general', write a natural, super friendly reply in the exact language the user used. Answer their question directly! If intent is not general, leave empty.",
-  "quickReplies": ["Suggest 2 or 3 short follow-up actions/questions the user can click next (max 4 words each). Example: 'Report my item', 'Search again'"]
+  "responseIfGeneral": "If intent is 'general', write a natural, friendly reply in the EXACT language the user used.",
+  "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST be in the EXACT language the user used.",
+  "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST be in the EXACT language the user used.",
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions/questions (max 4 words each)."]
 }`;
 
   let extractData;
@@ -208,7 +210,7 @@ Return ONLY a valid JSON object exactly like this:
 
     if (dbItems.length === 0) {
       return ApiResponse.ok({ 
-        text: `Danata ${analysis.intent === 'list_found' ? 'hambawela' : 'nathi wela'} thiyena ewa monawath na. (No items currently reported).`,
+        text: analysis.responseIfNotFound || `No items currently reported. You can report one here:\n\n[Report a ${analysis.intent === 'list_found' ? 'Found' : 'Lost'} Item](/dashboard/report-${analysis.intent === 'list_found' ? 'found' : 'lost'})`,
         quickReplies: analysis.quickReplies || ["Report an item", "Go to Home"]
       }).send(res);
     }
@@ -222,7 +224,7 @@ ${itemSummary}
 
 Return ONLY a valid JSON object:
 {
-  "text": "A natural, conversational reply in the user's language presenting this list. Use emojis. Include the exact markdown links.",
+  "text": "CRITICAL: Draft a natural, conversational reply presenting this list in the EXACT SAME LANGUAGE the user used (e.g. if English, reply in English. If Sinhala, reply in Sinhala). Use emojis. Include the exact markdown links.",
   "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
 }`;
 
@@ -250,7 +252,7 @@ Return ONLY a valid JSON object:
   // Handle specific searches (lost / found)
   if (!analysis.keywords || analysis.keywords.length === 0) {
     return ApiResponse.ok({ 
-      text: "Monawada nathi une kiyala hariyatama kiyanna puluwanda? (Please specify what you lost or found).",
+      text: analysis.responseIfMissingKeywords || "Please specify what exactly you lost or found.",
       quickReplies: ["I lost a phone", "I found a wallet", "Cancel"]
     }).send(res);
   }
@@ -272,8 +274,8 @@ Return ONLY a valid JSON object:
 
   if (dbItems.length === 0) {
     return ApiResponse.ok({ 
-      text: `Mata oyaa kiyana jathiye ekak hoyaganna bari wuna. Puluwannam aluthen report ekak danna:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})`,
-      quickReplies: [`Report ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item`, "Try another search"]
+      text: analysis.responseIfNotFound || `I couldn't find that item. Please report it:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})`,
+      quickReplies: analysis.quickReplies || [`Report ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item`, "Try another search"]
     }).send(res);
   }
 
@@ -293,7 +295,7 @@ IMPORTANT RULES:
 
 Return ONLY a valid JSON object:
 {
-  "text": "Draft a friendly, natural reply in the SAME LANGUAGE the user used. If there are relevant items, include their markdown links exactly as provided. Use emojis!",
+  "text": "CRITICAL: Draft a friendly, natural reply in the EXACT SAME LANGUAGE the user used (e.g. if English, reply in English. If Singlish, reply in Singlish. If Sinhala, reply in Sinhala). If there are relevant items, include their markdown links exactly as provided. Use emojis!",
   "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
 }`;
 
