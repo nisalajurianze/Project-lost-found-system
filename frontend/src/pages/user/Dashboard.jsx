@@ -35,25 +35,41 @@ const AnimatedNumber = ({ value }) => {
 };
 
 // Premium Stat Card
-const PremiumStatCard = ({ title, value, icon: Icon, gradient, delay = 0 }) => (
-  <div
-    className="premium-stat-card"
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    <div className="premium-stat-inner">
-      <div className="premium-stat-icon" style={{ background: gradient }}>
-        <Icon size={22} />
+const PremiumStatCard = ({ title, value, icon: Icon, gradient, delay = 0, to }) => {
+  const content = (
+    <>
+      <div className="premium-stat-inner">
+        <div className="premium-stat-icon" style={{ background: gradient }}>
+          <Icon size={22} />
+        </div>
+        <div className="premium-stat-info">
+          <p className="premium-stat-label">{title}</p>
+          <h3 className="premium-stat-value">
+            <AnimatedNumber value={value} />
+          </h3>
+        </div>
       </div>
-      <div className="premium-stat-info">
-        <p className="premium-stat-label">{title}</p>
-        <h3 className="premium-stat-value">
-          <AnimatedNumber value={value} />
-        </h3>
-      </div>
+      <div className="premium-stat-glow" style={{ background: gradient }} />
+    </>
+  );
+
+  return to ? (
+    <Link
+      to={to}
+      className="premium-stat-card block transition-all hover:scale-[1.02]"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {content}
+    </Link>
+  ) : (
+    <div
+      className="premium-stat-card"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      {content}
     </div>
-    <div className="premium-stat-glow" style={{ background: gradient }} />
-  </div>
-);
+  );
+};
 
 // Quick Action Card
 const QuickActionCard = ({ to, icon: Icon, label, description, gradient, delay = 0 }) => (
@@ -168,6 +184,7 @@ export const Dashboard = () => {
           icon={FiSearch}
           gradient="linear-gradient(135deg, #f59e0b, #d97706)"
           delay={0}
+          to="/dashboard/my-lost"
         />
         <PremiumStatCard
           title="Found Listings"
@@ -175,6 +192,7 @@ export const Dashboard = () => {
           icon={FiPackage}
           gradient="linear-gradient(135deg, #10b981, #059669)"
           delay={80}
+          to="/dashboard/my-found"
         />
         <PremiumStatCard
           title="Submitted Claims"
@@ -182,6 +200,7 @@ export const Dashboard = () => {
           icon={FiCheckSquare}
           gradient="linear-gradient(135deg, #06b6d4, #0284c7)"
           delay={160}
+          to="/dashboard/claims"
         />
         <PremiumStatCard
           title="Recovered Items"
@@ -189,6 +208,7 @@ export const Dashboard = () => {
           icon={FiShield}
           gradient="linear-gradient(135deg, #8b5cf6, #6366f1)"
           delay={240}
+          to="/dashboard/claims"
         />
       </div>
 
