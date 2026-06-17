@@ -155,7 +155,7 @@ const AIChatbot = () => {
       <button
         ref={floatingBtnRef}
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-24 right-4 sm:bottom-6 sm:right-6 p-3 sm:p-4 rounded-full bg-primary-600 text-white shadow-xl hover:bg-primary-700 transition-transform duration-300 z-50 ${isOpen ? 'scale-0' : 'scale-100 hover:scale-110'}`}
+        className={`fixed bottom-20 right-4 sm:bottom-6 sm:right-6 p-3 sm:p-4 rounded-full bg-primary-600 text-white shadow-xl hover:bg-primary-700 transition-transform duration-300 z-50 ${isOpen ? 'scale-0' : 'scale-100 hover:scale-110'}`}
         aria-label="Open AI Assistant"
       >
         <FiMessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -164,7 +164,7 @@ const AIChatbot = () => {
       {/* Chat Window */}
       <div
         ref={chatWindowRef}
-        className={`fixed bottom-24 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[400px] bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700 flex flex-col overflow-hidden transition-all duration-300 z-50 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}
+        className={`fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-[calc(100vw-2rem)] sm:w-[400px] bg-white dark:bg-surface-800 rounded-2xl shadow-2xl border border-surface-200 dark:border-surface-700 flex flex-col overflow-hidden transition-all duration-300 z-50 origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}
         style={{ height: '500px', maxHeight: 'calc(100vh - 7rem)' }}
       >
         {/* Header */}
