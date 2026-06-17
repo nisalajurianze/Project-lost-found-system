@@ -140,8 +140,13 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   };
 
   // 1. Analyze the user's intent and extract search keywords
-  const extractionPrompt = `You are a highly intelligent, conversational, and friendly AI assistant for a Lost and Found system in Sri Lanka. You speak fluent Singlish, Sinhala, and English.
+  const extractionPrompt = `You are a highly intelligent, conversational, and friendly AI assistant for a Lost and Found system in Sri Lanka.
 ${historyText}The user just said: "${message}"
+
+CRITICAL LANGUAGE RULE: 
+- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage pal eka nathi una"), you MUST reply in Singlish using English letters. NEVER use the Sinhala alphabet script (අකුරු) for these users.
+- If they typed in English, reply in English.
+- If they typed in Sinhala script (අකුරු), reply in Sinhala script.
 
 Determine their intent based on the context:
 - "lost": They lost a specific item and want to search for it.
@@ -150,15 +155,17 @@ Determine their intent based on the context:
 - "list_lost": They want to see a general list of ALL currently lost items.
 - "general": They are just saying hi, asking a general question, or making small talk.
 
-Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. Look at the Conversation History to find missing context (e.g., if they previously said "I lost my bike" and now say "it is black", the keywords are ["black", "bike"]). VERY IMPORTANT: Auto-correct any spelling mistakes in the keywords (e.g. "camra" -> "camera", "phon" -> "phone") so we can search the database accurately.
+Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. Look at the Conversation History to find missing context. Auto-correct spelling mistakes in keywords (e.g. "camra" -> "camera").
 
 Return ONLY a valid JSON object exactly like this:
 {
   "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
   "keywords": ["array", "of", "english", "keywords"],
-  "responseIfGeneral": "If intent is 'general', write a natural, friendly reply in the EXACT language the user used.",
-  "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST be in the EXACT language the user used.",
-  "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST be in the EXACT language the user used.",
+  "isVague": boolean, // Set to true if the item description is too broad (e.g., just "laptop", "wallet", or "in the faculty") and needs more details (color, brand, specific location, name on ID) before searching.
+  "responseIfVague": "If isVague is true, ask a friendly follow-up question to get more details. MUST follow the CRITICAL LANGUAGE RULE.",
+  "responseIfGeneral": "If intent is 'general', write a natural, friendly reply. MUST follow the CRITICAL LANGUAGE RULE.",
+  "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST follow the CRITICAL LANGUAGE RULE.",
+  "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST follow the CRITICAL LANGUAGE RULE.",
   "quickReplies": ["Suggest 2 or 3 short follow-up actions/questions (max 4 words each)."]
 }`;
 
@@ -222,9 +229,14 @@ Return ONLY a valid JSON object exactly like this:
 ${historyText}The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items. We retrieved these recent items from the DB:
 ${itemSummary}
 
+CRITICAL LANGUAGE RULE: 
+- If the user typed in Singlish (Sinhala words in English letters), you MUST reply in Singlish. NEVER use the Sinhala alphabet script.
+- If they typed in English, reply in English.
+- If they typed in Sinhala script, reply in Sinhala script.
+
 Return ONLY a valid JSON object:
 {
-  "text": "CRITICAL: Draft a natural, conversational reply presenting this list in the EXACT SAME LANGUAGE the user used (e.g. if English, reply in English. If Sinhala, reply in Sinhala). Use emojis. Include the exact markdown links.",
+  "text": "CRITICAL: Draft a natural, conversational reply presenting this list following the CRITICAL LANGUAGE RULE. Use emojis. Include the exact markdown links.",
   "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
 }`;
 
@@ -254,6 +266,14 @@ Return ONLY a valid JSON object:
     return ApiResponse.ok({ 
       text: analysis.responseIfMissingKeywords || "Please specify what exactly you lost or found.",
       quickReplies: ["I lost a phone", "I found a wallet", "Cancel"]
+    }).send(res);
+  }
+
+  // Handle vague descriptions by asking for more details
+  if (analysis.isVague) {
+    return ApiResponse.ok({
+      text: analysis.responseIfVague || "Could you give me a bit more detail? Like the brand, color, or specific location?",
+      quickReplies: analysis.quickReplies || ["Cancel"]
     }).send(res);
   }
 
@@ -289,13 +309,18 @@ We found these matches in the DB:
 ${itemSummary}
 
 IMPORTANT RULES:
-1. Only list an item if it TRULY MATCHES what the user is looking for (e.g., if they want a bike, do not show a laptop just because both are black). 
+1. Only list an item if it TRULY MATCHES what the user is looking for.
 2. If NONE of the matches are truly relevant, DO NOT list them. Instead, say you couldn't find any.
 3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})"
 
+CRITICAL LANGUAGE RULE: 
+- If the user typed in Singlish (Sinhala words in English letters), you MUST reply in Singlish. NEVER use the Sinhala alphabet script.
+- If they typed in English, reply in English.
+- If they typed in Sinhala script, reply in Sinhala script.
+
 Return ONLY a valid JSON object:
 {
-  "text": "CRITICAL: Draft a friendly, natural reply in the EXACT SAME LANGUAGE the user used (e.g. if English, reply in English. If Singlish, reply in Singlish. If Sinhala, reply in Sinhala). If there are relevant items, include their markdown links exactly as provided. Use emojis!",
+  "text": "CRITICAL: Draft a friendly, natural reply following the CRITICAL LANGUAGE RULE. If there are relevant items, include their markdown links exactly as provided. Use emojis!",
   "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
 }`;
 
