@@ -117,10 +117,17 @@ const SpaceBackground = () => {
           star.vy += Math.sin(spinAngle) * spinStrength;
 
           const heat = Math.max(0, 1 - (distance / maxDistance));
-          // Stars just get bright/white when hot, not orange (only the ring turns orange)
-          star.r = star.baseR + (255 - star.baseR) * heat;
-          star.g = star.baseG + (255 - star.baseG) * heat;
-          star.b = star.baseB + (255 - star.baseB) * heat;
+          
+          // The spinning stars should turn light orange when heated up
+          // Cool: Bright White (255, 255, 255)
+          // Hot: Light Orange (255, 200, 100)
+          const targetR = 255;
+          const targetG = 255 - (55 * accretionHeat); 
+          const targetB = 255 - (155 * accretionHeat); 
+
+          star.r = star.baseR + (targetR - star.baseR) * heat;
+          star.g = star.baseG + (targetG - star.baseG) * heat;
+          star.b = star.baseB + (targetB - star.baseB) * heat;
 
           // Higher friction so they stay in orbit and don't get thrown out
           star.vx *= 0.70;
