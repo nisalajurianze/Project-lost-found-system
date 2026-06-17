@@ -66,6 +66,18 @@ export const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  const getNotificationLink = (notification) => {
+    if (notification.link) return notification.link;
+    if (notification.relatedItem) {
+      const { itemType, itemId } = notification.relatedItem;
+      if (itemType === 'Match') return '/dashboard/my-matches';
+      if (itemType === 'LostItem') return `/lost-items/${itemId}`;
+      if (itemType === 'FoundItem') return `/found-items/${itemId}`;
+      if (itemType === 'ClaimRequest') return '/dashboard/my-connections';
+    }
+    return null;
+  };
+
   const renderNotificationDropdown = () => (
     <div className={`absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top-right ${
       notificationDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
@@ -89,8 +101,9 @@ export const Navbar = () => {
               key={notification._id}
               onClick={() => {
                 if (!notification.isRead) dispatch(markNotificationRead(notification._id));
-                if (notification.link) {
-                  navigate(notification.link);
+                const link = getNotificationLink(notification);
+                if (link) {
+                  navigate(link);
                   setNotificationDropdownOpen(false);
                 }
               }}
