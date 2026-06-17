@@ -13,6 +13,8 @@ import ItemCard from '../../components/cards/ItemCard';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import Pagination from '../../components/common/Pagination';
+import { Link } from 'react-router-dom';
+import { FiPlusCircle } from 'react-icons/fi';
 
 export const FoundItems = () => {
   const dispatch = useDispatch();
@@ -79,13 +81,20 @@ export const FoundItems = () => {
         {/* Header & Search/Filter Container */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
           {/* Header */}
-          <div className="page-header flex-shrink-0">
+          <div className="page-header flex-shrink-0 flex flex-col items-start">
             <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
               Found Property Directory
             </h1>
-            <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
+            <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1 mb-4">
               Search or filter through items found on campus
             </p>
+            <Link 
+              to="/dashboard/report-found" 
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5"
+            >
+              <FiPlusCircle className="text-lg" />
+              Report Found Item
+            </Link>
           </div>
 
           {/* Search & Filters */}
