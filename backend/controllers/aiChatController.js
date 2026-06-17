@@ -166,7 +166,7 @@ Return ONLY a valid JSON object exactly like this:
   "responseIfGeneral": "If intent is 'general', write a natural, friendly reply. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST follow the CRITICAL LANGUAGE RULE.",
-  "quickReplies": ["Suggest 2 or 3 short follow-up actions/questions (max 4 words each)."]
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions or possible USER ANSWERS (max 4 words each). DO NOT suggest questions as quick replies. If you ask for a detail like color, suggest common answers like 'Black', 'Red', 'Blue', etc."]
 }`;
 
   let extractData;
@@ -237,7 +237,7 @@ CRITICAL LANGUAGE RULE:
 Return ONLY a valid JSON object:
 {
   "text": "CRITICAL: Draft a natural, conversational reply presenting this list following the CRITICAL LANGUAGE RULE. Use emojis. Include the exact markdown links.",
-  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words) from the USER'S perspective (e.g., 'Search again', 'Go to Home'). DO NOT suggest questions."]
 }`;
 
     let replyData;
@@ -321,7 +321,7 @@ CRITICAL LANGUAGE RULE:
 Return ONLY a valid JSON object:
 {
   "text": "CRITICAL: Draft a friendly, natural reply following the CRITICAL LANGUAGE RULE. If there are relevant items, include their markdown links exactly as provided. Use emojis!",
-  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words)"]
+  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words) from the USER'S perspective (e.g., 'Search again', 'Report item'). DO NOT suggest questions."]
 }`;
 
   let replyData;
