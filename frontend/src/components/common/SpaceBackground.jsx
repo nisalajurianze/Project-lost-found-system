@@ -34,7 +34,7 @@ const SpaceBackground = () => {
         const isMedium = !isGalaxy && Math.random() > 0.95; // 5% chance to be a medium star
         
         let size;
-        if (isGalaxy) size = Math.random() * 30 + 20; // 20 to 50 pixels for galaxies
+        if (isGalaxy) size = Math.random() * 15 + 10; // 10 to 25 pixels for galaxies
         else if (isMedium) size = Math.random() * 3 + 1.5;
         else size = (Math.random() * 2.0 + 0.8) / z; 
         
@@ -171,22 +171,29 @@ const SpaceBackground = () => {
         const colorStr = `rgba(${Math.floor(star.r)}, ${Math.floor(star.g)}, ${Math.floor(star.b)}, ${glowAlpha})`;
         
         if (star.isGalaxy) {
-          // Milky Way style large nebulas
-          ctx.shadowBlur = 25;
-          ctx.shadowColor = colorStr;
-          ctx.fillStyle = colorStr;
-          
+          // Milky Way style large nebulas - using soft radial gradients and transforms
+          ctx.save();
+          ctx.translate(star.x, star.y);
           // Rotate oval based on movement direction
           const moveAngle = Math.atan2(star.vy, star.vx);
+          ctx.rotate(moveAngle);
+          ctx.scale(1, 0.4); // squash into a galaxy disk
+
+          const r = Math.floor(star.r);
+          const g = Math.floor(star.g);
+          const b = Math.floor(star.b);
+
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, star.radius);
+          gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${glowAlpha * 0.8})`);
+          gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${glowAlpha * 0.4})`);
+          gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
           
-          if (typeof ctx.ellipse === 'function') {
-            // x, y, radiusX, radiusY, rotation, startAngle, endAngle
-            ctx.ellipse(star.x, star.y, star.radius, star.radius * 0.35, moveAngle, 0, Math.PI * 2);
-            ctx.fill();
-          } else {
-            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-            ctx.fill();
-          }
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(0, 0, star.radius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          ctx.restore();
         } else {
           // Normal stars
           ctx.shadowBlur = 0;
