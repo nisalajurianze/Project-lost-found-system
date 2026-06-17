@@ -184,7 +184,11 @@ export const Home = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {latestLost.slice(0, 3).map((item) => (
-                <div key={item._id} className="card bg-white dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between">
+                <Link 
+                  to={`/lost-items/${item._id}`} 
+                  key={item._id} 
+                  className="card bg-white dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                >
                   <div>
                     <span className="text-xs font-bold text-primary-500 dark:text-primary-400 uppercase">
                       {item.category}
@@ -200,7 +204,7 @@ export const Home = () => {
                     <p>📍 Location: <strong>{item.lostLocation}</strong></p>
                     <p>📅 Reported: <strong>{new Date(item.createdAt).toLocaleDateString()}</strong></p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -233,7 +237,11 @@ export const Home = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {latestFound.slice(0, 3).map((item) => (
-                <div key={item._id} className="card bg-surface-50 dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between">
+                <Link 
+                  to={`/found-items/${item._id}`} 
+                  key={item._id} 
+                  className="card bg-surface-50 dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                >
                   <div>
                     <span className="text-xs font-bold text-emerald-500 uppercase">
                       {item.category}
@@ -249,7 +257,7 @@ export const Home = () => {
                     <p>📍 Location: <strong>{item.foundLocation}</strong></p>
                     <p>📅 Found: <strong>{new Date(item.foundDate || item.createdAt).toLocaleDateString()}</strong></p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
