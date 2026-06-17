@@ -23,13 +23,17 @@ export const Navbar = () => {
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const profileDropdownRef = React.useRef(null);
   const notificationDropdownRef = React.useRef(null);
+  const mobileNotificationDropdownRef = React.useRef(null);
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setProfileDropdownOpen(false);
       }
-      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)) {
+      const isInsideDesktop = notificationDropdownRef.current && notificationDropdownRef.current.contains(event.target);
+      const isInsideMobile = mobileNotificationDropdownRef.current && mobileNotificationDropdownRef.current.contains(event.target);
+      
+      if (!isInsideDesktop && !isInsideMobile) {
         setNotificationDropdownOpen(false);
       }
     };
@@ -68,6 +72,71 @@ export const Navbar = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  const renderNotificationDropdown = () => (
+    <div className={`absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top-right ${
+      notificationDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
+    }`}>
+      <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center bg-surface-50 dark:bg-surface-800/50">
+        <h3 className="font-bold text-surface-900 dark:text-white">Recent Notifications</h3>
+        {unreadCount > 0 && (
+          <button 
+            onClick={() => dispatch(markAllNotificationsRead())}
+            className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+          >
+            Mark all as read
+          </button>
+        )}
+      </div>
+      
+      <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
+        {notifications.length > 0 ? (
+          notifications.slice(0, 5).map(notification => (
+            <div 
+              key={notification._id}
+              onClick={() => {
+                if (!notification.isRead) dispatch(markNotificationRead(notification._id));
+                if (notification.link) {
+                  navigate(notification.link);
+                  setNotificationDropdownOpen(false);
+                }
+              }}
+              className={`p-4 border-b border-surface-100 dark:border-surface-700/50 cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/30 ${
+                !notification.isRead ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''
+              }`}
+            >
+              <div className="flex gap-3">
+                <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${!notification.isRead ? 'bg-primary-500' : 'bg-transparent'}`} />
+                <div className="flex-1">
+                  <p className={`text-sm ${!notification.isRead ? 'font-bold text-surface-900 dark:text-white' : 'font-medium text-surface-700 dark:text-surface-300'}`}>
+                    {notification.title}
+                  </p>
+                  <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 line-clamp-2">
+                    {notification.message}
+                  </p>
+                  <p className="text-[10px] text-surface-400 dark:text-surface-500 mt-2 flex items-center gap-1 font-medium">
+                    <FiClock /> {formatRelativeTime(notification.createdAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="p-8 text-center">
+            <FiCheckCircle className="mx-auto text-3xl text-surface-300 dark:text-surface-600 mb-3" />
+            <p className="text-sm font-medium text-surface-500 dark:text-surface-400">No recent notifications</p>
+          </div>
+        )}
+      </div>
+      <Link 
+        to="/dashboard/notifications"
+        onClick={() => setNotificationDropdownOpen(false)}
+        className="px-4 py-3 text-center text-sm font-semibold text-primary-600 dark:text-primary-400 hover:bg-surface-50 dark:hover:bg-surface-700/30 transition-colors border-t border-surface-100 dark:border-surface-700"
+      >
+        View All Notifications
+      </Link>
+    </div>
+  );
 
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-surface-200/50 bg-white/75 backdrop-blur-md dark:border-surface-800/50 dark:bg-surface-900/75 transition-colors duration-300">
@@ -123,71 +192,7 @@ export const Navbar = () => {
                     </span>
                   )}
                 </button>
-                
-                {/* Notification Dropdown */}
-                <div className={`absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top-right ${
-                  notificationDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
-                }`}>
-                  <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center bg-surface-50 dark:bg-surface-800/50">
-                    <h3 className="font-bold text-surface-900 dark:text-white">Recent Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button 
-                        onClick={() => dispatch(markAllNotificationsRead())}
-                        className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
-                    {notifications.length > 0 ? (
-                      notifications.slice(0, 5).map(notification => (
-                        <div 
-                          key={notification._id}
-                          onClick={() => {
-                            if (!notification.isRead) dispatch(markNotificationRead(notification._id));
-                            if (notification.link) {
-                              navigate(notification.link);
-                              setNotificationDropdownOpen(false);
-                            }
-                          }}
-                          className={`p-4 border-b border-surface-100 dark:border-surface-700/50 cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/30 ${
-                            !notification.isRead ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''
-                          }`}
-                        >
-                          <div className="flex gap-3">
-                            <div className={`mt-1.5 flex-shrink-0 w-2 h-2 rounded-full ${!notification.isRead ? 'bg-primary-500' : 'bg-transparent'}`} />
-                            <div className="flex-1">
-                              <p className={`text-sm ${!notification.isRead ? 'font-bold text-surface-900 dark:text-white' : 'font-medium text-surface-700 dark:text-surface-300'}`}>
-                                {notification.title}
-                              </p>
-                              <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-[10px] text-surface-400 dark:text-surface-500 mt-2 flex items-center gap-1 font-medium">
-                                <FiClock /> {formatRelativeTime(notification.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-8 text-center">
-                        <FiCheckCircle className="mx-auto text-3xl text-surface-300 dark:text-surface-600 mb-3" />
-                        <p className="text-sm font-medium text-surface-500 dark:text-surface-400">No recent notifications</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Link 
-                    to="/dashboard/notifications" 
-                    onClick={() => setNotificationDropdownOpen(false)}
-                    className="block w-full px-4 py-3 text-center text-sm font-bold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-surface-700/50 transition-colors border-t border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/30"
-                  >
-                    View All Notifications
-                  </Link>
-                </div>
+                {renderNotificationDropdown()}
               </div>
             )}
 
@@ -282,18 +287,22 @@ export const Navbar = () => {
             
             {/* Mobile Notification Bell */}
             {isAuthenticated && (
-              <Link
-                to="/dashboard/notifications"
-                className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <FiBell className="text-xl" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </Link>
+              <div className="relative" ref={mobileNotificationDropdownRef}>
+                <button
+                  onClick={handleBellClick}
+                  className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none"
+                  aria-label="Notifications"
+                >
+                  <FiBell className="text-xl" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                {/* Notification Dropdown */}
+                {renderNotificationDropdown()}
+              </div>
             )}
 
             <button
