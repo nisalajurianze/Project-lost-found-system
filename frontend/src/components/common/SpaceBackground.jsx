@@ -101,35 +101,30 @@ const SpaceBackground = () => {
         if (distance < maxDistance) {
           const angle = Math.atan2(dy, dx);
           // Introduce turbulence/spiral effect so it's not a perfect circle
-          const wobble = Math.sin(time + star.wobbleOffset) * 10;
-          const targetOrbit = 20 + wobble + (star.z * 5); 
+          const wobble = Math.sin(time + star.wobbleOffset) * 5;
+          const targetOrbit = 12 + wobble + (star.z * 2); // Smaller radius
           
-          const spinAngle = angle + (Math.PI / 2) + (Math.sin(time) * 0.2); // Organic spiral
+          const spinAngle = angle + (Math.PI / 2) + (Math.sin(time) * 0.1); 
           
           const radialDist = distance - targetOrbit;
           
-          // Reduced pull and spin speed for realistic sweeping
-          const gravityStrength = radialDist * 0.03; 
+          const gravityStrength = radialDist * 0.04; 
           star.vx += Math.cos(angle) * gravityStrength;
           star.vy += Math.sin(angle) * gravityStrength;
           
-          const spinStrength = 1.8 + (accretionHeat * 1.5); // Spins faster as it heats up
+          const spinStrength = 1.0 + (accretionHeat * 0.8); // Less aggressive spin
           star.vx += Math.cos(spinAngle) * spinStrength;
           star.vy += Math.sin(spinAngle) * spinStrength;
 
           const heat = Math.max(0, 1 - (distance / maxDistance));
-          // If heated up globally, stars turn orange-ish near the center too
-          const targetR = star.baseR + (255 - star.baseR) * heat;
-          const targetG = star.baseG + ((100 * accretionHeat) + (255 * (1-accretionHeat)) - star.baseG) * heat;
-          const targetB = star.baseB + ((0 * accretionHeat) + (255 * (1-accretionHeat)) - star.baseB) * heat;
-          
-          star.r = targetR;
-          star.g = targetG;
-          star.b = targetB;
+          // Stars just get bright/white when hot, not orange (only the ring turns orange)
+          star.r = star.baseR + (255 - star.baseR) * heat;
+          star.g = star.baseG + (255 - star.baseG) * heat;
+          star.b = star.baseB + (255 - star.baseB) * heat;
 
-          // Less friction so they slingshot around more realistically
-          star.vx *= 0.85;
-          star.vy *= 0.85;
+          // Higher friction so they stay in orbit and don't get thrown out
+          star.vx *= 0.70;
+          star.vy *= 0.70;
         } else {
           // Slowly return to base slow drift
           star.vx += (star.baseVx - star.vx) * 0.02;
@@ -181,12 +176,6 @@ const SpaceBackground = () => {
 
       // Draw Accretion Disk / Black Hole
       if (mouse.x > -100 && mouse.y > -100) {
-        // Event Horizon (Pure Black Void)
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 10, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.98)';
-        ctx.fill();
-
         // Calculate dynamic colors based on accretionHeat
         // Cool: Purple (168, 85, 247), Hot: Orange/Red (255, 80, 0)
         const innerR = 168 + (255 - 168) * accretionHeat;
@@ -198,17 +187,23 @@ const SpaceBackground = () => {
         const midG = 130 + (150 - 130) * accretionHeat;
         const midB = 246 + (0 - 246) * accretionHeat;
 
-        // Accretion Disk Glow
-        const diskRadius = 25 + (accretionHeat * 15); // Expands as it gets hot
+        // Accretion Disk Glow (Ring)
+        const diskRadius = 18 + (accretionHeat * 10); // Smaller ring
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, diskRadius, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 10, mouse.x, mouse.y, diskRadius);
+        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 8, mouse.x, mouse.y, diskRadius);
         
-        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.5)`); 
-        gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, 0.2)`); 
+        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.6)`); 
+        gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, 0.25)`); 
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
         ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Event Horizon (Pure Black Void) - Drawn ON TOP of the glow
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 8, 0, Math.PI * 2); // Pitch black center
+        ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fill();
       }
 
