@@ -47,9 +47,9 @@ export const SearchFilter = ({
   }));
 
   return (
-    <div className="w-full flex flex-row flex-wrap xl:flex-nowrap items-center justify-start gap-2">
+    <div className="w-full flex flex-row flex-wrap items-center justify-start gap-3">
       {/* Search Input */}
-      <div className="flex-1 min-w-[150px] md:min-w-[200px] xl:max-w-[260px]">
+      <div className="flex-1 min-w-[180px] lg:max-w-[300px]">
         <Input
           placeholder="Search items by name, details..."
           value={localSearch}
@@ -60,7 +60,7 @@ export const SearchFilter = ({
       </div>
 
       {/* Category Dropdown */}
-      <div className="w-[130px] flex-shrink-0">
+      <div className="w-[150px] sm:w-[160px] flex-shrink-0">
         <Select
           placeholder="All Categories"
           options={categoryOptions}
@@ -70,7 +70,7 @@ export const SearchFilter = ({
       </div>
 
       {/* Status Dropdown */}
-      <div className="w-[120px] flex-shrink-0">
+      <div className="w-[130px] sm:w-[140px] flex-shrink-0">
         <Select
           placeholder="All Statuses"
           options={statusOptions}
@@ -80,7 +80,7 @@ export const SearchFilter = ({
       </div>
 
       {/* Date Pickers */}
-      <div className="flex items-center gap-2 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700/50 p-1.5 shadow-sm">
+      <div className="flex items-center gap-2 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700/50 p-1.5 shadow-sm flex-shrink-0">
         <div className="flex items-center justify-center px-1 text-surface-400">
           <FiCalendar className="w-4 h-4" />
         </div>
@@ -88,7 +88,7 @@ export const SearchFilter = ({
           type="date"
           value={startDate}
           onChange={(e) => onStartDateChange(e.target.value)}
-          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[95px]"
+          className="text-xs sm:text-sm bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[110px]"
           title="Start Date"
         />
         <span className="text-surface-300 dark:text-surface-600">-</span>
@@ -96,7 +96,7 @@ export const SearchFilter = ({
           type="date"
           value={endDate}
           onChange={(e) => onEndDateChange(e.target.value)}
-          className="text-xs bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[95px] pr-1"
+          className="text-xs sm:text-sm bg-transparent border-none text-surface-700 dark:text-surface-300 focus:outline-none focus:ring-0 cursor-pointer w-[110px] pr-1"
           title="End Date"
         />
       </div>
