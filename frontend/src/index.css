@@ -634,6 +634,28 @@
   }
 }
 
+/* ── Mobile Performance Optimizations ── */
+/* Disable expensive backdrop-filter on mobile to prevent scrolling lag / freezing */
+@media (max-width: 768px) {
+  [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Adjust transparency to maintain readability when blur is disabled */
+  .bg-white\/40, .bg-white\/75, .bg-white\/85 {
+    background-color: rgba(255, 255, 255, 0.98) !important;
+  }
+  
+  .dark .dark\:bg-surface-800\/10,
+  .dark .dark\:bg-surface-900\/75,
+  .dark .dark\:bg-surface-950\/40,
+  .dark .dark\:bg-surface-950\/85,
+  .dark .dark\:bg-slate-900\/60 {
+    background-color: rgba(15, 23, 42, 0.98) !important;
+  }
+}
+
 /* ── Stat Cards ── */
 .dashboard-stats-grid {
   display: grid;
