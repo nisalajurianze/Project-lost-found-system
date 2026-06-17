@@ -78,43 +78,46 @@ export const FoundItems = () => {
     <div className="flex-1 pt-4 pb-8 sm:pt-6 sm:pb-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="page-container max-w-7xl mx-auto">
         
-        {/* Header & Button Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex-shrink-0">
-            <h1 className="page-title text-2xl font-extrabold font-display text-surface-900 dark:text-white">
-              Found Property Directory
+        {/* Header & Controls Single Row */}
+        <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-4 mb-6">
+          
+          <div className="flex-shrink-0 flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-extrabold font-display text-surface-900 dark:text-white whitespace-nowrap">
+              Found Property
             </h1>
-            <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
-              Search or filter through items found on campus
-            </p>
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-surface-100 dark:bg-surface-800 text-xs font-semibold text-surface-500 dark:text-surface-400">
+              Directory
+            </span>
           </div>
-          <Link 
-            to="/dashboard/report-found" 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap"
-          >
-            <FiPlusCircle className="text-base" />
-            Report Found Item
-          </Link>
-        </div>
 
-        {/* Search & Filters */}
-        <div className="w-full mb-6">
-            <SearchFilter
-              search={search}
-              onSearchChange={(val) => { setSearch(val); setPage(1); }}
-              category={category}
-              onCategoryChange={(val) => { setCategory(val); setPage(1); }}
-              status={status}
-              onStatusChange={(val) => { setStatus(val); setPage(1); }}
-              startDate={startDate}
-              onStartDateChange={(val) => { setStartDate(val); setPage(1); }}
-              endDate={endDate}
-              onEndDateChange={(val) => { setEndDate(val); setPage(1); }}
-              categories={categories}
-              statusOptions={statusOptions}
-              onClear={handleClearFilters}
-            />
+          <div className="flex-1 flex flex-col xl:flex-row xl:items-center gap-4 xl:justify-end">
+            <div className="flex-1 xl:max-w-[800px]">
+              <SearchFilter
+                search={search}
+                onSearchChange={(val) => { setSearch(val); setPage(1); }}
+                category={category}
+                onCategoryChange={(val) => { setCategory(val); setPage(1); }}
+                status={status}
+                onStatusChange={(val) => { setStatus(val); setPage(1); }}
+                startDate={startDate}
+                onStartDateChange={(val) => { setStartDate(val); setPage(1); }}
+                endDate={endDate}
+                onEndDateChange={(val) => { setEndDate(val); setPage(1); }}
+                categories={categories}
+                statusOptions={statusOptions}
+                onClear={handleClearFilters}
+              />
+            </div>
+            
+            <Link
+              to="/dashboard/report-found"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap h-10 flex-shrink-0"
+            >
+              <FiPlusCircle className="text-base" />
+              Report Found
+            </Link>
           </div>
+        </div>
 
         {/* Listings Grid */}
         {isLoading ? (
