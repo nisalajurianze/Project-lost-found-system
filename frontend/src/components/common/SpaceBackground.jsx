@@ -119,12 +119,12 @@ const SpaceBackground = () => {
 
           const heat = Math.max(0, 1 - (distance / maxDistance));
           
-          // The spinning stars should turn light orange when heated up
+          // The spinning stars should turn blinding white/orange when heated up
           // Cool: Bright White (255, 255, 255)
-          // Hot: Light Orange (255, 200, 100)
+          // Hot: Blinding Warm White (255, 240, 220)
           const targetR = 255;
-          const targetG = 255 - (55 * accretionHeat); 
-          const targetB = 255 - (155 * accretionHeat); 
+          const targetG = 255 - (15 * accretionHeat); 
+          const targetB = 255 - (35 * accretionHeat); 
 
           star.r = star.baseR + (targetR - star.baseR) * heat;
           star.g = star.baseG + (targetG - star.baseG) * heat;
@@ -217,14 +217,14 @@ const SpaceBackground = () => {
       // Draw Accretion Disk / Black Hole
       if (mouse.x > -100 && mouse.y > -100) {
         // Calculate dynamic colors based on accretionHeat
-        // Cool: Purple (168, 85, 247), Hot: Orange/Red (255, 80, 0)
+        // Cool: Purple (168, 85, 247), Hot: Blinding White-Orange (255, 240, 200)
         const innerR = 168 + (255 - 168) * accretionHeat;
-        const innerG = 85 + (80 - 85) * accretionHeat;
-        const innerB = 247 + (0 - 247) * accretionHeat;
+        const innerG = 85 + (240 - 85) * accretionHeat;
+        const innerB = 247 + (200 - 247) * accretionHeat;
 
-        // Cool: Blue (59, 130, 246), Hot: Yellow/Orange (255, 150, 0)
+        // Cool: Blue (59, 130, 246), Hot: Intense Orange (255, 120, 0)
         const midR = 59 + (255 - 59) * accretionHeat;
-        const midG = 130 + (150 - 130) * accretionHeat;
+        const midG = 130 + (120 - 130) * accretionHeat;
         const midB = 246 + (0 - 246) * accretionHeat;
 
         const bhRadius = 8;
