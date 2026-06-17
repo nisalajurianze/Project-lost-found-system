@@ -102,7 +102,8 @@ const SpaceBackground = () => {
           const angle = Math.atan2(dy, dx);
           // Introduce turbulence/spiral effect so it's not a perfect circle
           const wobble = Math.sin(time + star.wobbleOffset) * 5;
-          const targetOrbit = 12 + wobble + (star.z * 2); // Smaller radius
+          // Give each star a slightly different permanent orbit so they don't form a single thin line
+          const targetOrbit = 12 + wobble + (star.z * 2) + (star.wobbleOffset * 1.5); 
           
           const spinAngle = angle + (Math.PI / 2) + (Math.sin(time) * 0.1); 
           
@@ -133,11 +134,21 @@ const SpaceBackground = () => {
           star.vx *= 0.70;
           star.vy *= 0.70;
         } else {
+          const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
+          // If they were just released (moving fast), add a scatter force so they don't clump
+          if (speed > 1.5) {
+             star.vx += (Math.random() - 0.5) * 1.2;
+             star.vy += (Math.random() - 0.5) * 1.2;
+          }
+
           // Slowly return to base slow drift
-          star.vx += (star.baseVx - star.vx) * 0.02;
-          star.vy += (star.baseVy - star.vy) * 0.02;
-          star.vx *= 0.99;
-          star.vy *= 0.99;
+          star.vx += (star.baseVx - star.vx) * 0.01;
+          star.vy += (star.baseVy - star.vy) * 0.01;
+          
+          // Varied friction to break up clumps naturally
+          const friction = 0.95 + ((star.wobbleOffset % 1) * 0.03); 
+          star.vx *= friction;
+          star.vy *= friction;
         }
 
         let prevX = star.x;
