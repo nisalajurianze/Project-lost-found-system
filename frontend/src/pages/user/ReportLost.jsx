@@ -14,6 +14,7 @@ import Select from '../../components/common/Select';
 import CreatableCategorySelect from '../../components/common/CreatableCategorySelect';
 import ImageUpload from '../../components/common/ImageUpload';
 import Button from '../../components/common/Button';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 import aiService from '../../services/aiService';
 import AILoadingToast from '../../components/common/AILoadingToast';
@@ -37,6 +38,22 @@ export const ReportLost = () => {
 
   // Errors
   const [errors, setErrors] = useState({});
+
+  // UI States
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+
+  const handleClearForm = () => {
+    setItemName('');
+    setCategory('');
+    setDescription('');
+    setLostLocation('');
+    setLostDate('');
+    setTags('');
+    setImages([]);
+    setErrors({});
+    setIsClearConfirmOpen(false);
+    toast.success('Form cleared.');
+  };
 
   useEffect(() => {
     dispatch(fetchCategories());
@@ -180,9 +197,20 @@ export const ReportLost = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           
           <div className="mb-8">
-            <h3 className="text-lg font-medium text-surface-900 dark:text-white mb-2 flex items-center gap-2">
-              <span className="text-xl">✨</span> Smart Auto-fill
-            </h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-medium text-surface-900 dark:text-white flex items-center gap-2">
+                <span className="text-xl">✨</span> Smart Auto-fill
+              </h3>
+              <Button 
+                type="button" 
+                variant="ghost" 
+                size="sm" 
+                className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+                onClick={() => setIsClearConfirmOpen(true)}
+              >
+                Clear Form
+              </Button>
+            </div>
             <p className="text-sm text-surface-500 dark:text-surface-400 mb-4">
               Upload an image of the item first, and our AI will automatically suggest the name, category, description, and search tags for you!
             </p>
@@ -306,6 +334,17 @@ export const ReportLost = () => {
 
         </form>
       </div>
+
+      <ConfirmDialog
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={handleClearForm}
+        title="Clear Form"
+        message="Are you sure you want to clear all fields? This will remove auto-filled details and uploaded images."
+        confirmText="Clear Form"
+        cancelText="Cancel"
+        isDanger={true}
+      />
     </div>
   );
 };
