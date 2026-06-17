@@ -1,7 +1,7 @@
 import SystemSetting from '../models/SystemSetting.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { getCache, setCache, invalidateCachePattern } from '../config/redis.js';
+import { getCache, setCache, deleteCache } from '../config/redis.js';
 
 const CACHE_PREFIX = 'setting:';
 
@@ -60,7 +60,7 @@ export const updateSetting = asyncHandler(async (req, res) => {
   }
 
   // Invalidate cache
-  await invalidateCachePattern(`${CACHE_PREFIX}${lowerKey}*`);
+  await deleteCache(`${CACHE_PREFIX}${lowerKey}`);
 
   return ApiResponse.ok(setting, 'Setting updated successfully').send(res);
 });
