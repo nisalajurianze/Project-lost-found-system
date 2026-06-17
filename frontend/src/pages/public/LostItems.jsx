@@ -79,27 +79,27 @@ export const LostItems = () => {
     <div className="flex-1 pt-4 pb-8 sm:pt-6 sm:pb-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="page-container max-w-7xl mx-auto">
         
-        {/* Header & Search/Filter Container */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 mb-8">
-          {/* Header */}
-          <div className="page-header flex-shrink-0 flex flex-col items-start">
+        {/* Header & Button Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="page-header flex-shrink-0">
             <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
               Lost Property Directory
             </h1>
-            <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1 mb-4">
+            <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
               Search or filter through items reported lost on campus
             </p>
-            <Link 
-              to="/dashboard/report-lost" 
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all shadow-md shadow-primary-500/20 hover:shadow-lg hover:shadow-primary-500/30 hover:-translate-y-0.5"
-            >
-              <FiPlusCircle className="text-lg" />
-              Report Lost Item
-            </Link>
           </div>
+          <Link 
+            to="/dashboard/report-lost" 
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all shadow-md shadow-primary-500/20 hover:shadow-lg hover:shadow-primary-500/30 hover:-translate-y-0.5 whitespace-nowrap"
+          >
+            <FiPlusCircle className="text-lg" />
+            Report Lost Item
+          </Link>
+        </div>
 
-          {/* Search & Filters */}
-          <div className="w-full xl:w-auto xl:max-w-4xl flex-1">
+        {/* Search & Filters */}
+        <div className="w-full mb-8 bg-white dark:bg-surface-800 p-4 rounded-2xl shadow-sm border border-surface-200 dark:border-surface-700">
             <SearchFilter
               search={search}
               onSearchChange={(val) => { setSearch(val); setPage(1); }}
