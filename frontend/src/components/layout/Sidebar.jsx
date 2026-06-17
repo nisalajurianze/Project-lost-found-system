@@ -44,8 +44,8 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl transition-colors duration-300 p-5 hidden lg:flex flex-col no-print">
-      <div className="flex flex-col gap-2">
+    <aside className="w-64 flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl transition-colors duration-300 p-5 hidden lg:flex flex-col no-print sticky top-16 h-[calc(100vh-4rem)]">
+      <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
         {links.map((link) => (
           <NavLink
             key={link.path}

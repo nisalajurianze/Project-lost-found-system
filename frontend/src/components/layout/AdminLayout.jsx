@@ -46,14 +46,14 @@ export const AdminLayout = () => {
       <div className="flex-1 flex w-full max-w-7xl mx-auto">
         
         {/* Admin Left Sidebar */}
-        <aside className="w-64 flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl p-5 hidden lg:flex flex-col no-print">
+        <aside className="w-64 flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl p-5 hidden lg:flex flex-col no-print sticky top-16 h-[calc(100vh-4rem)]">
           <div className="mb-4 px-4 py-2 bg-primary-500/10 rounded-xl">
             <span className="text-xs font-bold text-primary-500 dark:text-primary-400 uppercase tracking-wider block">
               System Admin Panel
             </span>
           </div>
           
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
             {adminLinks.map((link) => (
               <NavLink
                 key={link.path}
