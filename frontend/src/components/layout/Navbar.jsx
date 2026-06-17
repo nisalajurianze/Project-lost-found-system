@@ -19,17 +19,12 @@ export const Navbar = () => {
   const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
-  const profileDropdownRef = React.useRef(null);
   const notificationDropdownRef = React.useRef(null);
   const mobileNotificationDropdownRef = React.useRef(null);
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
-        setProfileDropdownOpen(false);
-      }
       const isInsideDesktop = notificationDropdownRef.current && notificationDropdownRef.current.contains(event.target);
       const isInsideMobile = mobileNotificationDropdownRef.current && mobileNotificationDropdownRef.current.contains(event.target);
       
@@ -37,13 +32,13 @@ export const Navbar = () => {
         setNotificationDropdownOpen(false);
       }
     };
-    if (profileDropdownOpen || notificationDropdownOpen) {
+    if (notificationDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [profileDropdownOpen, notificationDropdownOpen]);
+  }, [notificationDropdownOpen]);
 
   const themeMode = useSelector((state) => state.theme.mode);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
@@ -51,7 +46,6 @@ export const Navbar = () => {
 
   const handleBellClick = () => {
     setNotificationDropdownOpen(!notificationDropdownOpen);
-    setProfileDropdownOpen(false);
     if (!notificationDropdownOpen && (!notifications || notifications.length === 0)) {
       dispatch(fetchUserNotifications({ page: 1, limit: 5 }));
     }
@@ -59,7 +53,6 @@ export const Navbar = () => {
 
   const handleLogout = () => {
     dispatch(logoutUser());
-    setProfileDropdownOpen(false);
     navigate('/login');
   };
 
@@ -196,15 +189,15 @@ export const Navbar = () => {
               </div>
             )}
 
-            {/* User Profile Dropdown */}
+            {/* User Profile Direct Link */}
             {isAuthenticated ? (
-              <div className="relative" ref={profileDropdownRef}>
+              <div className="relative">
                 <button
                   onClick={() => {
-                    setProfileDropdownOpen(!profileDropdownOpen);
-                    setNotificationDropdownOpen(false);
+                    navigate(user.role === 'admin' ? '/admin' : '/dashboard');
                   }}
-                  className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none"
+                  className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none hover:ring-2 hover:ring-primary-500/50"
+                  title="Go to Dashboard"
                 >
                   {user?.profileImage?.url ? (
                     <img
@@ -218,45 +211,6 @@ export const Navbar = () => {
                     </div>
                   )}
                 </button>
-
-                {/* Dropdown Card */}
-                <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-surface-200 bg-white p-2 shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 transition-all duration-300 origin-top-right ${
-                  profileDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
-                }`}>
-                  <div className="px-4 py-2.5 border-b border-surface-100 dark:border-surface-700/50 mb-1.5">
-                    <p className="text-sm font-semibold text-surface-900 dark:text-white truncate">
-                      {user.fullName}
-                    </p>
-                    <p className="text-xs text-surface-500 dark:text-surface-400 truncate">
-                      {user.email}
-                    </p>
-                  </div>
-                  
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700/50 rounded-lg transition-colors"
-                  >
-                    <FiSettings /> Dashboard
-                  </Link>
-
-                  {user.role === 'admin' && (
-                    <Link
-                      to="/admin"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-surface-700 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700/50 rounded-lg transition-colors"
-                    >
-                      🛡️ Admin Panel
-                    </Link>
-                  )}
-
-                  <button
-                    onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors mt-1.5 pt-2 border-t border-surface-100 dark:border-surface-700/50"
-                  >
-                    <FiLogOut /> Log Out
-                  </button>
-                </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
