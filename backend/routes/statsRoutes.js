@@ -1,1 +1,8 @@
-import express from 'express';\nimport { getPublicStats } from '../controllers/statsController.js';\n\nconst router = express.Router();\n\nrouter.get('/public', getPublicStats);\n\nexport default router;
+import express from 'express';
+import { getPublicStats } from '../controllers/statsController.js';
+
+const router = express.Router();
+
+router.get('/public', getPublicStats);
+
+export default router;
