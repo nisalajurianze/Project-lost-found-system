@@ -1,1 +1,1 @@
-﻿import express from 'express';\nimport { getPublicStats } from '../controllers/statsController.js';\n\nconst router = express.Router();\n\nrouter.get('/public', getPublicStats);\n\nexport default router;
+import express from 'express';\nimport { getPublicStats } from '../controllers/statsController.js';\n\nconst router = express.Router();\n\nrouter.get('/public', getPublicStats);\n\nexport default router;
