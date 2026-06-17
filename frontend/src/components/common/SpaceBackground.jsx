@@ -220,24 +220,45 @@ const SpaceBackground = () => {
         const midG = 130 + (150 - 130) * accretionHeat;
         const midB = 246 + (0 - 246) * accretionHeat;
 
-        // Accretion Disk Glow (Ring)
+        const bhRadius = 8;
+        
+        // 1. Gravitational Lensing Halo (creates the optical illusion of warped space)
+        const lensingRadius = 50 + (accretionHeat * 10);
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, lensingRadius, 0, Math.PI * 2);
+        const lensingGrad = ctx.createRadialGradient(mouse.x, mouse.y, bhRadius, mouse.x, mouse.y, lensingRadius);
+        lensingGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        lensingGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.05)'); // subtle warp highlight
+        lensingGrad.addColorStop(0.6, 'rgba(0, 0, 0, 0.3)'); // dark warp band distorting background
+        lensingGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = lensingGrad;
+        ctx.fill();
+
+        // 2. Accretion Disk Glow (Ring)
         const diskRadius = 18 + (accretionHeat * 10); // Smaller ring
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, diskRadius, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 8, mouse.x, mouse.y, diskRadius);
+        const gradient = ctx.createRadialGradient(mouse.x, mouse.y, bhRadius, mouse.x, mouse.y, diskRadius);
         
-        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.6)`); 
-        gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, 0.25)`); 
+        gradient.addColorStop(0, `rgba(${innerR}, ${innerG}, ${innerB}, 0.8)`); 
+        gradient.addColorStop(0.4, `rgba(${midR}, ${midG}, ${midB}, 0.3)`); 
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
         
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Event Horizon (Pure Black Void) - Drawn ON TOP of the glow
+        // 3. Event Horizon (Pure Black Void)
         ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 8, 0, Math.PI * 2); // Pitch black center
+        ctx.arc(mouse.x, mouse.y, bhRadius, 0, Math.PI * 2); // Pitch black center
         ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fill();
+        
+        // 4. Photon Sphere (Sharp bright edge that makes it "pop" out in 3D)
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, bhRadius + 0.5, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + (accretionHeat * 0.5)})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
 
       animationFrameId = requestAnimationFrame(animate);
