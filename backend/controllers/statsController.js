@@ -20,14 +20,10 @@ export const getPublicStats = asyncHandler(async (req, res) => {
     FoundItem.countDocuments({ isDeleted: { $ne: true }, status: 'claimed' })
   ]);
 
-  // Baseline added to ensure numbers look realistic from day one
-  const belongingsRecovered = resolvedLost + resolvedFound + 120;
-  const activeUsers = totalUsers + 350;
-
   const stats = {
-    belongingsRecovered: belongingsRecovered,
-    activeDailyUsers: activeUsers,
-    aiMatchAccuracy: 96 // Represents average accuracy
+    belongingsRecovered: resolvedLost + resolvedFound,
+    activeDailyUsers: totalUsers,
+    aiMatchAccuracy: 96 // Fixed baseline until AI stats are fully tracked
   };
 
   await setCache(CACHE_KEY_PUBLIC_STATS, stats, CACHE_TTL_SECONDS);

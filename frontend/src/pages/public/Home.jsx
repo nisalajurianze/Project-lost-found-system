@@ -18,7 +18,7 @@ export const Home = () => {
   
   const [latestLost, setLatestLost] = useState([]);
   const [latestFound, setLatestFound] = useState([]);
-  const [publicStats, setPublicStats] = useState({ belongingsRecovered: '180+', activeDailyUsers: '450+', aiMatchAccuracy: 96 });
+  const [publicStats, setPublicStats] = useState({ belongingsRecovered: 0, activeDailyUsers: 0, aiMatchAccuracy: 96 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export const Home = () => {
         const [lostRes, foundRes, statsRes] = await Promise.all([
           lostItemService.getLostItems({ limit: 3 }),
           foundItemService.getFoundItems({ limit: 3 }),
-          statsService.getPublicStats().catch(() => ({ data: { belongingsRecovered: 120, activeDailyUsers: 350, aiMatchAccuracy: 96 } }))
+          statsService.getPublicStats().catch(() => ({ data: { belongingsRecovered: 0, activeDailyUsers: 0, aiMatchAccuracy: 96 } }))
         ]);
         setLatestLost(lostRes.items || []);
         setLatestFound(foundRes.items || []);
@@ -45,8 +45,8 @@ export const Home = () => {
   }, []);
 
   const stats = [
-    { label: 'Belongings Recovered', value: `${publicStats.belongingsRecovered}+`, color: 'text-emerald-500' },
-    { label: 'Active Daily Users', value: `${publicStats.activeDailyUsers}+`, color: 'text-primary-500' },
+    { label: 'Belongings Recovered', value: `${publicStats.belongingsRecovered}`, color: 'text-emerald-500' },
+    { label: 'Active Daily Users', value: `${publicStats.activeDailyUsers}`, color: 'text-primary-500' },
     { label: 'AI Match Accuracy', value: `${publicStats.aiMatchAccuracy}%`, color: 'text-cyan-500' }
   ];
 
