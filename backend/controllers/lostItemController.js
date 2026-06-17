@@ -154,14 +154,14 @@ const getLostItems = asyncHandler(async (req, res) => {
     filter.category = req.query.category;
   }
 
-  // 3. Status Filter (default to pending/matched for public display)
+  // 3. Status Filter (default to pending/matched/in_progress for public display)
   if (req.query.status) {
     if (req.query.status !== 'all') {
       filter.status = req.query.status;
     }
   } else {
     // Only return items active in system
-    filter.status = { $in: ['pending', 'matched'] };
+    filter.status = { $in: ['pending', 'matched', 'in_progress'] };
   }
 
   // 4. Date Range Filter

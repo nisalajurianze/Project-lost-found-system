@@ -153,13 +153,13 @@ const getFoundItems = asyncHandler(async (req, res) => {
     filter.category = req.query.category;
   }
 
-  // 3. Status Filter (default to available/matched for public display)
+  // 3. Status Filter (default to available/matched/in_progress for public display)
   if (req.query.status) {
     if (req.query.status !== 'all') {
       filter.status = req.query.status;
     }
   } else {
-    filter.status = { $in: ['available', 'matched'] };
+    filter.status = { $in: ['available', 'matched', 'in_progress'] };
   }
 
   // 4. Date Range Filter

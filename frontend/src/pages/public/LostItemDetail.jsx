@@ -16,6 +16,7 @@ import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
 import lostItemService from '../../services/lostItemService';
+import settingService from '../../services/settingService';
 import toast from 'react-hot-toast';
 
 export const LostItemDetail = () => {
@@ -26,11 +27,20 @@ export const LostItemDetail = () => {
   
   const { currentItem, isLoading, error } = useSelector((state) => state.lostItems);
   const [activeImage, setActiveImage] = useState('');
+  const [contactVisibility, setContactVisibility] = useState('request_only');
 
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
 
   useEffect(() => {
     dispatch(fetchLostItemById(id));
+
+    // Fetch global contact visibility setting
+    settingService.getPublicSetting('contact_visibility')
+      .then(res => {
+        if (res && res.data) setContactVisibility(res.data);
+      })
+      .catch(err => console.log('Using default contact visibility'));
+
     return () => {
       dispatch(clearCurrentLostItem());
     };
@@ -72,7 +82,9 @@ export const LostItemDetail = () => {
   const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
   const isClaimable = (currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser;
   const isHandoverInProgress = currentItem.status === 'in_progress';
-  const canSeeContact = isOwner || isConnectedUser || currentItem.status === 'claimed';
+  
+  // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved
+  const canSeeContact = contactVisibility === 'public' || isOwner || isConnectedUser || currentItem.status === 'claimed';
 
   return (
     <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">

@@ -9,6 +9,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchFoundItemById, clearCurrentFoundItem } from '../../redux/slices/foundItemSlice';
 import foundItemService from '../../services/foundItemService';
+import settingService from '../../services/settingService';
 import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
@@ -30,11 +31,18 @@ export const FoundItemDetail = () => {
   const { currentItem, isLoading, error } = useSelector((state) => state.foundItems);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
   const [activeImage, setActiveImage] = useState('');
-
-  // No claim modal needed in P2P flow
+  const [contactVisibility, setContactVisibility] = useState('request_only');
 
   useEffect(() => {
     dispatch(fetchFoundItemById(id));
+    
+    // Fetch global contact visibility setting
+    settingService.getPublicSetting('contact_visibility')
+      .then(res => {
+        if (res && res.data) setContactVisibility(res.data);
+      })
+      .catch(err => console.log('Using default contact visibility'));
+
     return () => {
       dispatch(clearCurrentFoundItem());
     };
@@ -76,8 +84,9 @@ export const FoundItemDetail = () => {
   const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser;
   const isHandoverInProgress = currentItem.status === 'in_progress';
-  const canSeeContact = isFinder || isConnectedUser || currentItem.status === 'claimed';
-
+  
+  // Can see contact if visibility is public, or if they are the finder, or connected, or item is fully resolved
+  const canSeeContact = contactVisibility === 'public' || isFinder || isConnectedUser || currentItem.status === 'claimed';
 
 
   return (
