@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import settingService from '../../../services/settingService';
-import Input from '../../../components/common/Input';
-import Button from '../../../components/common/Button';
+import settingService from '../../services/settingService';
+import Input from '../../components/common/Input';
+import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import { FiSave } from 'react-icons/fi';
 
