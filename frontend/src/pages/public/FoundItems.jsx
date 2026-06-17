@@ -79,9 +79,9 @@ export const FoundItems = () => {
       <div className="page-container max-w-7xl mx-auto">
         
         {/* Header & Button Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
           <div className="page-header flex-shrink-0">
-            <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
+            <h1 className="page-title text-2xl font-extrabold font-display text-surface-900 dark:text-white">
               Found Property Directory
             </h1>
             <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
@@ -90,15 +90,15 @@ export const FoundItems = () => {
           </div>
           <Link 
             to="/dashboard/report-found" 
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap"
           >
-            <FiPlusCircle className="text-lg" />
+            <FiPlusCircle className="text-base" />
             Report Found Item
           </Link>
         </div>
 
         {/* Search & Filters */}
-        <div className="w-full mb-8">
+        <div className="w-full mb-6">
             <SearchFilter
               search={search}
               onSearchChange={(val) => { setSearch(val); setPage(1); }}
