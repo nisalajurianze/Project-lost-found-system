@@ -14,7 +14,8 @@ import {
   FiCheckCircle,
   FiShield,
   FiMessageSquare,
-  FiArrowLeft
+  FiArrowLeft,
+  FiSettings
 } from 'react-icons/fi';
 
 export const AdminLayout = () => {
@@ -26,6 +27,7 @@ export const AdminLayout = () => {
     { label: 'Manage Categories', path: '/admin/categories', icon: <FiList /> },
     { label: 'Users Feedback', path: '/admin/feedback', icon: <FiMessageSquare /> },
     { label: 'Admin Audit Logs', path: '/admin/logs', icon: <FiShield /> },
+    { label: 'Site Settings', path: '/admin/settings', icon: <FiSettings /> },
     { label: 'Student Panel', path: '/dashboard', icon: <FiArrowLeft />, borderTop: true }
   ];
 

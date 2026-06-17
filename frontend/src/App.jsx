@@ -55,6 +55,7 @@ const Feedback = lazy(() => import('./pages/admin/Feedback'));
 const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
 const Analytics = lazy(() => import('./pages/admin/Analytics'));
 const ManageCategories = lazy(() => import('./pages/admin/ManageCategories'));
+const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
 
 // Fallback loader
 import Loader from './components/common/Loader';
@@ -166,6 +167,7 @@ const App = () => {
             <Route path="/admin/logs" element={<AdminLogs />} />
             <Route path="/admin/analytics" element={<Analytics />} />
             <Route path="/admin/categories" element={<ManageCategories />} />
+            <Route path="/admin/settings" element={<SiteSettings />} />
           </Route>
         </Route>
       </Routes>

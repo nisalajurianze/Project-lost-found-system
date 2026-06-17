@@ -3,18 +3,34 @@
 // Campus support details and feedback forms
 // ============================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Input from '../../components/common/Input';
 import Textarea from '../../components/common/Textarea';
 import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
+import settingService from '../../services/settingService';
 
 export const Contact = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [contactDetails, setContactDetails] = useState(null);
+
+  useEffect(() => {
+    const fetchContactInfo = async () => {
+      try {
+        const res = await settingService.getPublicSetting('contact_details');
+        if (res && res.data) {
+          setContactDetails(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch contact details:', err);
+      }
+    };
+    fetchContactInfo();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -33,18 +49,21 @@ export const Contact = () => {
   const contactInfos = [
     {
       title: 'University Office',
-      desc: 'Student Affairs Office, Admin Building, 2nd Floor',
-      icon: <FiMapPin className="text-xl text-primary-500" />
+      desc: contactDetails?.office || 'Student Affairs Office, Admin Building, 2nd Floor',
+      icon: <FiMapPin className="text-xl text-primary-500" />,
+      href: contactDetails?.office ? `https://maps.google.com/?q=${encodeURIComponent(contactDetails.office)}` : undefined
     },
     {
       title: 'Email Address',
-      desc: 'support-lostfound@university.edu',
-      icon: <FiMail className="text-xl text-cyan-500" />
+      desc: contactDetails?.email || 'support-lostfound@university.edu',
+      icon: <FiMail className="text-xl text-cyan-500" />,
+      href: `mailto:${contactDetails?.email || 'support-lostfound@university.edu'}`
     },
     {
       title: 'Telephone Line',
-      desc: '+94 55 2226262 (Ext: 1104)',
-      icon: <FiPhone className="text-xl text-emerald-500" />
+      desc: contactDetails?.phone || '+94 55 2226262 (Ext: 1104)',
+      icon: <FiPhone className="text-xl text-emerald-500" />,
+      href: `tel:${contactDetails?.phone || '+94552226262'}`
     }
   ];
 
@@ -66,21 +85,30 @@ export const Contact = () => {
           
           {/* Support Details */}
           <div className="md:col-span-1 flex flex-col gap-6">
-            {contactInfos.map((info, index) => (
-              <div key={index} className="card p-5 bg-white dark:bg-surface-800 border border-surface-200/50 dark:border-surface-800 flex items-start gap-4">
-                <div className="p-3 bg-surface-50 dark:bg-surface-800 rounded-xl flex-shrink-0">
-                  {info.icon}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-surface-950 dark:text-white">
-                    {info.title}
-                  </h4>
-                  <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 leading-relaxed">
-                    {info.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
+            {contactInfos.map((info, index) => {
+              const CardComponent = info.href ? 'a' : 'div';
+              const cardProps = info.href ? { href: info.href, target: info.title === 'University Office' ? '_blank' : undefined, rel: "noopener noreferrer" } : {};
+              
+              return (
+                <CardComponent 
+                  key={index} 
+                  {...cardProps}
+                  className={`card p-5 bg-white dark:bg-surface-800 border border-surface-200/50 dark:border-surface-800 flex items-start gap-4 ${info.href ? 'hover:border-primary-500/30 cursor-pointer transition-colors block' : ''}`}
+                >
+                  <div className="p-3 bg-surface-50 dark:bg-surface-800 rounded-xl flex-shrink-0">
+                    {info.icon}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-surface-950 dark:text-white">
+                      {info.title}
+                    </h4>
+                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 leading-relaxed">
+                      {info.desc}
+                    </p>
+                  </div>
+                </CardComponent>
+              );
+            })}
           </div>
 
           {/* Quick Query Form */}
