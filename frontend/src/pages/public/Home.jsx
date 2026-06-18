@@ -88,7 +88,7 @@ export const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider mb-6 border border-white/20 inline-block"
           >
-            University Campus Lost & Found System
+            University Smart Lost & Found System
           </motion.span>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
