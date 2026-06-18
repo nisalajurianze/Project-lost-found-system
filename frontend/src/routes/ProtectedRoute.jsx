@@ -6,6 +6,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import Loader from '../components/common/Loader';
 
 export const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
@@ -14,7 +15,7 @@ export const ProtectedRoute = () => {
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-surface-50 dark:bg-surface-900">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+        <Loader />
       </div>
     );
   }
