@@ -75,6 +75,14 @@ export const Home = () => {
       <section className="relative hero-bg py-20 lg:py-32 flex items-center justify-center text-center text-white">
         <SpaceBackground />
         <div className="page-container relative z-10 max-w-4xl mx-auto flex flex-col items-center">
+          <motion.img
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            src="/logo.png"
+            alt="Smart L&F Logo"
+            className="w-24 h-24 sm:w-32 sm:h-32 mb-6 object-contain drop-shadow-2xl"
+          />
           <motion.span
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
