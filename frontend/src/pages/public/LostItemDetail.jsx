@@ -16,6 +16,7 @@ import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock } from 
 import useAuth from '../../hooks/useAuth';
 import lostItemService from '../../services/lostItemService';
 import toast from 'react-hot-toast';
+import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 
 export const LostItemDetail = () => {
   const { id } = useParams();
