@@ -12,11 +12,13 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col items-center md:items-start">
-            <span className="inline-flex items-center gap-1.5 text-lg font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
-              <img src="/logo.png" alt="Smart L&F Logo" className="h-6 w-6 object-contain translate-y-0.5" />
-              Smart Lost & Found
-            </span>
-            <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
+            <Link to="/" className="flex items-center gap-1.5 mb-2 hover:opacity-80 transition-opacity w-fit">
+              <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 object-contain translate-y-0.5" />
+              <span className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
+                Smart L&F
+              </span>
+            </Link>
+            <p className="text-xs text-surface-500 dark:text-surface-400">
               Automating recovery of university belongings with AI.
             </p>
           </div>

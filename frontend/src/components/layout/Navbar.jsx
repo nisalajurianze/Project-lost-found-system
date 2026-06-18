@@ -149,13 +149,10 @@ export const Navbar = () => {
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-0.5 hover:opacity-90 transition-opacity">
+          <Link to="/" className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
             <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
-            <span className="text-xl sm:text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent hidden sm:block">
+            <span className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
               Smart L&F
-            </span>
-            <span className="text-xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent sm:hidden">
-              L&F
             </span>
           </Link>
 

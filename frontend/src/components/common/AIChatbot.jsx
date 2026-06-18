@@ -170,9 +170,9 @@ const AIChatbot = () => {
         {/* Header */}
         <div className="bg-white dark:bg-surface-800 p-3 sm:p-4 flex justify-between items-center shrink-0 border-b border-surface-200 dark:border-surface-700 z-10">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-primary-500 dark:text-primary-400">
-              <img src="/logo.png" alt="Smart L&F Logo" className="h-[26px] w-[26px] object-contain translate-y-0.5" />
-              <h3 className="font-black text-[22px] tracking-[-0.02em] leading-none">
+            <div className="flex items-center gap-1.5">
+              <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 object-contain translate-y-0.5" />
+              <h3 className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
                 Smart L&F
               </h3>
             </div>
