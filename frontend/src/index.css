@@ -357,6 +357,14 @@
 }
 
 @layer utilities {
+  @keyframes search-circle {
+    0% { transform: rotate(0deg) translateX(5px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(5px) rotate(-360deg); }
+  }
+  .animate-search-circle {
+    animation: search-circle 1.5s linear infinite;
+  }
+
   @keyframes twinkle {
     0% { opacity: 0.2; transform: scale(0.8); }
     100% { opacity: 1; transform: scale(1.2); }

@@ -21,8 +21,7 @@ export const Loader = ({
       <img 
         src="/logo.png" 
         alt="Loading..."
-        className={`inline-block animate-spin object-contain ${sizeClasses[size] || sizeClasses.md}`}
-        style={{ animationDuration: '1.5s' }}
+        className={`inline-block animate-search-circle object-contain ${sizeClasses[size] || sizeClasses.md}`}
       />
     </div>
   );
@@ -33,8 +32,7 @@ export const Loader = ({
         <img 
           src="/logo.png" 
           alt="Smart L&F Logo"
-          className="inline-block animate-spin h-16 w-16 sm:h-20 sm:w-20 object-contain"
-          style={{ animationDuration: '1.5s' }}
+          className="inline-block animate-search-circle h-16 w-16 sm:h-20 sm:w-20 object-contain"
         />
         <span className="text-sm font-medium text-surface-500 dark:text-surface-400 animate-pulse">
           Loading application...
