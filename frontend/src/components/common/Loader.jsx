@@ -28,19 +28,19 @@ export const Loader = ({
 
   if (fullPage) {
     return (
-      <div className="flex flex-col h-[60vh] w-full items-center justify-center gap-6">
-        <div className="flex items-center gap-3">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
+        <div className="relative flex items-center gap-4 px-8 py-5 bg-surface-900 rounded-xl border-2 border-white/70 shadow-[0_0_40px_rgba(255,255,255,0.6)] animate-pulse">
           <img 
             src="/logo.png" 
             alt="Smart L&F Logo"
-            className="inline-block animate-pulse h-12 w-12 sm:h-14 sm:w-14 object-contain"
+            className="h-14 w-14 sm:h-16 sm:w-16 object-contain translate-y-1"
           />
-          <span className="text-3xl sm:text-4xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
+          <span className="text-4xl sm:text-5xl font-black font-display tracking-tight bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent">
             Smart L&F
           </span>
         </div>
-        <span className="text-sm font-medium text-surface-500 dark:text-surface-400 animate-pulse">
-          Loading application...
+        <span className="mt-8 text-sm font-medium text-surface-500 dark:text-surface-400 animate-pulse tracking-widest uppercase">
+          Initializing System...
         </span>
       </div>
     );
