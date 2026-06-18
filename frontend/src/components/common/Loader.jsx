@@ -21,7 +21,8 @@ export const Loader = ({
       <img 
         src="/logo.png" 
         alt="Loading..."
-        className={`inline-block animate-pulse object-contain ${sizeClasses[size] || sizeClasses.md}`}
+        className={`inline-block animate-spin object-contain ${sizeClasses[size] || sizeClasses.md}`}
+        style={{ animationDuration: '1.5s' }}
       />
     </div>
   );
