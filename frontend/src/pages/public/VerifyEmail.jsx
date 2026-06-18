@@ -42,8 +42,9 @@ export const VerifyEmail = () => {
   return (
     <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
       <div className="max-w-md w-full glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl text-center flex flex-col items-center">
-        <Link to="/" className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent mb-6">
-          🔍 Smart L&F
+        <Link to="/" className="inline-flex items-center justify-center gap-1.5 text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
+          <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 object-contain translate-y-0.5" />
+          Smart L&F
         </Link>
 
         {status === 'loading' && (
