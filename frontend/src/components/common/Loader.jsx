@@ -31,13 +31,13 @@ export const Loader = ({
   if (fullPage) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
-        <div className="relative flex items-center gap-4 px-8 py-5 bg-surface-900 rounded-xl border-2 border-white/70 shadow-[0_0_40px_rgba(255,255,255,0.6)] animate-pulse">
+        <div className="flex items-center gap-4 animate-pulse drop-shadow-[0_0_15px_rgba(125,211,252,0.8)] dark:drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
           <img 
             src="/logo.png" 
             alt="Smart L&F Logo"
-            className="h-14 w-14 sm:h-16 sm:w-16 object-contain translate-y-1"
+            className="h-16 w-16 sm:h-20 sm:w-20 object-contain drop-shadow-xl"
           />
-          <span className="text-4xl sm:text-5xl font-black font-display tracking-tight bg-gradient-to-r from-primary-400 to-primary-200 bg-clip-text text-transparent">
+          <span className="text-4xl sm:text-5xl font-black font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 dark:from-primary-400 dark:to-primary-200 bg-clip-text text-transparent">
             Smart L&F
           </span>
         </div>
