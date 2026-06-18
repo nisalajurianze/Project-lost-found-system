@@ -16,29 +16,26 @@
   <body>
     <div id="root">
       <style>
-        body { margin: 0; background-color: #0f172a; font-family: 'Outfit', 'Inter', sans-serif; }
-        #initial-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: #0f172a; }
-        .logo-container { display: flex; align-items: center; gap: 0.75rem; font-size: 2.5rem; font-weight: 700; letter-spacing: -0.025em; }
-        .logo-icon { display: inline-block; animation: spin-bounce 2s ease-in-out infinite; transform-origin: center; }
-        .logo-text { background: linear-gradient(to right, #6366f1, #a5b4fc); -webkit-background-clip: text; color: transparent; }
-        .loading-text { margin-top: 1.5rem; font-size: 1rem; color: #94a3b8; font-weight: 500; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes spin-bounce {
-          0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.2); }
-          100% { transform: rotate(360deg) scale(1); }
-        }
+        body { margin: 0; background-color: #020617; font-family: 'Outfit', 'Inter', sans-serif; }
+        #initial-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: #020617; }
+        .logo-container { display: flex; align-items: center; gap: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; filter: drop-shadow(0 0 20px rgba(255,255,255,0.5)); }
+        .logo-icon { width: 5rem; height: 5rem; object-fit: contain; filter: drop-shadow(0 20px 13px rgb(0 0 0 / 0.03)) drop-shadow(0 8px 5px rgb(0 0 0 / 0.08)); }
+        .logo-text { font-size: 3rem; font-weight: 900; letter-spacing: -0.025em; background: linear-gradient(to right, #60a5fa, #bfdbfe); -webkit-background-clip: text; color: transparent; }
+        .loading-text { margin-top: 2rem; font-size: 0.875rem; color: #94a3b8; font-weight: 500; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; letter-spacing: 0.1em; text-transform: uppercase; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
         @media (prefers-color-scheme: light) {
-          body, #initial-loader { background-color: #ffffff; }
+          body, #initial-loader { background-color: #f8fafc; }
           .loading-text { color: #64748b; }
+          .logo-container { filter: drop-shadow(0 0 15px rgba(125,211,252,0.8)); }
+          .logo-text { background: linear-gradient(to right, #3b82f6, #93c5fd); -webkit-background-clip: text; color: transparent; }
         }
       </style>
       <div id="initial-loader">
         <div class="logo-container">
-          <span class="logo-icon">🔍</span>
+          <img src="/logo.png" alt="Smart L&F Logo" class="logo-icon" />
           <span class="logo-text">Smart L&F</span>
         </div>
-        <div class="loading-text">Initializing Smart L&F...</div>
+        <div class="loading-text">Initializing System...</div>
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
