@@ -112,11 +112,11 @@ export const ImageUpload = ({
             const src = isFile ? previews[index] : img.url || img;
             
             return (
-              <div key={index} className="relative aspect-square rounded-lg border border-surface-200 dark:border-surface-700 overflow-hidden group">
+              <div key={index} className="relative aspect-square rounded-lg border border-surface-200 dark:border-surface-700 overflow-hidden group bg-surface-100 dark:bg-surface-800 p-1">
                 <img
                   src={src}
                   alt={`Preview ${index}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain drop-shadow-sm"
                 />
                 <button
                   type="button"

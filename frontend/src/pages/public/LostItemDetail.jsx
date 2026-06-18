@@ -89,12 +89,12 @@ export const LostItemDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left: Image Gallery (5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="relative aspect-[4/3] sm:aspect-video rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md flex items-center justify-center">
+            <div className="relative aspect-[4/3] sm:aspect-video rounded-2xl bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-800 overflow-hidden shadow-md flex items-center justify-center p-2">
               {hasImages && activeImage ? (
                 <img
                   src={optimizeImageUrl(activeImage, 1200)}
                   alt={currentItem.itemName}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain drop-shadow-md"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-6xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
@@ -112,18 +112,18 @@ export const LostItemDetail = () => {
 
             {/* Thumbnails */}
             {hasImages && currentItem.images.length > 1 && (
-              <div className="flex gap-2.5 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-surface-300 dark:scrollbar-thumb-surface-600">
                 {currentItem.images.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveImage(img.url)}
-                    className={`relative w-20 aspect-[4/3] rounded-lg bg-surface-100 dark:bg-surface-800 border-2 overflow-hidden flex-shrink-0 transition-all ${
+                    className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all p-1 bg-surface-100 dark:bg-surface-800 ${
                       activeImage === img.url
-                        ? 'border-primary-500 scale-95 shadow-sm'
-                        : 'border-transparent hover:border-surface-300 dark:hover:border-surface-700'
+                        ? 'border-primary-500 ring-2 ring-primary-500/20'
+                        : 'border-transparent hover:border-surface-300 dark:hover:border-surface-600'
                     }`}
                   >
-                    <img src={optimizeImageUrl(img.url, 200)} alt="" className="w-full h-full object-cover" />
+                    <img src={optimizeImageUrl(img.url, 200)} alt="" className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>

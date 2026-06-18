@@ -47,7 +47,7 @@ export const MatchCard = ({ match, onConfirm, onReject, isLoading = false }) => 
             Reported Lost Item
           </span>
           {lost.images && lost.images.length > 0 ? (
-            <img src={optimizeImageUrl(lost.images[0].url, 'auto', 300)} alt={lost.itemName} className="w-full h-32 object-cover rounded-lg mb-3 shadow-sm border border-surface-200 dark:border-surface-800" />
+            <img src={optimizeImageUrl(lost.images[0].url, 'auto', 300)} alt={lost.itemName} className="w-full h-32 object-contain bg-surface-100 dark:bg-surface-800 rounded-lg mb-3 shadow-sm border border-surface-200 dark:border-surface-800 p-1" />
           ) : (
             <div className="w-full h-32 bg-surface-200 dark:bg-surface-800 rounded-lg mb-3 flex items-center justify-center text-surface-400">No Image</div>
           )}
@@ -72,7 +72,7 @@ export const MatchCard = ({ match, onConfirm, onReject, isLoading = false }) => 
             Found Item Listing
           </span>
           {found.images && found.images.length > 0 ? (
-            <img src={optimizeImageUrl(found.images[0].url, 'auto', 300)} alt={found.itemName} className="w-full h-32 object-cover rounded-lg mb-3 shadow-sm border border-surface-200 dark:border-surface-800" />
+            <img src={optimizeImageUrl(found.images[0].url, 'auto', 300)} alt={found.itemName} className="w-full h-32 object-contain bg-surface-100 dark:bg-surface-800 rounded-lg mb-3 shadow-sm border border-surface-200 dark:border-surface-800 p-1" />
           ) : (
             <div className="w-full h-32 bg-surface-200 dark:bg-surface-800 rounded-lg mb-3 flex items-center justify-center text-surface-400">No Image</div>
           )}
