@@ -16,8 +16,9 @@ export const Loader = ({
     lg: 'h-16 w-16'
   };
 
+  const isSmall = size === 'sm';
   const spinner = (
-    <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
+    <div className={`flex flex-col items-center justify-center gap-3 ${isSmall ? '' : 'w-full min-h-[300px] sm:min-h-[400px]'} ${className}`}>
       <img 
         src="/logo.png" 
         alt="Loading..."
