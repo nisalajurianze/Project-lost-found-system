@@ -81,7 +81,7 @@ export const Home = () => {
             transition={{ duration: 0.5 }}
             src="/logo.png"
             alt="Smart L&F Logo"
-            className="w-24 h-24 sm:w-32 sm:h-32 mb-6 object-contain drop-shadow-2xl"
+            className="w-40 h-40 sm:w-56 sm:h-56 mb-4 object-contain drop-shadow-2xl"
           />
           <motion.span
             initial={{ opacity: 0, y: -10 }}
