@@ -174,6 +174,7 @@ export const ReportFound = () => {
   };
 
   const [extraCategory, setExtraCategory] = useState(null);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
 
   const categoryOptions = categories.map((cat) => ({
     value: cat.name,
@@ -248,47 +249,50 @@ export const ReportFound = () => {
                 required
               />
               
-              <CreatableCategorySelect
-                label="Item Category"
-                name="category"
-                options={categoryOptions}
-                value={category}
-                onChange={async (e) => {
-                  const val = e.target.value;
-                  const isNew = val && !categories.some(c => c.name === val);
-                  
-                  // Optimistically set the category immediately so it shows up in real-time
-                  setCategory(val);
-                  
-                  if (isNew) {
-                    const toastId = toast.loading(`✨ AI is finding an emoji for "${val}"...`);
-                    try {
-                      const res = await aiService.autoCreateCategory(val);
-                      await dispatch(fetchCategories());
-                      const newName = res.data.data.name;
-                      const newIcon = res.data.data.icon || '📦';
-                      
-                      setExtraCategory({
-                        value: newName,
-                        label: `${newIcon} ${newName}`
-                      });
-                      
-                      // If the AI formatted the name differently (e.g. capitalized), update the category to match
-                      if (newName !== val) {
-                        setCategory(newName);
+              <div className="md:col-span-1">
+                <CreatableCategorySelect
+                  label="Item Category"
+                  name="category"
+                  options={categoryOptions}
+                  value={category}
+                  isLoading={isCategoryLoading}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    const isNew = val && !categories.some(c => c.name === val);
+                    
+                    // Optimistically set the category immediately so it shows up in real-time
+                    setCategory(val);
+                    
+                    if (isNew) {
+                      setIsCategoryLoading(true);
+                      try {
+                        const res = await aiService.autoCreateCategory(val);
+                        await dispatch(fetchCategories());
+                        const newName = res.data.data.name;
+                        const newIcon = res.data.data.icon || '📦';
+                        
+                        setExtraCategory({
+                          value: newName,
+                          label: `${newIcon} ${newName}`
+                        });
+                        
+                        // If the AI formatted the name differently (e.g. capitalized), update the category to match
+                        if (newName !== val) {
+                          setCategory(newName);
+                        }
+                        
+                      } catch (err) {
+                        toast.error(err.response?.data?.message || 'Invalid category name.');
+                        setCategory(''); // Revert optimistic update on failure
+                      } finally {
+                        setIsCategoryLoading(false);
                       }
-                      
-                      toast.success('Emoji added!', { id: toastId });
-                    } catch (err) {
-                      toast.dismiss(toastId);
-                      toast.error(err.response?.data?.message || 'Invalid category name.');
-                      setCategory(''); // Revert optimistic update on failure
                     }
-                  }
-                }}
-                error={errors.category}
-                required
-              />
+                  }}
+                  error={errors.category}
+                  required
+                />
+              </div>
             </div>
 
           <Textarea
