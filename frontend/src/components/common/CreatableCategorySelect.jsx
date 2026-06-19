@@ -67,33 +67,9 @@ export const CreatableCategorySelect = React.forwardRef(({
   // Find the selected option object
   const selectedOption = options.find(opt => opt.value === value) || (value ? { label: value, value: value } : null);
 
-  const [inputValue, setInputValue] = React.useState('');
-
   const handleChange = (selected) => {
     // Return an event-like object to be compatible with existing onChange handlers
     onChange({ target: { name, value: selected ? selected.value : '' } });
-    setInputValue(''); // Clear typed text so the selected option shows properly
-  };
-
-  const handleInputChange = (newInputValue, actionMeta) => {
-    if (actionMeta.action !== 'input-blur' && actionMeta.action !== 'menu-close') {
-      setInputValue(newInputValue);
-    }
-  };
-
-  const handleKeyDown = (event) => {
-    if (!inputValue) return;
-    if (event.key === 'Enter' || event.key === 'Tab') {
-      handleChange({ label: inputValue, value: inputValue });
-      setInputValue('');
-    }
-  };
-
-  const handleBlur = () => {
-    if (inputValue && (!selectedOption || selectedOption.value !== inputValue)) {
-      handleChange({ label: inputValue, value: inputValue });
-      setInputValue('');
-    }
   };
 
   return (
@@ -112,10 +88,6 @@ export const CreatableCategorySelect = React.forwardRef(({
           options={options}
           value={selectedOption}
           onChange={handleChange}
-          inputValue={inputValue}
-          onInputChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
           placeholder={placeholder}
           isClearable
           formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
