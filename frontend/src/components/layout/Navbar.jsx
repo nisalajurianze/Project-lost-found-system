@@ -245,25 +245,18 @@ export const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-1 sm:gap-2">
-            <button
-              onClick={() => dispatch(toggleTheme())}
-              className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors"
-            >
-              {themeMode === 'dark' ? <FiSun className="text-xl" /> : <FiMoon className="text-xl" />}
-            </button>
-            
+          <div className="flex md:hidden items-center gap-2 sm:gap-3">
             {/* Mobile Notification Bell */}
             {isAuthenticated && (
               <div className="relative" ref={mobileNotificationDropdownRef}>
                 <button
                   onClick={handleBellClick}
-                  className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none"
+                  className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                   aria-label="Notifications"
                 >
-                  <FiBell className="text-xl" />
+                  <FiBell className="text-lg" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white border-2 border-white dark:border-surface-900 animate-pulse-glow">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -275,24 +268,24 @@ export const Navbar = () => {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none ml-1"
+              className="p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none"
             >
               {mobileMenuOpen ? (
-                <div className="h-8 w-8 flex items-center justify-center"><FiX className="text-xl text-surface-500 dark:text-surface-400" /></div>
+                <div className="h-9 w-9 flex items-center justify-center bg-surface-100 dark:bg-surface-800 rounded-full"><FiX className="text-xl text-surface-500 dark:text-surface-400" /></div>
               ) : isAuthenticated ? (
                 user?.profileImage?.url ? (
                   <img
                     src={user.profileImage.url}
                     alt={user.fullName}
-                    className="h-8 w-8 rounded-full object-cover"
+                    className="h-9 w-9 rounded-full object-cover border-2 border-surface-200 dark:border-surface-700"
                   />
                 ) : (
-                  <div className="h-8 w-8 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-bold font-display">
+                  <div className="h-9 w-9 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold font-display border-2 border-primary-100 dark:border-primary-900">
                     {getInitials(user?.fullName)}
                   </div>
                 )
               ) : (
-                <div className="h-8 w-8 flex items-center justify-center"><FiMenu className="text-xl text-surface-500 dark:text-surface-400" /></div>
+                <div className="h-9 w-9 flex items-center justify-center bg-surface-100 dark:bg-surface-800 rounded-full"><FiMenu className="text-xl text-surface-500 dark:text-surface-400" /></div>
               )}
             </button>
           </div>
@@ -301,17 +294,17 @@ export const Navbar = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-900 p-4 animate-fade-in">
-          <div className="flex flex-col gap-3">
+        <div className="md:hidden absolute top-20 left-0 w-full h-[calc(100vh-5rem)] bg-white/95 dark:bg-surface-900/95 backdrop-blur-xl border-t border-surface-200 dark:border-surface-800 p-6 animate-fade-in z-50 flex flex-col justify-between overflow-y-auto">
+          <div className="flex flex-col gap-2">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`text-base font-semibold px-3 py-2 rounded-lg ${
+                className={`text-lg font-semibold px-4 py-3.5 rounded-xl transition-all ${
                   isActive(link.path)
-                    ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/20 dark:text-primary-400'
-                    : 'text-surface-700 dark:text-surface-300'
+                    ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400'
+                    : 'text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/50'
                 }`}
               >
                 {link.label}
@@ -323,7 +316,7 @@ export const Navbar = () => {
                 <Link
                   to="/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-base font-semibold px-3 py-2 rounded-lg text-surface-700 dark:text-surface-300"
+                  className="text-lg font-semibold px-4 py-3.5 rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-all mt-2 border-t border-surface-100 dark:border-surface-800"
                 >
                   Dashboard
                 </Link>
@@ -331,33 +324,46 @@ export const Navbar = () => {
                   <Link
                     to="/admin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="text-base font-semibold px-3 py-2 rounded-lg text-surface-700 dark:text-surface-300"
+                    className="text-lg font-semibold px-4 py-3.5 rounded-xl text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-all"
                   >
-                    🛡️ Admin Panel
+                    👑 Admin Panel
                   </Link>
                 )}
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-base font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors border-t border-surface-100 dark:border-surface-800"
-                >
-                  <FiLogOut /> Log Out
-                </button>
               </>
             )}
+          </div>
+          
+          <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-surface-200 dark:border-surface-800">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-surface-600 dark:text-surface-400 font-medium">Theme Mode</span>
+              <button
+                onClick={() => dispatch(toggleTheme())}
+                className="p-3 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-full transition-colors flex items-center justify-center gap-2"
+              >
+                {themeMode === 'dark' ? <><FiSun className="text-xl" /> Light</> : <><FiMoon className="text-xl" /> Dark</>}
+              </button>
+            </div>
             
-            {!isAuthenticated && (
-              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-surface-100 dark:border-surface-800">
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center justify-center gap-2 px-4 py-3.5 mt-2 text-lg font-semibold text-red-600 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl transition-all"
+              >
+                <FiLogOut /> Log Out
+              </button>
+            ) : (
+              <div className="flex flex-col gap-3">
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="btn btn-secondary w-full"
+                  className="btn btn-secondary w-full py-3.5 text-lg"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="btn btn-primary w-full"
+                  className="btn btn-primary w-full py-3.5 text-lg"
                 >
                   Sign Up
                 </Link>
