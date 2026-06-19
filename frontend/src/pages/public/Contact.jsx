@@ -4,6 +4,7 @@
 // ============================================
 
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import Input from '../../components/common/Input';
 import Textarea from '../../components/common/Textarea';
 import Button from '../../components/common/Button';
@@ -12,8 +13,9 @@ import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import settingService from '../../services/settingService';
 
 export const Contact = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const { user } = useSelector((state) => state.auth);
+  const [name, setName] = useState(user?.fullName || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [contactDetails, setContactDetails] = useState(null);
@@ -40,8 +42,8 @@ export const Contact = () => {
     setTimeout(() => {
       setIsLoading(false);
       toast.success('Your message has been sent! We will contact you soon.');
-      setName('');
-      setEmail('');
+      setName(user?.fullName || '');
+      setEmail(user?.email || '');
       setMessage('');
     }, 1000);
   };
