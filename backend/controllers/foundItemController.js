@@ -446,7 +446,6 @@ export {
   getFoundItemById,
   updateFoundItem,
   deleteFoundItem,
-  getFoundItemById,
   resolveFoundItem,
   cancelConnectionFoundItem
 };

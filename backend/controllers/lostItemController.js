@@ -452,7 +452,6 @@ export {
   getLostItemById,
   updateLostItem,
   deleteLostItem,
-  deleteLostItem,
   resolveLostItem,
   cancelConnectionLostItem
 };
