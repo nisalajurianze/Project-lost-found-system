@@ -18,6 +18,14 @@ export const ImageUpload = ({
   const [previews, setPreviews] = useState([]);
   const [isCompressing, setIsCompressing] = useState(false);
 
+  // Sync previews if parent clears the images array
+  React.useEffect(() => {
+    if (images.length === 0 && previews.length > 0) {
+      previews.forEach(p => URL.revokeObjectURL(p));
+      setPreviews([]);
+    }
+  }, [images.length]);
+
   const handleFiles = async (files) => {
     const totalFiles = images.length + files.length;
     if (totalFiles > maxFiles) {
@@ -131,7 +139,7 @@ export const ImageUpload = ({
       {images.length > 0 && (
         <div className="grid grid-cols-5 gap-3 mt-4">
           {images.map((img, index) => {
-            const isFile = img instanceof File;
+            const isFile = img instanceof File || img instanceof Blob;
             const src = isFile ? previews[index] : img.url || img;
             
             return (
