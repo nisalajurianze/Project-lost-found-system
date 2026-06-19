@@ -286,11 +286,7 @@ export const Navbar = () => {
               <div className="relative" ref={profileDropdownRef}>
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className={`flex items-center gap-2 p-1 rounded-full border transition-all focus:outline-none ${
-                    profileDropdownOpen 
-                      ? 'border-primary-500 ring-2 ring-primary-500/50 bg-primary-50 dark:bg-primary-500/10' 
-                      : 'border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 hover:ring-2 hover:ring-primary-500/30'
-                  }`}
+                  className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none hover:ring-2 hover:ring-primary-500/50"
                   title="Profile Menu"
                 >
                   {user?.profileImage?.url ? (
