@@ -217,7 +217,7 @@ export const Profile = () => {
               </div>
               <div>
                 <p className="text-sm font-bold text-surface-900 dark:text-white">Profile Avatar</p>
-                <p className="text-xs text-surface-400 mt-1">PNG, JPG or WebP. Capped at 2MB.</p>
+                <p className="text-xs text-surface-400 mt-1">PNG, JPG or WebP.</p>
               </div>
             </div>
 
