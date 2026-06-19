@@ -53,6 +53,8 @@ export const Navbar = () => {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const { unreadCount, notifications = [] } = useSelector((state) => state.notifications);
 
+  const hasUnreadMatch = notifications.some(n => n.type === 'match_found' && !n.isRead);
+
   const handleBellClick = () => {
     setNotificationDropdownOpen(!notificationDropdownOpen);
     if (!notificationDropdownOpen && (!notifications || notifications.length === 0)) {
@@ -289,8 +291,12 @@ export const Navbar = () => {
                     navigate(user.role === 'admin' ? '/admin' : '/dashboard');
                     setProfileDropdownOpen(false);
                   }}
-                  className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none hover:ring-2 hover:ring-primary-500/50"
-                  title="Go to Dashboard"
+                  className={`flex items-center gap-2 p-1 rounded-full border transition-all focus:outline-none ${
+                    hasUnreadMatch
+                      ? 'border-primary-500 ring-2 ring-primary-500/50 animate-pulse-glow'
+                      : 'border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 hover:ring-2 hover:ring-primary-500/50'
+                  }`}
+                  title={hasUnreadMatch ? "New Match Found!" : "Go to Dashboard"}
                 >
                   {user?.profileImage?.url ? (
                     <img
