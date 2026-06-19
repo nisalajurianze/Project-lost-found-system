@@ -5,8 +5,10 @@ import api from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 const AIChatbot = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'ai', content: 'Hi! Tell me what you lost or found, and I\'ll search the database for you. You can even type in Singlish (e.g. "mage phone eka nathi wuna")!', timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }
@@ -61,7 +63,12 @@ const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const res = await api.post('/ai/chat', { message: userMessage, history: historyToSend });
+      const payload = { 
+        message: userMessage, 
+        history: historyToSend,
+        userData: user ? { _id: user._id, fullName: user.fullName } : null 
+      };
+      const res = await api.post('/ai/chat', payload);
       const reply = res.data?.data?.text || "Sorry, I couldn't understand that.";
       const replies = res.data?.data?.quickReplies || [];
       const replyTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});

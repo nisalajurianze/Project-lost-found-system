@@ -9,8 +9,30 @@ import { parseJSONResponse } from '../services/imageAnalysisService.js';
  * User asks a question, AI translates to a search, we query DB, AI formats answer.
  */
 export const handleAIChat = asyncHandler(async (req, res) => {
-  const { message, history = [] } = req.body;
+  const { message, history = [], userData } = req.body;
   if (!message) return ApiResponse.ok({ text: "Please say something!" }).send(res);
+
+  let userContextText = "";
+  if (userData && userData._id) {
+    try {
+      // Fetch user's recently reported items to provide context to the AI
+      const lostItems = await LostItem.find({ user: userData._id }).sort({ createdAt: -1 }).limit(2).lean();
+      const foundItems = await FoundItem.find({ reporter: userData._id }).sort({ createdAt: -1 }).limit(2).lean();
+      
+      const pastItems = [];
+      lostItems.forEach(item => pastItems.push(`Lost: ${item.itemName} (${item.status})`));
+      foundItems.forEach(item => pastItems.push(`Found: ${item.itemName} (${item.status})`));
+      
+      userContextText = `User Context:\nYou are talking to: ${userData.fullName}\n`;
+      if (pastItems.length > 0) {
+        userContextText += `They recently reported these items to the system: ${pastItems.join(', ')}.\nKeep this in mind if they ask about 'my item' or 'my laptop'. You can address them by name occasionally to feel friendly.\n\n`;
+      } else {
+        userContextText += `They haven't reported any items yet.\n\n`;
+      }
+    } catch (err) {
+      console.error("Error fetching user context:", err);
+    }
+  }
 
   const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
   const PRIMARY_KEY = process.env.AI_API_KEY || OPENROUTER_KEY;
@@ -141,7 +163,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
 
   // 1. Analyze the user's intent and extract search keywords
   const extractionPrompt = `You are 'Smart L&F AI', an incredibly intelligent, highly perceptive, and empathetic autonomous agent for a Lost and Found system in Sri Lanka. You possess advanced deductive reasoning and act like a brilliant human assistant, not just a bot.
-${historyText}The user just said: "${message}"
+${userContextText}${historyText}The user just said: "${message}"
 
 CRITICAL LANGUAGE RULE: 
 - If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
@@ -224,7 +246,7 @@ Return ONLY a valid JSON object exactly like this:
     const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id})`).join('\n');
     
     const replyPrompt = `You are a super friendly Lost & Found AI.
-${historyText}The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items. We retrieved these recent items from the DB:
+${userContextText}${historyText}The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items. We retrieved these recent items from the DB:
 ${itemSummary}
 
 CRITICAL LANGUAGE RULE: 
@@ -294,7 +316,7 @@ Return ONLY a valid JSON object:
   const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id}) (Location: ${item.lostLocation || item.foundLocation})`).join('\n');
   
   const replyPrompt = `You are 'Smart L&F AI', an incredibly intelligent, perceptive, and highly empathetic autonomous agent. You possess advanced deductive reasoning and act like a brilliant human assistant.
-${historyText}The user searched for: "${message}".
+${userContextText}${historyText}The user searched for: "${message}".
 We found these matches in the DB:
 ${itemSummary}
 
