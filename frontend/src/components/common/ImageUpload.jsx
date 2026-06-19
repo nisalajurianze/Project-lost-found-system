@@ -104,7 +104,10 @@ export const ImageUpload = ({
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
           className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer"
-          onClick={() => document.getElementById('image-upload-input').click()}
+          onClick={(e) => {
+            if (e.target.closest('#camera-btn-container')) return;
+            document.getElementById('image-upload-input').click();
+          }}
         >
           {isCompressing ? (
             <div className="flex flex-col items-center">
@@ -122,6 +125,7 @@ export const ImageUpload = ({
               
               <div className="flex items-center justify-center mt-3 mb-1">
                 <button
+                  id="camera-btn-container"
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
