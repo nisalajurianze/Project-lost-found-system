@@ -4,7 +4,7 @@
 // ============================================
 
 import React, { useState } from 'react';
-import { FiUpload, FiX, FiCamera } from 'react-icons/fi';
+import { FiUpload, FiX, FiCamera, FiImage } from 'react-icons/fi';
 import { BiLoaderAlt } from 'react-icons/bi';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
@@ -17,6 +17,7 @@ export const ImageUpload = ({
 }) => {
   const [previews, setPreviews] = useState([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
 
   // Sync previews if parent clears the images array
   React.useEffect(() => {
@@ -103,10 +104,10 @@ export const ImageUpload = ({
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer"
+          className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer min-h-[140px]"
           onClick={(e) => {
-            if (e.target.closest('#camera-btn-container')) return;
-            document.getElementById('image-upload-input').click();
+            if (showOptions) return;
+            setShowOptions(true);
           }}
         >
           {isCompressing ? (
@@ -116,30 +117,52 @@ export const ImageUpload = ({
                 Compressing images...
               </p>
             </div>
+          ) : showOptions ? (
+            <div className="flex flex-col items-center w-full animate-fade-in">
+              <p className="text-sm font-medium text-surface-600 dark:text-surface-300 mb-3">
+                Choose Upload Method
+              </p>
+              <div className="flex flex-wrap justify-center gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowOptions(false);
+                    document.getElementById('camera-upload-input').click();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-primary-500 hover:text-white transition-colors text-sm font-semibold shadow-sm"
+                >
+                  <FiCamera className="text-lg" /> Take Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowOptions(false);
+                    document.getElementById('image-upload-input').click();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-primary-500 hover:text-white transition-colors text-sm font-semibold shadow-sm"
+                >
+                  <FiImage className="text-lg" /> Gallery
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowOptions(false);
+                }}
+                className="text-xs text-red-500 hover:text-red-600 font-medium px-3 py-1"
+              >
+                Cancel
+              </button>
+            </div>
           ) : (
             <>
               <FiUpload className="text-3xl text-surface-400 mb-2" />
               <p className="text-sm font-medium text-surface-600 dark:text-surface-300">
-                Drag & drop images here or <span className="text-primary-500 font-semibold">browse</span>
+                Click to choose <span className="text-primary-500 font-semibold">upload method</span>
               </p>
-              
-              <div className="flex items-center justify-center mt-3 mb-1">
-                <button
-                  id="camera-btn-container"
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    document.getElementById('camera-upload-input').click();
-                  }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-primary-500 hover:text-white transition-colors text-xs font-semibold shadow-sm"
-                >
-                  <FiCamera className="text-sm" /> Take Photo
-                </button>
-              </div>
-
               <p className="text-xs text-surface-400 mt-1">
                 PNG, JPG, WebP (Max {maxFiles} images)
               </p>
