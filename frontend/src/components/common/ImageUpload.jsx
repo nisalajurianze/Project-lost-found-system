@@ -5,7 +5,9 @@
 
 import React, { useState } from 'react';
 import { FiUpload, FiX } from 'react-icons/fi';
+import { BiLoaderAlt } from 'react-icons/bi';
 import toast from 'react-hot-toast';
+import imageCompression from 'browser-image-compression';
 
 export const ImageUpload = ({
   images = [],
@@ -14,38 +16,48 @@ export const ImageUpload = ({
   label = 'Upload Images'
 }) => {
   const [previews, setPreviews] = useState([]);
+  const [isCompressing, setIsCompressing] = useState(false);
 
-  const handleFiles = (files) => {
+  const handleFiles = async (files) => {
     const totalFiles = images.length + files.length;
     if (totalFiles > maxFiles) {
       toast.error(`Maximum ${maxFiles} images allowed.`);
       return;
     }
 
+    setIsCompressing(true);
     const validFiles = [];
     const newPreviews = [];
 
-    Array.from(files).forEach((file) => {
+    const options = {
+      maxSizeMB: 5,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true
+    };
+
+    for (const file of files) {
       // Validate type
       if (!file.type.startsWith('image/')) {
         toast.error(`${file.name} is not an image.`);
-        return;
-      }
-      
-      // Validate size (5MB limit)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`${file.name} exceeds 5MB limit.`);
-        return;
+        continue;
       }
 
-      validFiles.push(file);
-      newPreviews.push(URL.createObjectURL(file));
-    });
+      try {
+        const compressedFile = await imageCompression(file, options);
+        validFiles.push(compressedFile);
+        newPreviews.push(URL.createObjectURL(compressedFile));
+      } catch (error) {
+        console.error("Compression error:", error);
+        toast.error(`Failed to compress ${file.name}`);
+      }
+    }
 
     if (validFiles.length > 0) {
       onChange([...images, ...validFiles]);
       setPreviews([...previews, ...newPreviews]);
     }
+    
+    setIsCompressing(false);
   };
 
   const handleDrop = (e) => {
@@ -86,13 +98,24 @@ export const ImageUpload = ({
           className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl bg-surface-50 dark:bg-surface-800/50 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-pointer"
           onClick={() => document.getElementById('image-upload-input').click()}
         >
-          <FiUpload className="text-3xl text-surface-400 mb-2" />
-          <p className="text-sm font-medium text-surface-600 dark:text-surface-300">
-            Drag & drop images here or <span className="text-primary-500 font-semibold">browse</span>
-          </p>
-          <p className="text-xs text-surface-400 mt-1">
-            PNG, JPG, WebP up to 5MB (Max {maxFiles} images)
-          </p>
+          {isCompressing ? (
+            <div className="flex flex-col items-center">
+              <BiLoaderAlt className="text-3xl text-primary-500 mb-2 animate-spin" />
+              <p className="text-sm font-medium text-surface-600 dark:text-surface-300">
+                Compressing images...
+              </p>
+            </div>
+          ) : (
+            <>
+              <FiUpload className="text-3xl text-surface-400 mb-2" />
+              <p className="text-sm font-medium text-surface-600 dark:text-surface-300">
+                Drag & drop images here or <span className="text-primary-500 font-semibold">browse</span>
+              </p>
+              <p className="text-xs text-surface-400 mt-1">
+                PNG, JPG, WebP (Max {maxFiles} images)
+              </p>
+            </>
+          )}
           <input
             id="image-upload-input"
             type="file"
