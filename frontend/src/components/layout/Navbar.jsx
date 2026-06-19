@@ -157,9 +157,15 @@ export const Navbar = () => {
     <div className={`fixed top-[4.5rem] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top sm:origin-top-right ${
       profileDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
     }`}>
-      <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50">
-        <p className="text-sm font-bold text-surface-900 dark:text-white truncate">{user?.fullName}</p>
-        <p className="text-xs text-surface-500 dark:text-surface-400 truncate">{user?.email}</p>
+      <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 flex justify-between items-center">
+        <div className="flex flex-col overflow-hidden mr-2">
+          <p className="text-sm font-bold text-surface-900 dark:text-white truncate">{user?.fullName}</p>
+          <p className="text-xs text-surface-500 dark:text-surface-400 truncate">{user?.email}</p>
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <Link to="/about" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">About</Link>
+          <Link to="/contact" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">Contact</Link>
+        </div>
       </div>
       
       <div className="flex flex-col py-2">
