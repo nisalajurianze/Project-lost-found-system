@@ -41,6 +41,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import systemSettingRoutes from './routes/systemSettingRoutes.js';
+import claimRoutes from './routes/claimRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -214,6 +215,7 @@ const startServer = async () => {
   app.use('/api/ai', aiRoutes);
   app.use('/api/stats', statsRoutes);
   app.use('/api/settings', systemSettingRoutes);
+  app.use('/api/claims', claimRoutes);
 
 
 
