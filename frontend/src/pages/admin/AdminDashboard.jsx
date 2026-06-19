@@ -75,42 +75,42 @@ const AdminDashboard = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
-          icon={<Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
-          label="Total Registered Users"
+          icon={<Users className="h-7 w-7 text-blue-500 dark:text-blue-400" />}
+          title="Total Registered Users"
           value={summary.totalUsers}
           color="blue"
         />
         <StatCard 
-          icon={<HelpCircle className="h-6 w-6 text-red-600 dark:text-red-400" />}
-          label="Lost Item Reports"
+          icon={<HelpCircle className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />}
+          title="Lost Item Reports"
           value={summary.totalLostItems}
-          color="red"
+          color="indigo"
         />
         <StatCard 
-          icon={<CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />}
-          label="Found Item Listings"
+          icon={<CheckCircle className="h-7 w-7 text-emerald-500 dark:text-emerald-400" />}
+          title="Found Item Listings"
           value={summary.totalFoundItems}
           color="emerald"
         />
         <StatCard 
-          icon={<FileText className="h-6 w-6 text-purple-600 dark:text-purple-400" />}
-          label="Recovery Success Rate"
+          icon={<FileText className="h-7 w-7 text-purple-500 dark:text-purple-400" />}
+          title="Recovery Success Rate"
           value={`${recoveryRate}%`}
           color="purple"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
-        <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl p-5 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-900/80 dark:to-teal-900/80 rounded-2xl p-6 flex items-center justify-between shadow-lg shadow-emerald-500/20">
           <div>
-            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Successful Handbacks</p>
-            <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-white">{summary.successfulRecoveries}</p>
+            <p className="text-sm font-semibold text-emerald-50 dark:text-emerald-200 uppercase tracking-widest">Successful Handbacks</p>
+            <p className="text-4xl font-extrabold mt-2 text-white">{summary.successfulRecoveries}</p>
           </div>
           <Link 
             to="/admin/found-items?status=claimed" 
-            className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition duration-200"
+            className="p-3 bg-white/20 hover:bg-white/30 text-white rounded-xl backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 shadow-sm"
           >
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-6 w-6" />
           </Link>
         </div>
       </div>
@@ -118,10 +118,12 @@ const AdminDashboard = () => {
       {/* Charts section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lost vs Found Bar Chart */}
-        <div className="lg:col-span-2 card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Activity className="h-5 w-5 text-indigo-500" />
+        <div className="lg:col-span-2 card bg-white dark:bg-surface-800/80 dark:backdrop-blur-xl border border-surface-200 dark:border-surface-700/50 shadow-sm rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-surface-900 dark:text-white flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-500/10 rounded-lg">
+                <Activity className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
               Monthly Comparison (Lost vs Found)
             </h2>
           </div>
@@ -132,9 +134,11 @@ const AdminDashboard = () => {
         </div>
 
         {/* Claim status pie breakdown */}
-        <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
-            <Grid className="h-5 w-5 text-indigo-500" />
+        <div className="card bg-white dark:bg-surface-800/80 dark:backdrop-blur-xl border border-surface-200 dark:border-surface-700/50 shadow-sm rounded-2xl p-6">
+          <h2 className="text-lg font-bold mb-6 text-surface-900 dark:text-white flex items-center gap-2.5">
+            <div className="p-2 bg-purple-500/10 rounded-lg">
+              <Grid className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
             Lost Item Statuses
           </h2>
           <StatusPieChart data={analytics.lostStatusBreakdown} />

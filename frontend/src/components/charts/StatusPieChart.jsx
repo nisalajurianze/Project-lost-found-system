@@ -19,40 +19,53 @@ export const StatusPieChart = ({ data = {} }) => {
       {
         data: values,
         backgroundColor: [
-          'rgba(245, 158, 11, 0.8)', // amber
-          'rgba(99, 102, 241, 0.8)', // indigo
-          'rgba(16, 185, 129, 0.8)', // emerald
-          'rgba(107, 114, 128, 0.8)'  // grey
+          'rgba(245, 158, 11, 0.9)', // amber
+          'rgba(99, 102, 241, 0.9)', // indigo
+          'rgba(16, 185, 129, 0.9)', // emerald
+          'rgba(107, 114, 128, 0.9)'  // grey
         ],
-        borderColor: [
-          '#f59e0b',
-          '#6366f1',
-          '#10b981',
-          '#6b7280'
+        hoverBackgroundColor: [
+          'rgba(245, 158, 11, 1)',
+          'rgba(99, 102, 241, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(107, 114, 128, 1)'
         ],
-        borderWidth: 1
+        borderWidth: 0,
+        hoverOffset: 8
       }
     ]
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom',
-        labels: {
-          padding: 15,
-          font: { family: 'Inter', size: 11 }
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            font: { family: 'Inter', size: 12, weight: '500' },
+            usePointStyle: true,
+            boxWidth: 8
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleFont: { family: 'Inter', size: 13 },
+          bodyFont: { family: 'Inter', size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: true,
+          boxPadding: 4
         }
       },
-      tooltip: {
-        cornerRadius: 8,
-        padding: 10
+      cutout: '75%',
+      layout: {
+        padding: {
+          bottom: 10
+        }
       }
-    },
-    cutout: '65%'
-  };
+    };
 
   return (
     <div className="h-64 w-full flex items-center justify-center">

@@ -48,18 +48,22 @@ export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => 
       {
         label: 'Lost Reports',
         data: sortedMonths.map(m => getLostCount(m)),
-        backgroundColor: 'rgba(239, 68, 68, 0.7)', // Red
-        borderColor: '#ef4444',
-        borderWidth: 1,
-        borderRadius: 4
+        backgroundColor: 'rgba(99, 102, 241, 0.85)', // Indigo-500
+        hoverBackgroundColor: 'rgba(99, 102, 241, 1)',
+        borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8
       },
       {
         label: 'Found Listings',
         data: sortedMonths.map(m => getFoundCount(m)),
-        backgroundColor: 'rgba(16, 185, 129, 0.7)', // Green
-        borderColor: '#10b981',
-        borderWidth: 1,
-        borderRadius: 4
+        backgroundColor: 'rgba(16, 185, 129, 0.85)', // Emerald-500
+        hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
+        borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 0, bottomRight: 0 },
+        borderSkipped: false,
+        barPercentage: 0.6,
+        categoryPercentage: 0.8
       }
     ]
   };
@@ -71,24 +75,38 @@ export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => 
       legend: {
         position: 'top',
         labels: {
-          font: { family: 'Inter', size: 11 }
+          font: { family: 'Inter', size: 12, weight: '500' },
+          usePointStyle: true,
+          boxWidth: 8,
+          padding: 20
         }
       },
       tooltip: {
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        titleFont: { family: 'Inter', size: 13 },
+        bodyFont: { family: 'Inter', size: 13 },
+        padding: 12,
         cornerRadius: 8,
-        padding: 10
+        displayColors: true,
+        boxPadding: 4
       }
     },
     scales: {
       y: {
-        grid: { color: 'rgba(156, 163, 175, 0.1)' },
-        ticks: { font: { family: 'Inter' }, stepSize: 1 }
+        grid: { color: 'rgba(156, 163, 175, 0.1)', drawBorder: false },
+        ticks: { font: { family: 'Inter', size: 11 }, stepSize: 1, color: '#9ca3af' },
+        border: { display: false }
       },
       x: {
-        grid: { display: false },
-        ticks: { font: { family: 'Inter' } }
+        grid: { display: false, drawBorder: false },
+        ticks: { font: { family: 'Inter', size: 11 }, color: '#9ca3af' },
+        border: { display: false }
       }
-    }
+    },
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
   };
 
   return (
