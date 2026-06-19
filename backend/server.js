@@ -22,6 +22,7 @@ import { initCloudinary } from './services/cloudinaryService.js';
 import { initEmailService } from './services/emailService.js';
 import { initCleanupJob } from './jobs/cleanupJob.js';
 import { initReminderJob } from './jobs/reminderJob.js';
+import { initCronJobs } from './cron/autoCleanCron.js';
 
 // Middlewares
 import sanitize from './middlewares/sanitizeMiddleware.js';
@@ -63,6 +64,9 @@ const startServer = async () => {
 
   // Initialize reminder job
   initReminderJob();
+
+  // Initialize auto-delete and daily push reminder cron jobs
+  initCronJobs();
 
   const app = express();
   
