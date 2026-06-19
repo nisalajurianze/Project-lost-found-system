@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { getInitials } from '../../utils/helpers';
 import { FiCamera } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
+import imageCompression from 'browser-image-compression';
 
 export const Profile = () => {
   const dispatch = useDispatch();
@@ -92,16 +93,30 @@ export const Profile = () => {
   };
 
   // Profile avatar select
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     if (!isEditing) return;
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('Avatar image must be under 2MB.');
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file.');
         return;
       }
-      setAvatar(file);
-      setAvatarPreview(URL.createObjectURL(file));
+
+      const compressToast = toast.loading('Compressing image...');
+      try {
+        const options = {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 1024,
+          useWebWorker: true
+        };
+        const compressedFile = await imageCompression(file, options);
+        setAvatar(compressedFile);
+        setAvatarPreview(URL.createObjectURL(compressedFile));
+        toast.success('Image ready!', { id: compressToast });
+      } catch (error) {
+        console.error("Compression error:", error);
+        toast.error('Failed to process image.', { id: compressToast });
+      }
     }
   };
 
