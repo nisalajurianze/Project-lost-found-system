@@ -348,6 +348,7 @@ export const ReportFound = () => {
             options={contactOptions}
             value={contactPreference}
             onChange={(e) => setContactPreference(e.target.value)}
+            placeholder={false}
           />
 
           <Select
@@ -358,6 +359,7 @@ export const ReportFound = () => {
             ]}
             value={contactVisibility}
             onChange={(e) => setContactVisibility(e.target.value)}
+            placeholder={false}
             helperText="If 'Request Only', contact info is hidden until a user claims the item."
           />
           <div className="flex items-start sm:items-center gap-2 text-xs text-surface-500 dark:text-surface-400 pt-2 pb-2">

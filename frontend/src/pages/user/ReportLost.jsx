@@ -326,6 +326,7 @@ export const ReportLost = () => {
               options={contactOptions}
               value={contactPreference}
               onChange={(e) => setContactPreference(e.target.value)}
+              placeholder={false}
             />
 
             <Select
@@ -336,6 +337,7 @@ export const ReportLost = () => {
               ]}
               value={contactVisibility}
               onChange={(e) => setContactVisibility(e.target.value)}
+              placeholder={false}
               helperText="If 'Request Only', contact info is hidden until a user connects."
             />
 
