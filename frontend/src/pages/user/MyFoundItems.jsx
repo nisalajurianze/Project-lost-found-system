@@ -57,7 +57,8 @@ export const MyFoundItems = () => {
 
   if (isLoading && items.length === 0) return <Loader fullPage />;
 
-  return <div className="space-y-6 animate-fade-in">
+  return (
+    <div className="space-y-6 animate-fade-in">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-3xl font-extrabold font-display text-surface-900 dark:text-white truncate">
