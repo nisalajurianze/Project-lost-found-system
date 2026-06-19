@@ -67,9 +67,26 @@ export const CreatableCategorySelect = React.forwardRef(({
   // Find the selected option object
   const selectedOption = options.find(opt => opt.value === value) || (value ? { label: value, value: value } : null);
 
+  const inputValueRef = React.useRef('');
+
   const handleChange = (selected) => {
+    inputValueRef.current = ''; // Clear typed text on selection
     // Return an event-like object to be compatible with existing onChange handlers
     onChange({ target: { name, value: selected ? selected.value : '' } });
+  };
+
+  const handleInputChange = (newInputValue, { action }) => {
+    if (action === 'input-change') {
+      inputValueRef.current = newInputValue;
+    }
+  };
+
+  const handleBlur = () => {
+    const val = inputValueRef.current.trim();
+    if (val) {
+      // Auto-create on blur if they clicked outside without pressing enter
+      handleChange({ label: val, value: val });
+    }
   };
 
   return (
@@ -88,6 +105,8 @@ export const CreatableCategorySelect = React.forwardRef(({
           options={options}
           value={selectedOption}
           onChange={handleChange}
+          onInputChange={handleInputChange}
+          onBlur={handleBlur}
           placeholder={placeholder}
           isClearable
           formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
