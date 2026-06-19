@@ -253,7 +253,13 @@ export const ReportFound = () => {
                     try {
                       const res = await aiService.autoCreateCategory(val);
                       await dispatch(fetchCategories());
-                      setCategory(res.data.data.name);
+                      const newName = res.data.data.name;
+                      const newIcon = res.data.data.icon || '📦';
+                      setExtraCategory({
+                        value: newName,
+                        label: `${newIcon} ${newName}`
+                      });
+                      setCategory(newName);
                       toast.success('Emoji added!', { id: toastId });
                     } catch (err) {
                       toast.dismiss(toastId);

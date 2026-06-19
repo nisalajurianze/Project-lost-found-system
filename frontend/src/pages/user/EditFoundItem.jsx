@@ -16,6 +16,7 @@ import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import { FiX } from 'react-icons/fi';
 import Loader from '../../components/common/Loader';
+import aiService from '../../services/aiService';
 
 export const EditFoundItem = () => {
   const { id } = useParams();
@@ -137,10 +138,16 @@ export const EditFoundItem = () => {
     }
   };
 
+  const [extraCategory, setExtraCategory] = useState(null);
+
   const categoryOptions = categories.map((cat) => ({
     value: cat.name,
     label: `${cat.icon} ${cat.name}`
   }));
+
+  if (extraCategory && !categoryOptions.some(c => c.value === extraCategory.value)) {
+    categoryOptions.push(extraCategory);
+  }
 
   const contactOptions = [
     { value: 'both', label: 'Email & Phone Number' },
@@ -183,7 +190,31 @@ export const EditFoundItem = () => {
               name="category"
               options={categoryOptions}
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={async (e) => {
+                const val = e.target.value;
+                const isNew = val && !categories.some(c => c.name === val);
+                
+                if (isNew) {
+                  const toastId = toast.loading(`✨ AI is finding an emoji for "${val}"...`);
+                  try {
+                    const res = await aiService.autoCreateCategory(val);
+                    await dispatch(fetchCategories());
+                    const newName = res.data.data.name;
+                    const newIcon = res.data.data.icon || '📦';
+                    setExtraCategory({
+                      value: newName,
+                      label: `${newIcon} ${newName}`
+                    });
+                    setCategory(newName);
+                    toast.success('Emoji added!', { id: toastId });
+                  } catch (err) {
+                    toast.dismiss(toastId);
+                    setCategory(val);
+                  }
+                } else {
+                  setCategory(val);
+                }
+              }}
               error={errors.category}
               required
             />
