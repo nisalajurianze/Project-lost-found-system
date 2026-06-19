@@ -177,6 +177,43 @@ const updateUserStatus = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Toggle user role (Promote / Demote).
+ */
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { role } = req.body;
+  
+  if (!['user', 'admin'].includes(role)) {
+    throw ApiError.badRequest('Invalid role.');
+  }
+  
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    throw ApiError.notFound('User not found.');
+  }
+
+  if (user._id.toString() === req.user._id.toString()) {
+    throw ApiError.badRequest('You cannot change your own role.');
+  }
+
+  const prevRole = user.role;
+  user.role = role;
+  await user.save();
+
+  // Log action
+  await AdminLog.create({
+    adminId: req.user._id,
+    action: role === 'admin' ? 'USER_PROMOTED' : 'USER_DEMOTED',
+    targetModel: 'User',
+    targetId: user._id,
+    details: `Updated role from ${prevRole} to ${role}`,
+    ipAddress: req.ip || ''
+  });
+
+  ApiResponse.ok(user, `User role updated to ${role === 'admin' ? 'Administrator' : 'User'} successfully.`).send(res);
+});
+
+/**
  * Get audit trail of admin actions.
  */
 const getAdminLogs = asyncHandler(async (req, res) => {
@@ -206,5 +243,6 @@ export {
   getDashboardStats,
   getUsers,
   updateUserStatus,
+  updateUserRole,
   getAdminLogs
 };

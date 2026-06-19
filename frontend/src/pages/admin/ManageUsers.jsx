@@ -8,10 +8,12 @@ import {
   Mail, 
   Phone, 
   User, 
-  SlidersHorizontal 
+  SlidersHorizontal,
+  Shield,
+  ShieldOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { fetchUsersList, toggleUserActivation } from '../../redux/slices/adminSlice';
+import { fetchUsersList, toggleUserActivation, updateUserRole } from '../../redux/slices/adminSlice';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -31,6 +33,7 @@ const ManageUsers = () => {
   const [role, setRole] = useState('');
   const [page, setPage] = useState(1);
   const [toggleUser, setToggleUser] = useState(null); // { id, isActive, name } for confirm modal
+  const [roleToggleUser, setRoleToggleUser] = useState(null); // { id, name, currentRole } for role change modal
 
   useEffect(() => {
     dispatch(fetchUsersList({ search, role, page, limit: 10 }));
@@ -63,6 +66,23 @@ const ManageUsers = () => {
       toast.error(err || 'Failed to update user status.');
     } finally {
       setToggleUser(null);
+    }
+  };
+
+  const handleRoleToggle = async () => {
+    if (!roleToggleUser) return;
+    const newRole = roleToggleUser.currentRole === 'admin' ? 'user' : 'admin';
+    try {
+      await dispatch(updateUserRole({ 
+        id: roleToggleUser.id, 
+        role: newRole 
+      })).unwrap();
+      
+      toast.success(`User "${roleToggleUser.name}" is now ${newRole === 'admin' ? 'an Administrator' : 'a regular User'}.`);
+    } catch (err) {
+      toast.error(err || 'Failed to update user role.');
+    } finally {
+      setRoleToggleUser(null);
     }
   };
 
@@ -217,6 +237,23 @@ const ManageUsers = () => {
                               <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> Activate</span>
                             )}
                           </Button>
+                          <Button 
+                            variant="secondary"
+                            size="sm"
+                            disabled={isSelf}
+                            onClick={() => setRoleToggleUser({ 
+                              id: user._id, 
+                              name: user.fullName,
+                              currentRole: user.role
+                            })}
+                            className="w-[110px]"
+                          >
+                            {user.role === 'admin' ? (
+                              <span className="flex items-center justify-center gap-1 w-full text-amber-600 dark:text-amber-400"><ShieldOff className="h-4 w-4" /> Demote</span>
+                            ) : (
+                              <span className="flex items-center justify-center gap-1 w-full text-indigo-600 dark:text-indigo-400"><Shield className="h-4 w-4" /> Make Admin</span>
+                            )}
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -248,6 +285,23 @@ const ManageUsers = () => {
           }`}
           confirmText={toggleUser.isActive ? 'Suspend' : 'Activate'}
           variant={toggleUser.isActive ? 'danger' : 'success'}
+        />
+      )}
+
+      {/* Confirm Role Change Modal */}
+      {roleToggleUser && (
+        <ConfirmDialog 
+          isOpen={!!roleToggleUser}
+          onClose={() => setRoleToggleUser(null)}
+          onConfirm={handleRoleToggle}
+          title={roleToggleUser.currentRole === 'admin' ? 'Demote Administrator?' : 'Promote to Administrator?'}
+          message={`Are you sure you want to make "${roleToggleUser.name}" ${roleToggleUser.currentRole === 'admin' ? 'a regular user' : 'an administrator'}? ${
+            roleToggleUser.currentRole === 'admin' 
+              ? 'They will lose access to the system admin panel immediately.' 
+              : 'They will have full access to manage users, items, and settings.'
+          }`}
+          confirmText={roleToggleUser.currentRole === 'admin' ? 'Demote Admin' : 'Make Admin'}
+          variant={roleToggleUser.currentRole === 'admin' ? 'danger' : 'primary'}
         />
       )}
     </div>

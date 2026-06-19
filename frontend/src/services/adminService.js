@@ -31,6 +31,14 @@ const adminService = {
   },
 
   /**
+   * Toggle user role (Promote/Demote).
+   */
+  updateUserRole: async (id, role) => {
+    const res = await api.put(`/admin/users/${id}/role`, { role });
+    return res.data.data;
+  },
+
+  /**
    * Get admin audit logs.
    */
   getAdminLogs: async (params = {}) => {

@@ -39,6 +39,17 @@ export const toggleUserActivation = createAsyncThunk(
   }
 );
 
+export const updateUserRole = createAsyncThunk(
+  'admin/updateUserRole',
+  async ({ id, role }, { rejectWithValue }) => {
+    try {
+      return await adminService.updateUserRole(id, role);
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 export const fetchAdminAuditLogs = createAsyncThunk(
   'admin/fetchLogs',
   async (params, { rejectWithValue }) => {
@@ -93,6 +104,10 @@ const adminSlice = createSlice({
       })
       // Toggle Activation
       .addCase(toggleUserActivation.fulfilled, (state, action) => {
+        state.users = state.users.map(u => u._id === action.payload._id ? action.payload : u);
+      })
+      // Update Role
+      .addCase(updateUserRole.fulfilled, (state, action) => {
         state.users = state.users.map(u => u._id === action.payload._id ? action.payload : u);
       })
       // Fetch Logs
