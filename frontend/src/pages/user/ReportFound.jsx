@@ -268,8 +268,8 @@ export const ReportFound = () => {
                       try {
                         const res = await aiService.autoCreateCategory(val);
                         await dispatch(fetchCategories());
-                        const newName = res.data.data.name;
-                        const newIcon = res.data.data.icon || '📦';
+                        const newName = res.data.name;
+                        const newIcon = res.data.icon || '📦';
                         
                         setExtraCategory({
                           value: newName,
