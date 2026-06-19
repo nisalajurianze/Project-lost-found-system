@@ -281,13 +281,16 @@ export const Navbar = () => {
               </div>
             )}
 
-            {/* User Profile Dropdown Link */}
+            {/* User Profile Direct Link */}
             {isAuthenticated ? (
-              <div className="relative" ref={profileDropdownRef}>
+              <div className="relative">
                 <button
-                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  onClick={() => {
+                    navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+                    setProfileDropdownOpen(false);
+                  }}
                   className="flex items-center gap-2 p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none hover:ring-2 hover:ring-primary-500/50"
-                  title="Profile Menu"
+                  title="Go to Dashboard"
                 >
                   {user?.profileImage?.url ? (
                     <img
@@ -301,7 +304,6 @@ export const Navbar = () => {
                     </div>
                   )}
                 </button>
-                {renderProfileDropdown()}
               </div>
             ) : (
               <div className="flex items-center gap-3">
