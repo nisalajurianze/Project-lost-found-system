@@ -13,7 +13,7 @@ export const MobileBottomNav = () => {
     { id: 'home', label: 'Home', path: '/', icon: <FiHome /> },
     { id: 'lost', label: 'Lost', path: '/lost-items', icon: <FiSearch /> },
     { id: 'found', label: 'Found', path: '/found-items', icon: <FiPackage /> },
-    ...(isAuthenticated ? [{ id: 'matches', label: 'Matches', path: '/dashboard/matches', icon: <FiActivity /> }] : []),
+    ...(isAuthenticated ? [{ id: 'matches', label: 'Matches', path: '/dashboard/my-matches', icon: <FiActivity /> }] : []),
     isAuthenticated
       ? { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: <FiGrid /> }
       : { id: 'login', label: 'Log In', path: '/login', icon: <FiLogIn /> }
