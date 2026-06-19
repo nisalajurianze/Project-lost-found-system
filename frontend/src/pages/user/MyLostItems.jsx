@@ -68,8 +68,8 @@ export const MyLostItems = () => {
               Manage your reported lost property reports
             </p>
           </div>
-          <Link to="/dashboard/report-lost" className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 font-bold shadow-md flex-shrink-0 whitespace-nowrap">
-            <FiPlusCircle className="text-lg" /> <span className="hidden sm:inline">Report New</span>
+          <Link to="/dashboard/report-lost" className="btn btn-primary rounded-lg flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm gap-1.5 font-bold shadow-md flex-shrink-0 transition-transform hover:scale-105 active:scale-95">
+            <FiPlusCircle className="text-xl sm:text-lg" /> <span className="hidden sm:inline">Report New</span>
           </Link>
         </div>
 
@@ -80,59 +80,61 @@ export const MyLostItems = () => {
         />
       ) : (
         <>
-          <div className="table-container bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700/60 shadow-sm rounded-2xl overflow-hidden">
-            <table className="table-base w-full text-sm text-left">
-              <thead className="table-head bg-surface-50 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
-                <tr>
-                  <th className="px-6 py-4">Item Name</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Date Lost</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item._id} className="table-row border-t border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-surface-900 dark:text-white">
-                      {item.itemName}
-                    </td>
-                    <td className="px-6 py-4 text-surface-600 dark:text-surface-300">
-                      {item.category}
-                    </td>
-                    <td className="px-6 py-4 text-surface-500 dark:text-surface-400">
-                      {new Date(item.lostDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td className="px-6 py-4 text-right flex justify-end gap-2.5">
-                      <Link
-                        to={`/lost-items/${item._id}`}
-                        className="p-1.5 text-surface-500 hover:text-primary-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                        title="View Details"
-                      >
-                        <FiEye />
-                      </Link>
-                      <Link
-                        to={`/dashboard/edit-lost/${item._id}`}
-                        className="p-1.5 text-surface-500 hover:text-indigo-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                        title="Edit Report"
-                      >
-                        <FiEdit2 />
-                      </Link>
-                      <button
-                        onClick={() => handleDeleteClick(item._id)}
-                        className="p-1.5 text-surface-500 hover:text-red-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                        title="Delete"
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </td>
+          <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700/60 shadow-sm rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="table-base w-full text-sm text-left whitespace-nowrap min-w-[700px]">
+                <thead className="table-head bg-surface-50 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
+                  <tr>
+                    <th className="px-6 py-4">Item Name</th>
+                    <th className="px-6 py-4">Category</th>
+                    <th className="px-6 py-4">Date Lost</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item._id} className="table-row border-t border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-surface-900 dark:text-white">
+                        {item.itemName}
+                      </td>
+                      <td className="px-6 py-4 text-surface-600 dark:text-surface-300">
+                        {item.category}
+                      </td>
+                      <td className="px-6 py-4 text-surface-500 dark:text-surface-400">
+                        {new Date(item.lostDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={item.status} />
+                      </td>
+                      <td className="px-6 py-4 text-right flex justify-end gap-2.5">
+                        <Link
+                          to={`/lost-items/${item._id}`}
+                          className="p-1.5 text-surface-500 hover:text-primary-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
+                          title="View Details"
+                        >
+                          <FiEye />
+                        </Link>
+                        <Link
+                          to={`/dashboard/edit-lost/${item._id}`}
+                          className="p-1.5 text-surface-500 hover:text-indigo-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
+                          title="Edit Report"
+                        >
+                          <FiEdit2 />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteClick(item._id)}
+                          className="p-1.5 text-surface-500 hover:text-red-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
+                          title="Delete"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <Pagination
