@@ -61,6 +61,7 @@ const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
 import Loader from './components/common/Loader';
 import AIChatbot from './components/common/AIChatbot';
 import MobileBottomNav from './components/layout/MobileBottomNav';
+import ScrollToTopButton from './components/common/ScrollToTopButton';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -173,6 +174,7 @@ const App = () => {
       </Routes>
       <AIChatbot />
       <MobileBottomNav />
+      <ScrollToTopButton />
     </Suspense>
     </>
   );
