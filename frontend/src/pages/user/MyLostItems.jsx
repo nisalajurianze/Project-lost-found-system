@@ -59,19 +59,19 @@ export const MyLostItems = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-        <div>
-          <h1 className="page-title text-2xl sm:text-3xl font-extrabold font-display text-surface-900 dark:text-white">
-            My Lost Reports
-          </h1>
-          <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
-            Manage your reported lost property reports
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-3xl font-extrabold font-display text-surface-900 dark:text-white truncate">
+              My Lost Reports
+            </h1>
+            <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 mt-1 truncate">
+              Manage your reported lost property reports
+            </p>
+          </div>
+          <Link to="/dashboard/report-lost" className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 font-bold shadow-md flex-shrink-0 whitespace-nowrap">
+            <FiPlusCircle className="text-lg" /> <span className="hidden sm:inline">Report New</span>
+          </Link>
         </div>
-        <Link to="/dashboard/report-lost" className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 font-bold shadow-md">
-          <FiPlusCircle /> Report New
-        </Link>
-      </div>
 
       {items.length === 0 ? (
         <EmptyState
