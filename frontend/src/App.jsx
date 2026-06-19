@@ -18,44 +18,64 @@ import useSocket from './hooks/useSocket';
 // Constants
 import { LOCAL_STORAGE_USER_KEY } from './utils/constants';
 
+// Custom lazy loading wrapper to handle chunk load errors (e.g. after a new deployment)
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      if (
+        error.name === 'TypeError' || 
+        error.message.includes('Failed to fetch dynamically imported module') ||
+        error.message.includes('Importing a module script failed')
+      ) {
+        // A new deployment likely changed the chunk hashes. Refresh to get the latest version.
+        window.location.reload();
+        // Return a promise that never resolves so React doesn't crash while reloading
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+
 // Public Pages (Lazy Loaded)
-const Home = lazy(() => import('./pages/public/Home'));
-const Login = lazy(() => import('./pages/public/Login'));
-const Register = lazy(() => import('./pages/public/Register'));
-const ForgotPassword = lazy(() => import('./pages/public/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/public/ResetPassword'));
-const About = lazy(() => import('./pages/public/About'));
-const Contact = lazy(() => import('./pages/public/Contact'));
-const LostItems = lazy(() => import('./pages/public/LostItems'));
-const LostItemDetail = lazy(() => import('./pages/public/LostItemDetail'));
-const FoundItems = lazy(() => import('./pages/public/FoundItems'));
-const FoundItemDetail = lazy(() => import('./pages/public/FoundItemDetail'));
-const VerifyEmail = lazy(() => import('./pages/public/VerifyEmail'));
+const Home = lazyWithRetry(() => import('./pages/public/Home'));
+const Login = lazyWithRetry(() => import('./pages/public/Login'));
+const Register = lazyWithRetry(() => import('./pages/public/Register'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/public/ForgotPassword'));
+const ResetPassword = lazyWithRetry(() => import('./pages/public/ResetPassword'));
+const About = lazyWithRetry(() => import('./pages/public/About'));
+const Contact = lazyWithRetry(() => import('./pages/public/Contact'));
+const LostItems = lazyWithRetry(() => import('./pages/public/LostItems'));
+const LostItemDetail = lazyWithRetry(() => import('./pages/public/LostItemDetail'));
+const FoundItems = lazyWithRetry(() => import('./pages/public/FoundItems'));
+const FoundItemDetail = lazyWithRetry(() => import('./pages/public/FoundItemDetail'));
+const VerifyEmail = lazyWithRetry(() => import('./pages/public/VerifyEmail'));
 
 // User Pages (Lazy Loaded)
-const Dashboard = lazy(() => import('./pages/user/Dashboard'));
-const Profile = lazy(() => import('./pages/user/Profile'));
-const ReportLost = lazy(() => import('./pages/user/ReportLost'));
-const ReportFound = lazy(() => import('./pages/user/ReportFound'));
-const EditLostItem = lazy(() => import('./pages/user/EditLostItem'));
-const EditFoundItem = lazy(() => import('./pages/user/EditFoundItem'));
-const MyLostItems = lazy(() => import('./pages/user/MyLostItems'));
-const MyFoundItems = lazy(() => import('./pages/user/MyFoundItems'));
-const MyMatches = lazy(() => import('./pages/user/MyMatches'));
-const Notifications = lazy(() => import('./pages/user/Notifications'));
-const VerifyResolution = lazy(() => import('./pages/protected/VerifyResolution'));
+const Dashboard = lazyWithRetry(() => import('./pages/user/Dashboard'));
+const Profile = lazyWithRetry(() => import('./pages/user/Profile'));
+const ReportLost = lazyWithRetry(() => import('./pages/user/ReportLost'));
+const ReportFound = lazyWithRetry(() => import('./pages/user/ReportFound'));
+const EditLostItem = lazyWithRetry(() => import('./pages/user/EditLostItem'));
+const EditFoundItem = lazyWithRetry(() => import('./pages/user/EditFoundItem'));
+const MyLostItems = lazyWithRetry(() => import('./pages/user/MyLostItems'));
+const MyFoundItems = lazyWithRetry(() => import('./pages/user/MyFoundItems'));
+const MyMatches = lazyWithRetry(() => import('./pages/user/MyMatches'));
+const Notifications = lazyWithRetry(() => import('./pages/user/Notifications'));
+const VerifyResolution = lazyWithRetry(() => import('./pages/protected/VerifyResolution'));
 
 // Admin Pages (Lazy Loaded)
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const ManageUsers = lazy(() => import('./pages/admin/ManageUsers'));
-const ManageLostItems = lazy(() => import('./pages/admin/ManageLostItems'));
-const ManageFoundItems = lazy(() => import('./pages/admin/ManageFoundItems'));
-const ManageMatches = lazy(() => import('./pages/admin/ManageMatches'));
-const Feedback = lazy(() => import('./pages/admin/Feedback'));
-const AdminLogs = lazy(() => import('./pages/admin/AdminLogs'));
-const Analytics = lazy(() => import('./pages/admin/Analytics'));
-const ManageCategories = lazy(() => import('./pages/admin/ManageCategories'));
-const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
+const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
+const ManageUsers = lazyWithRetry(() => import('./pages/admin/ManageUsers'));
+const ManageLostItems = lazyWithRetry(() => import('./pages/admin/ManageLostItems'));
+const ManageFoundItems = lazyWithRetry(() => import('./pages/admin/ManageFoundItems'));
+const ManageMatches = lazyWithRetry(() => import('./pages/admin/ManageMatches'));
+const Feedback = lazyWithRetry(() => import('./pages/admin/Feedback'));
+const AdminLogs = lazyWithRetry(() => import('./pages/admin/AdminLogs'));
+const Analytics = lazyWithRetry(() => import('./pages/admin/Analytics'));
+const ManageCategories = lazyWithRetry(() => import('./pages/admin/ManageCategories'));
+const SiteSettings = lazyWithRetry(() => import('./pages/admin/SiteSettings'));
 
 // Fallback loader
 import Loader from './components/common/Loader';
