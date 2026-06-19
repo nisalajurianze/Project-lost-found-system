@@ -9,7 +9,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../../redux/slices/themeSlice';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { fetchUserNotifications, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/notificationSlice';
-import { FiSun, FiMoon, FiBell, FiMenu, FiX, FiUser, FiLogOut, FiSettings, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
+import { FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
 import { getInitials } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 
@@ -18,7 +18,6 @@ export const Navbar = () => {
   const dispatch = useDispatch();
   const location = useLocation();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const notificationDropdownRef = React.useRef(null);
@@ -316,7 +315,7 @@ export const Navbar = () => {
             )}
           </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Actions */}
           <div className="flex md:hidden items-center gap-2 sm:gap-3">
             {/* Mobile Notification Bell */}
             {isAuthenticated && (
@@ -333,7 +332,6 @@ export const Navbar = () => {
                     </span>
                   )}
                 </button>
-                {/* Notification Dropdown */}
                 {renderNotificationDropdown()}
               </div>
             )}
@@ -361,72 +359,19 @@ export const Navbar = () => {
               </div>
             )}
 
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1 rounded-full border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 transition-all focus:outline-none"
-            >
-              {mobileMenuOpen ? (
-                <div className="h-9 w-9 flex items-center justify-center bg-surface-100 dark:bg-surface-800 rounded-full"><FiX className="text-xl text-surface-500 dark:text-surface-400" /></div>
-              ) : (
-                <div className="h-9 w-9 flex items-center justify-center bg-surface-100 dark:bg-surface-800 rounded-full"><FiMenu className="text-xl text-surface-500 dark:text-surface-400" /></div>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed top-16 bottom-0 left-0 right-0 bg-white dark:bg-surface-900 border-t border-surface-200 dark:border-surface-800 p-6 animate-fade-in z-40 flex flex-col overflow-y-auto">
-          <div className="flex flex-col gap-2 flex-1 pb-24">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`text-lg font-semibold px-4 py-3.5 rounded-xl transition-all ${
-                  isActive(link.path)
-                    ? 'bg-primary-50 text-primary-600 dark:bg-primary-500/20 dark:text-primary-400'
-                    : 'text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800/50'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-          
-          <div className="flex flex-col gap-4 pt-6 border-t border-surface-200 dark:border-surface-800 shrink-0 pb-12">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-surface-600 dark:text-surface-400 font-medium">Theme Mode</span>
+            {/* Theme Toggle for Unauthenticated Mobile Users */}
+            {!isAuthenticated && (
               <button
                 onClick={() => dispatch(toggleTheme())}
-                className="p-3 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-full transition-colors flex items-center justify-center gap-2"
+                className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
+                aria-label="Toggle Theme"
               >
-                {themeMode === 'dark' ? <><FiSun className="text-xl" /> Light</> : <><FiMoon className="text-xl" /> Dark</>}
+                {themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
               </button>
-            </div>
-            
-            {!isAuthenticated && (
-              <div className="flex flex-col gap-3 mt-2">
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="btn btn-secondary w-full py-3.5 text-lg"
-                >
-                  Log In
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="btn btn-primary w-full py-3.5 text-lg"
-                >
-                  Sign Up
-                </Link>
-              </div>
             )}
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 };
