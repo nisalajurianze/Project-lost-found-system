@@ -281,6 +281,8 @@ export const ReportFound = () => {
                       toast.success('Emoji added!', { id: toastId });
                     } catch (err) {
                       toast.dismiss(toastId);
+                      toast.error(err.response?.data?.message || 'Invalid category name.');
+                      setCategory(''); // Revert optimistic update on failure
                     }
                   }
                 }}
