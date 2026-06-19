@@ -11,6 +11,7 @@ import { fetchLostItemById, clearCurrentLostItem } from '../../redux/slices/lost
 import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
+import ClaimModal from '../../components/common/ClaimModal';
 import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
@@ -25,6 +26,7 @@ export const LostItemDetail = () => {
   const { isAuthenticated } = useAuth();
   const { currentItem, isLoading, error } = useSelector((state) => state.lostItems);
   const [activeImage, setActiveImage] = useState('');
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
 
   useEffect(() => {
@@ -196,22 +198,21 @@ export const LostItemDetail = () => {
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (
-                    <Button 
-                      onClick={async () => {
-                        if (window.confirm('Your contact details will be shared with the owner. Proceed?')) {
-                          try {
-                            await lostItemService.connectLostItem(currentItem._id);
-                            dispatch(fetchLostItemById(id));
-                            toast.success('Connected! Contact details exchanged via email.');
-                          } catch (err) {
-                            toast.error(err?.message || 'Failed to connect.');
-                          }
-                        }
-                      }} 
-                      variant="primary"
-                    >
-                      I have this
-                    </Button>
+                    <>
+                      <Button 
+                        onClick={() => setIsClaimModalOpen(true)}
+                        variant="primary"
+                      >
+                        I have this
+                      </Button>
+                      <ClaimModal 
+                        isOpen={isClaimModalOpen}
+                        onClose={() => setIsClaimModalOpen(false)}
+                        targetItemId={currentItem._id}
+                        itemType="LostItem"
+                        itemName={currentItem.itemName}
+                      />
+                    </>
                   ) : (
                     <Link to="/login">
                       <Button variant="primary">Log In to Connect</Button>

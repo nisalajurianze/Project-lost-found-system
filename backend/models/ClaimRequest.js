@@ -16,8 +16,14 @@ const claimRequestSchema = new mongoose.Schema(
     foundItemId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'FoundItem',
-      required: [true, 'Found item ID is required'],
       index: true,
+      default: null,
+    },
+    lostItemId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LostItem',
+      index: true,
+      default: null,
     },
     matchId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -74,6 +80,16 @@ const claimRequestSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
+
+// Require exactly one of foundItemId or lostItemId
+claimRequestSchema.pre('validate', function(next) {
+  if (!this.foundItemId && !this.lostItemId) {
+    this.invalidate('foundItemId', 'Either foundItemId or lostItemId is required');
+  } else if (this.foundItemId && this.lostItemId) {
+    this.invalidate('foundItemId', 'Cannot provide both foundItemId and lostItemId');
+  }
+  next();
+});
 
 // ── Indexes ─────────────────────────────────────────────────────────────
 claimRequestSchema.index({ claimantId: 1, foundItemId: 1 });

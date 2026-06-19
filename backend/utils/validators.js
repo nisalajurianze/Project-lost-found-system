@@ -317,10 +317,22 @@ const updateFoundItemValidator = [
 
 const createClaimValidator = [
   body('foundItemId')
-    .notEmpty()
-    .withMessage('Found item ID is required')
+    .optional()
     .isMongoId()
     .withMessage('Invalid found item ID'),
+  body('lostItemId')
+    .optional()
+    .isMongoId()
+    .withMessage('Invalid lost item ID'),
+  body().custom((value) => {
+    if (!value.foundItemId && !value.lostItemId) {
+      throw new Error('Either foundItemId or lostItemId is required');
+    }
+    if (value.foundItemId && value.lostItemId) {
+      throw new Error('Cannot provide both foundItemId and lostItemId');
+    }
+    return true;
+  }),
   body('proofDescription')
     .trim()
     .notEmpty()

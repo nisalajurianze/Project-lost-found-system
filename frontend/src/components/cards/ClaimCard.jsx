@@ -12,9 +12,11 @@ import { formatRelativeTime } from '../../utils/formatDate';
 
 export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false, isLoading = false }) => {
   const claimant = claim.claimantId;
-  const foundItem = claim.foundItemId;
+  const targetItem = claim.foundItemId || claim.lostItemId;
+  const itemType = claim.foundItemId ? 'Found Item' : 'Lost Item';
+  const itemUrl = claim.foundItemId ? `/found-items/${targetItem._id}` : `/lost-items/${targetItem._id}`;
   
-  if (!foundItem) return null;
+  if (!targetItem) return null;
 
   return (
     <div className="card p-6 flex flex-col justify-between">
@@ -31,11 +33,11 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
         <div className="flex flex-col gap-3">
           <div>
             <span className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">
-              Found Item
+              {itemType}
             </span>
-            <Link to={`/found-items/${foundItem._id}`} className="flex items-center gap-1.5 hover:text-primary-500 transition-colors">
+            <Link to={itemUrl} className="flex items-center gap-1.5 hover:text-primary-500 transition-colors">
               <h5 className="text-sm font-bold text-surface-900 dark:text-white">
-                {foundItem.itemName}
+                {targetItem.itemName}
               </h5>
               <FiExternalLink className="text-xs" />
             </Link>
@@ -45,9 +47,15 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
             <span className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">
               Claimant Profile
             </span>
-            <p className="text-xs font-semibold text-surface-700 dark:text-surface-300">
-              👤 {claimant?.fullName} ({claimant?.studentId})
-            </p>
+            <div className="text-xs text-surface-700 dark:text-surface-300 space-y-1 mt-1">
+              <p className="font-semibold">👤 {claimant?.fullName || claimant?.name} ({claimant?.studentId})</p>
+              {(canReview || isAdmin || claim.status === 'approved') && (
+                <>
+                  <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {claimant?.email}</p>
+                  {claimant?.phone && <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {claimant?.phone}</p>}
+                </>
+              )}
+            </div>
           </div>
 
           <div>

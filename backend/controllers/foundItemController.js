@@ -379,59 +379,6 @@ const deleteFoundItem = asyncHandler(async (req, res) => {
 });
 
 /**
- * Connect to a found item (This is mine).
- */
-const connectFoundItem = asyncHandler(async (req, res) => {
-  const foundItem = await FoundItem.findById(req.params.id).populate('userId', 'name email phoneNumber');
-  
-  if (!foundItem || foundItem.isDeleted) {
-    throw ApiError.notFound('Found item not found');
-  }
-
-  if (foundItem.status !== 'available' && foundItem.status !== 'matched') {
-    throw ApiError.badRequest('This item is no longer available to connect.');
-  }
-
-  if (foundItem.userId._id.toString() === req.user._id.toString()) {
-    throw ApiError.badRequest('You cannot connect to your own reported item.');
-  }
-
-  foundItem.status = 'in_progress';
-  foundItem.connectedUserId = req.user._id;
-  foundItem.connectedAt = new Date();
-  foundItem.reminderSent = false;
-  await foundItem.save();
-
-  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
-
-  import('../services/emailService.js').then((emailService) => {
-    // Send email to Founder
-    emailService.sendEmail(
-      foundItem.userId.email,
-      'Someone Claimed Your Found Item',
-      emailService.templates.claimReceived(
-        foundItem.userId.name,
-        foundItem.itemName,
-        req.user.name
-      )
-    ).catch(err => console.error('Failed to send connect email:', err));
-
-    // Send email to Requester
-    emailService.sendEmail(
-      req.user.email,
-      'Contact Details - You Claimed an Item',
-      emailService.templates.claimApprovedFounder(
-        req.user.name,
-        foundItem.itemName,
-        `Name: ${foundItem.userId.name}\nEmail: ${foundItem.userId.email}\nPhone: ${foundItem.userId.phoneNumber || 'N/A'}`
-      )
-    ).catch(err => console.error('Failed to send connect email:', err));
-  });
-
-  ApiResponse.ok(foundItem, 'Connected successfully. Contact details will be emailed.').send(res);
-});
-
-/**
  * Resolve a found item (Mark as Done).
  */
 const resolveFoundItem = asyncHandler(async (req, res) => {
@@ -499,7 +446,7 @@ export {
   getFoundItemById,
   updateFoundItem,
   deleteFoundItem,
-  connectFoundItem,
+  getFoundItemById,
   resolveFoundItem,
   cancelConnectionFoundItem
 };

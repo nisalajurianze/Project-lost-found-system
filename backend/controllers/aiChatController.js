@@ -25,7 +25,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       
       userContextText = `User Context:\nYou are talking to: ${userData.fullName}\n`;
       if (pastItems.length > 0) {
-        userContextText += `They recently reported these items to the system: ${pastItems.join(', ')}.\nKeep this in mind if they ask about 'my item' or 'my laptop'. You can address them by name occasionally to feel friendly.\n\n`;
+        userContextText += `CRITICAL USER CONTEXT: They recently reported these items to the system: ${pastItems.join(', ')}.\nIf they say "my item" or "my lap", strongly assume they are talking about one of these items. Address them by name occasionally to feel friendly.\n\n`;
       } else {
         userContextText += `They haven't reported any items yet.\n\n`;
       }
@@ -171,13 +171,15 @@ CRITICAL LANGUAGE RULE:
 - If they typed in Sinhala script (අකුරු), reply in Sinhala script.
 
 Determine their intent based on the context:
-- "lost": They lost a specific item and want to search for it.
+- "lost": They lost a specific item and want to search for it (e.g., "ape lap eka nathi una", "mage purse eka naha").
 - "found": They found a specific item and want to search if someone reported it.
 - "list_found": They want to see a general list of ALL currently found items.
 - "list_lost": They want to see a general list of ALL currently lost items.
 - "general": They are just saying hi, asking a general question, or making small talk.
 
-Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. Look at the Conversation History to find missing context. Auto-correct spelling mistakes in keywords (e.g. "camra" -> "camera").
+Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. 
+CRITICAL: Translate colloquial/slang Singlish terms to proper English object names. For example, if they say "lap", the keyword MUST be "laptop".
+Look at the Conversation History to find missing context. Auto-correct spelling mistakes in keywords (e.g. "camra" -> "camera").
 
 Return ONLY a valid JSON object exactly like this:
 {
@@ -321,10 +323,10 @@ We found these matches in the DB:
 ${itemSummary}
 
 IMPORTANT RULES:
-1. Only list an item if it TRULY MATCHES what the user is looking for based on the keywords. Use your advanced deductive reasoning to figure out if an item is a plausible match.
-2. If NONE of the matches are truly relevant, DO NOT list them. Instead, express genuine empathy that you couldn't find it.
-3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})"
-4. If there are matches but you feel the user's initial description was very vague (e.g., they just said "laptop" or "wallet"), you should STILL suggest the top matches, BUT also proactively and politely ask a context-specific follow-up question tailored to the item type. For example, if they lost a laptop, ask about the brand (HP, Dell, Apple), color, or if it had any stickers. If they lost a phone, ask about the model or phone cover.
+1. YOU MUST PRIORITIZE SHOWING THE DB MATCHES. If the items provided above are even slightly relevant (e.g., they are looking for a "laptop" and there are laptops in the list), YOU MUST INCLUDE THEM in your reply. Do not just ask questions and ignore the list. Include the EXACT markdown links provided in the list.
+2. If the user's initial description was vague (e.g., they just said "lap eka nathi una" or "laptop"), FIRST show the matches from the list above, AND THEN ask a context-specific follow-up question to narrow it down (e.g., "What brand was the laptop? Did it have any stickers?").
+3. If NONE of the matches are even remotely relevant, DO NOT list them. Instead, express genuine empathy that you couldn't find it, and ask follow-up questions to clarify.
+4. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})"
 5. Show empathy. If they lost something, briefly acknowledge the stress of losing it. If they found something, praise them for their honesty. This makes you feel human and incredibly intelligent.
 
 CRITICAL LANGUAGE RULE: 

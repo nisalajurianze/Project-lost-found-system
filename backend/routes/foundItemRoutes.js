@@ -10,7 +10,6 @@ import {
   getFoundItemById,
   updateFoundItem,
   deleteFoundItem,
-  connectFoundItem,
   resolveFoundItem,
   cancelConnectionFoundItem
 } from '../controllers/foundItemController.js';
@@ -36,7 +35,6 @@ router.get('/:id', mongoIdParam, validate, cacheResponse(60), getFoundItemById);
 router.post('/', protect, uploadMultiple, createFoundItemValidator, validate, createFoundItem);
 router.put('/:id', protect, uploadMultiple, mongoIdParam, updateFoundItemValidator, validate, updateFoundItem);
 router.delete('/:id', protect, mongoIdParam, validate, deleteFoundItem);
-router.post('/:id/connect', protect, mongoIdParam, validate, connectFoundItem);
 router.post('/:id/resolve', protect, mongoIdParam, validate, resolveFoundItem);
 router.post('/:id/cancel-connection', protect, mongoIdParam, validate, cancelConnectionFoundItem);
 

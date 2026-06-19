@@ -13,6 +13,7 @@ import Loader from '../../components/common/Loader';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
+import ClaimModal from '../../components/common/ClaimModal';
 import Textarea from '../../components/common/Textarea';
 import ImageUpload from '../../components/common/ImageUpload';
 import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
@@ -30,6 +31,7 @@ export const FoundItemDetail = () => {
   const { currentItem, isLoading, error } = useSelector((state) => state.foundItems);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
   const [activeImage, setActiveImage] = useState('');
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   useEffect(() => {
     dispatch(fetchFoundItemById(id));
     
@@ -190,22 +192,21 @@ export const FoundItemDetail = () => {
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (
-                    <Button 
-                      onClick={async () => {
-                        if (window.confirm('Your contact details will be shared with the finder. Proceed?')) {
-                          try {
-                            await foundItemService.connectFoundItem(currentItem._id);
-                            dispatch(fetchFoundItemById(id));
-                            toast.success('Connected! Contact details exchanged via email.');
-                          } catch (err) {
-                            toast.error(err?.message || 'Failed to connect.');
-                          }
-                        }
-                      }} 
-                      variant="primary"
-                    >
-                      This is mine
-                    </Button>
+                    <>
+                      <Button 
+                        onClick={() => setIsClaimModalOpen(true)}
+                        variant="primary"
+                      >
+                        This is mine
+                      </Button>
+                      <ClaimModal 
+                        isOpen={isClaimModalOpen}
+                        onClose={() => setIsClaimModalOpen(false)}
+                        targetItemId={currentItem._id}
+                        itemType="FoundItem"
+                        itemName={currentItem.itemName}
+                      />
+                    </>
                   ) : (
                     <Link to="/login">
                       <Button variant="primary">Log In to Connect</Button>
