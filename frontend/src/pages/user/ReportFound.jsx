@@ -257,6 +257,9 @@ export const ReportFound = () => {
                   const val = e.target.value;
                   const isNew = val && !categories.some(c => c.name === val);
                   
+                  // Optimistically set the category immediately so it shows up in real-time
+                  setCategory(val);
+                  
                   if (isNew) {
                     const toastId = toast.loading(`✨ AI is finding an emoji for "${val}"...`);
                     try {
@@ -264,18 +267,21 @@ export const ReportFound = () => {
                       await dispatch(fetchCategories());
                       const newName = res.data.data.name;
                       const newIcon = res.data.data.icon || '📦';
+                      
                       setExtraCategory({
                         value: newName,
                         label: `${newIcon} ${newName}`
                       });
-                      setCategory(newName);
+                      
+                      // If the AI formatted the name differently (e.g. capitalized), update the category to match
+                      if (newName !== val) {
+                        setCategory(newName);
+                      }
+                      
                       toast.success('Emoji added!', { id: toastId });
                     } catch (err) {
                       toast.dismiss(toastId);
-                      setCategory(val);
                     }
-                  } else {
-                    setCategory(val);
                   }
                 }}
                 error={errors.category}
