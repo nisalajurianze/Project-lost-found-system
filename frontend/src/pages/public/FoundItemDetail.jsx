@@ -277,11 +277,15 @@ export const FoundItemDetail = () => {
               {canSeeContact ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
-                    {currentItem.userId?.profileImage ? (
+                    {currentItem.userId?.profileImage?.url ? (
                       <img 
-                        src={currentItem.userId.profileImage} 
+                        src={currentItem.userId.profileImage.url} 
                         alt={currentItem.userId.fullName || 'Finder'} 
                         className="w-10 h-10 rounded-full object-cover border border-surface-200 dark:border-surface-700 flex-shrink-0"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentItem.userId.fullName || 'Finder')}&background=random`;
+                        }}
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center flex-shrink-0 border border-surface-200 dark:border-surface-700">
