@@ -59,9 +59,9 @@ export const MyLostItems = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
         <div>
-          <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
+          <h1 className="page-title text-2xl sm:text-3xl font-extrabold font-display text-surface-900 dark:text-white">
             My Lost Reports
           </h1>
           <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
