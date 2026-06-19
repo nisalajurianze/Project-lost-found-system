@@ -4,7 +4,7 @@
 // ============================================
 
 import React from 'react';
-import { FiCpu, FiAward, FiEye } from 'react-icons/fi';
+import { FiCpu, FiAward, FiEye, FiShield } from 'react-icons/fi';
 
 export const About = () => {
   return (
@@ -65,6 +65,27 @@ export const About = () => {
               Campus administration verifies student credentials and image proof before approving reclaims.
             </p>
           </div>
+        </div>
+
+        {/* Data & Privacy Policies */}
+        <div className="glass-card bg-white dark:bg-surface-800 p-8 border border-surface-200 dark:border-surface-700/60 shadow-lg mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <FiShield className="text-2xl text-primary-500" />
+            <h3 className="text-xl font-bold font-display text-surface-900 dark:text-white">
+              Data & System Policies
+            </h3>
+          </div>
+          <p className="text-sm text-surface-600 dark:text-surface-300 leading-relaxed mb-4">
+            To maintain a clean and relevant platform, the system automatically manages item records using the following retention rules:
+          </p>
+          <ul className="list-disc list-inside text-sm text-surface-600 dark:text-surface-300 space-y-2 mb-4">
+            <li><strong>Auto-Delete of Inactive Items:</strong> Any lost or found report that has had no activity (no claims, updates, or matches) for 30 days is automatically archived and hidden.</li>
+            <li><strong>Auto-Delete of Claimed Items:</strong> Items that have been successfully claimed and marked as 'Done' will remain visible for 3 days before being automatically archived.</li>
+            <li><strong>Auto-Delete of Abandoned Claims:</strong> If a claim is confirmed by the owner, but neither party marks the item as 'Done' for 14 days, the record is automatically archived.</li>
+          </ul>
+          <p className="text-sm text-surface-500 dark:text-surface-400 italic">
+            Note: "Auto-Deleted" or archived items are hidden from the public timeline but remain in the database securely for administrative review.
+          </p>
         </div>
         
       </div>

@@ -18,6 +18,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import toast from 'react-hot-toast';
 import aiService from '../../services/aiService';
 import AILoadingToast from '../../components/common/AILoadingToast';
+import { FiInfo } from 'react-icons/fi';
 
 export const ReportLost = () => {
   const navigate = useNavigate();
@@ -102,7 +103,7 @@ export const ReportLost = () => {
       });
 
       await dispatch(createNewLostReport(formData)).unwrap();
-      toast.success('Lost report submitted! AI matching triggered.');
+      toast.success('Lost report submitted! Tip: Inactive items are auto-deleted after 30 days.');
       navigate('/dashboard/my-lost');
     } catch (err) {
       toast.error(err || 'Failed to submit report.');
@@ -193,6 +194,14 @@ export const ReportLost = () => {
         <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
           Provide accurate details to trigger AI campus-wide recommendations
         </p>
+      </div>
+
+      <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4 flex gap-3 items-start">
+        <FiInfo className="text-primary-600 dark:text-primary-400 text-xl flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-primary-800 dark:text-primary-200">
+          <span className="font-semibold block mb-1">System Policy</span>
+          To keep the platform clean, your item will be automatically hidden if there is no activity for 30 days, or 3 days after it is successfully claimed.
+        </div>
       </div>
 
       <div className="glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl">
