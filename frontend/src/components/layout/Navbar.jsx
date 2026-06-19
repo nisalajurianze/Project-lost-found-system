@@ -9,11 +9,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../../redux/slices/themeSlice';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { fetchUserNotifications, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/notificationSlice';
-import { FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText } from 'react-icons/fi';
+import { FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText, FiMenu, FiX } from 'react-icons/fi';
 import { getInitials } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 
-export const Navbar = () => {
+export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
@@ -228,13 +228,29 @@ export const Navbar = () => {
     <nav className="sticky top-0 z-40 w-full border-b border-surface-200/50 bg-white/75 backdrop-blur-md dark:border-surface-800/50 dark:bg-surface-900/75 transition-colors duration-300">
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
-            <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
-            <span className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
-              Smart L&F
-            </span>
-          </Link>
+          {/* Logo & Mobile Menu Toggle */}
+          <div className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+            {onMenuClick ? (
+              <button 
+                onClick={onMenuClick}
+                className="lg:hidden relative h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center text-primary-500 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors focus:outline-none"
+                aria-label="Toggle Admin Menu"
+              >
+                <FiMenu className={`absolute text-2xl transition-all duration-300 ${isMenuOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
+                <FiX className={`absolute text-2xl transition-all duration-300 ${isMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'}`} />
+              </button>
+            ) : null}
+            
+            <Link to="/" className={`flex items-center gap-1.5 ${onMenuClick ? 'hidden lg:flex' : ''}`}>
+              <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
+            </Link>
+            
+            <Link to={onMenuClick ? "/admin" : "/"} className="flex items-center gap-1.5">
+              <span className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
+                Smart L&F
+              </span>
+            </Link>
+          </div>
 
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-6">
