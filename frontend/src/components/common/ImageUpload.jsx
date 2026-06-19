@@ -4,7 +4,7 @@
 // ============================================
 
 import React, { useState } from 'react';
-import { FiUpload, FiX } from 'react-icons/fi';
+import { FiUpload, FiX, FiCamera } from 'react-icons/fi';
 import { BiLoaderAlt } from 'react-icons/bi';
 import toast from 'react-hot-toast';
 import imageCompression from 'browser-image-compression';
@@ -119,6 +119,20 @@ export const ImageUpload = ({
               <p className="text-sm font-medium text-surface-600 dark:text-surface-300">
                 Drag & drop images here or <span className="text-primary-500 font-semibold">browse</span>
               </p>
+              
+              <div className="flex items-center justify-center mt-3 mb-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    document.getElementById('camera-upload-input').click();
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-primary-500 hover:text-white transition-colors text-xs font-semibold shadow-sm"
+                >
+                  <FiCamera className="text-sm" /> Take Photo
+                </button>
+              </div>
+
               <p className="text-xs text-surface-400 mt-1">
                 PNG, JPG, WebP (Max {maxFiles} images)
               </p>
@@ -129,6 +143,15 @@ export const ImageUpload = ({
             type="file"
             multiple
             accept="image/*"
+            className="hidden"
+            onChange={handleInput}
+          />
+          <input
+            id="camera-upload-input"
+            type="file"
+            multiple
+            accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={handleInput}
           />
