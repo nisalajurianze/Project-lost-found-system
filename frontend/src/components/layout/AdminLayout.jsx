@@ -46,14 +46,14 @@ export const AdminLayout = () => {
       <div className="flex-1 flex w-full max-w-7xl mx-auto">
         
         {/* Admin Left Sidebar */}
-        <aside className="w-64 flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl p-5 hidden lg:flex flex-col no-print sticky top-16 h-[calc(100vh-4rem)]">
-          <div className="mb-4 px-4 py-2 bg-primary-500/10 rounded-xl">
-            <span className="text-xs font-bold text-primary-500 dark:text-primary-400 uppercase tracking-wider block">
+        <aside className="w-[280px] flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl p-5 hidden lg:flex flex-col no-print sticky top-16 h-[calc(100vh-4rem)]">
+          <div className="mb-6 px-4 py-3 bg-primary-500/10 rounded-xl border border-primary-500/20">
+            <span className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest block text-center">
               System Admin Panel
             </span>
           </div>
           
-          <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+          <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto custom-scrollbar pr-2 -mr-2">
             {adminLinks.map((link) => (
               <NavLink
                 key={link.path}
@@ -61,12 +61,12 @@ export const AdminLayout = () => {
                 end={link.end}
                 className={({ isActive }) =>
                   `${isActive ? 'sidebar-link-active' : 'sidebar-link'} ${
-                    link.borderTop ? 'mt-4 pt-4 border-t border-surface-200 dark:border-surface-700/50' : ''
+                    link.borderTop ? 'mt-4 pt-4 border-t border-surface-200 dark:border-surface-700/50 rounded-none border-transparent' : ''
                   }`
                 }
               >
-                <span className="text-[1.15rem] opacity-90">{link.icon}</span>
-                <span className="font-semibold tracking-wide">{link.label}</span>
+                <span className="text-[1.25rem] opacity-90">{link.icon}</span>
+                <span className="whitespace-nowrap">{link.label}</span>
               </NavLink>
             ))}
           </div>
