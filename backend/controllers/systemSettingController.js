@@ -22,7 +22,8 @@ export const getPublicSetting = asyncHandler(async (req, res) => {
   const setting = await SystemSetting.findOne({ key: key.toLowerCase() });
   
   if (!setting) {
-    throw ApiError.notFound('Setting not found');
+    // Return 200 with null instead of 404 to avoid browser console network errors
+    return ApiResponse.ok(null, 'Setting not found (using defaults)').send(res);
   }
 
   // Cache for 1 hour
