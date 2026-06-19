@@ -35,7 +35,8 @@ export const validateStudentId = (studentId) => {
  * Validates phone numbers (basic numerical pattern check).
  */
 export const validatePhone = (phone) => {
-  if (!phone) return true; // Optional field
-  const re = /^\+?[1-9]\d{1,14}$/; // E.164 pattern
-  return re.test(phone.replace(/[\s-]/g, ''));
+  if (!phone) return false; // Mandatory field
+  const cleanPhone = phone.replace(/[\s-]/g, '');
+  const re = /^(07\d{8}|\+947\d{8})$/; // Sri Lankan patterns
+  return re.test(cleanPhone);
 };

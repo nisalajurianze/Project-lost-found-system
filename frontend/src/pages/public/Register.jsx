@@ -53,8 +53,9 @@ export const Register = () => {
     if (!email) errors.email = 'Email is required';
     else if (!validateEmail(email)) errors.email = 'Invalid email syntax';
     
-    if (phone && !validatePhone(phone)) {
-      errors.phone = 'Invalid phone number format (use E.164, e.g. +94771234567)';
+    if (!phone) errors.phone = 'Phone number is required';
+    else if (!validatePhone(phone)) {
+      errors.phone = 'Invalid SL phone number (e.g. 0771234567 or +94771234567)';
     }
     
     if (!studentId) errors.studentId = 'Student ID is required';
@@ -92,6 +93,44 @@ export const Register = () => {
       await dispatch(
         loginUser({ email, password })
       ).unwrap();
+
+      // Show a nice prompt for profile picture
+      toast.custom((t) => (
+        <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-surface-800 shadow-2xl rounded-2xl pointer-events-auto flex flex-col ring-1 ring-black ring-opacity-5 overflow-hidden`}>
+          <div className="p-5 flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                <span className="text-xl">📸</span>
+              </div>
+            </div>
+            <div className="ml-4 flex-1">
+              <p className="text-sm font-bold text-surface-900 dark:text-white">
+                Welcome to the community! 🎉
+              </p>
+              <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">
+                Put a face to your name! Adding a profile picture helps others recognize you when claiming items.
+              </p>
+            </div>
+          </div>
+          <div className="bg-surface-50 dark:bg-surface-800/50 px-4 py-3 flex justify-end gap-2 border-t border-surface-100 dark:border-surface-700">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-300 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-xl transition-colors"
+            >
+              Maybe Later
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                navigate('/dashboard/profile');
+              }}
+              className="px-4 py-2 text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-xl shadow-md transition-colors"
+            >
+              Upload Picture
+            </button>
+          </div>
+        </div>
+      ), { duration: 10000, position: 'bottom-right' });
 
       navigate('/dashboard', { replace: true });
     } catch (err) {
@@ -165,13 +204,14 @@ export const Register = () => {
           />
 
           <Input
-            label="Phone Number (Optional)"
+            label="Phone Number"
             name="phone"
-            placeholder="e.g. +94771234567"
+            placeholder="e.g. 0771234567 or +94771234567"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             error={fieldErrors.phone}
-            helperText="Include country code for verification."
+            required
+            helperText="Sri Lankan format required."
           />
 
           <Input
