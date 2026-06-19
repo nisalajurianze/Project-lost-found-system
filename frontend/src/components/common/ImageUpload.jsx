@@ -124,9 +124,12 @@ export const ImageUpload = ({
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     document.getElementById('camera-upload-input').click();
                   }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-200 dark:bg-surface-700 text-surface-700 dark:text-surface-300 hover:bg-primary-500 hover:text-white transition-colors text-xs font-semibold shadow-sm"
                 >
                   <FiCamera className="text-sm" /> Take Photo
