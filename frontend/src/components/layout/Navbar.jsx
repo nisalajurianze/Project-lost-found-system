@@ -162,7 +162,7 @@ export const Navbar = () => {
           <p className="text-sm font-bold text-surface-900 dark:text-white truncate">{user?.fullName}</p>
           <p className="text-xs text-surface-500 dark:text-surface-400 truncate">{user?.email}</p>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           <Link to="/about" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">About</Link>
           <Link to="/contact" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">Contact</Link>
         </div>
