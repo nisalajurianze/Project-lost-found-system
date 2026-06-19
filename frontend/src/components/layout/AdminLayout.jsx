@@ -43,7 +43,7 @@ export const AdminLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <Navbar />
-      <div className="flex-1 flex w-full max-w-7xl mx-auto">
+      <div className="flex-1 flex w-full">
         
         {/* Admin Left Sidebar */}
         <aside className="w-[280px] flex-shrink-0 border-r border-surface-200/50 bg-white/40 dark:border-surface-800/50 dark:bg-surface-950/40 backdrop-blur-xl p-5 hidden lg:flex flex-col no-print sticky top-16 h-[calc(100vh-4rem)]">
