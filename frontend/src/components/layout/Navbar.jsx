@@ -155,7 +155,7 @@ export const Navbar = () => {
   );
 
   const renderProfileDropdown = () => (
-    <div className={`absolute right-0 mt-2 w-56 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top-right ${
+    <div className={`fixed top-[4.5rem] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top sm:origin-top-right ${
       profileDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
     }`}>
       <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50">
@@ -164,24 +164,34 @@ export const Navbar = () => {
       </div>
       
       <div className="flex flex-col py-2">
+        <div className="flex items-center justify-between px-4 py-2 sm:hidden border-b border-surface-100 dark:border-surface-700 mb-2 pb-3">
+          <span className="text-sm font-medium text-surface-600 dark:text-surface-400">Theme Mode</span>
+          <button
+            onClick={() => dispatch(toggleTheme())}
+            className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center"
+          >
+            {themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
+          </button>
+        </div>
+
         <Link 
           to="/dashboard/profile" 
           onClick={() => setProfileDropdownOpen(false)} 
-          className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
+          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
           <FiUser className="text-surface-400 text-lg" /> My Profile
         </Link>
         <Link 
           to="/dashboard/my-lost" 
           onClick={() => setProfileDropdownOpen(false)} 
-          className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
+          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
           <FiFileText className="text-surface-400 text-lg" /> My Lost Reports
         </Link>
         <Link 
           to="/dashboard/my-found" 
           onClick={() => setProfileDropdownOpen(false)} 
-          className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
+          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
           <FiFileText className="text-surface-400 text-lg" /> My Found Listings
         </Link>
@@ -189,7 +199,7 @@ export const Navbar = () => {
           <Link 
             to="/admin" 
             onClick={() => setProfileDropdownOpen(false)} 
-            className="flex items-center gap-3 px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
+            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
           >
             👑 Admin Panel
           </Link>
@@ -199,7 +209,7 @@ export const Navbar = () => {
       <div className="border-t border-surface-100 dark:border-surface-700 py-1">
         <button 
           onClick={handleLogout} 
-          className="flex w-full items-center gap-3 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+          className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
         >
           <FiLogOut className="text-lg" /> Log Out
         </button>
@@ -367,8 +377,8 @@ export const Navbar = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-20 left-0 w-full h-[calc(100vh-5rem)] bg-white/95 dark:bg-surface-900/95 backdrop-blur-xl border-t border-surface-200 dark:border-surface-800 p-6 animate-fade-in z-50 flex flex-col justify-between overflow-y-auto">
-          <div className="flex flex-col gap-2">
+        <div className="md:hidden fixed top-16 bottom-0 left-0 right-0 bg-white dark:bg-surface-900 border-t border-surface-200 dark:border-surface-800 p-6 animate-fade-in z-40 flex flex-col overflow-y-auto">
+          <div className="flex flex-col gap-2 flex-1 pb-24">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
@@ -385,7 +395,7 @@ export const Navbar = () => {
             ))}
           </div>
           
-          <div className="flex flex-col gap-4 mt-8 pt-6 border-t border-surface-200 dark:border-surface-800">
+          <div className="flex flex-col gap-4 pt-6 border-t border-surface-200 dark:border-surface-800 shrink-0 pb-12">
             <div className="flex items-center justify-between px-2">
               <span className="text-surface-600 dark:text-surface-400 font-medium">Theme Mode</span>
               <button
