@@ -144,7 +144,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
 ${historyText}The user just said: "${message}"
 
 CRITICAL LANGUAGE RULE: 
-- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage pal eka nathi una"), you MUST reply in Singlish using English letters. NEVER use the Sinhala alphabet script (අකුරු) for these users.
+- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
 - If they typed in English, reply in English.
 - If they typed in Sinhala script (අකුරු), reply in Sinhala script.
 
@@ -161,8 +161,6 @@ Return ONLY a valid JSON object exactly like this:
 {
   "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
   "keywords": ["array", "of", "english", "keywords"],
-  "isVague": boolean, // Set to true if the item description is too broad (e.g., just "laptop", "wallet", or "in the faculty") and needs more details (color, brand, specific location, name on ID) before searching.
-  "responseIfVague": "If isVague is true, ask a friendly follow-up question to get more details. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfGeneral": "If intent is 'general', write a natural, friendly reply. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST follow the CRITICAL LANGUAGE RULE.",
@@ -230,9 +228,9 @@ ${historyText}The user wants to see a list of ${analysis.intent === 'list_found'
 ${itemSummary}
 
 CRITICAL LANGUAGE RULE: 
-- If the user typed in Singlish (Sinhala words in English letters), you MUST reply in Singlish. NEVER use the Sinhala alphabet script.
+- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
 - If they typed in English, reply in English.
-- If they typed in Sinhala script, reply in Sinhala script.
+- If they typed in Sinhala script (අකුරු), reply in Sinhala script.
 
 Return ONLY a valid JSON object:
 {
@@ -269,14 +267,6 @@ Return ONLY a valid JSON object:
     }).send(res);
   }
 
-  // Handle vague descriptions by asking for more details
-  if (analysis.isVague) {
-    return ApiResponse.ok({
-      text: analysis.responseIfVague || "Could you give me a bit more detail? Like the brand, color, or specific location?",
-      quickReplies: analysis.quickReplies || ["Cancel"]
-    }).send(res);
-  }
-
   const targetModel = analysis.intent === 'lost' ? FoundItem : LostItem;
   const statusFilter = analysis.intent === 'lost' ? { $in: ['available', 'matched'] } : { $in: ['pending', 'matched'] };
 
@@ -309,14 +299,15 @@ We found these matches in the DB:
 ${itemSummary}
 
 IMPORTANT RULES:
-1. Only list an item if it TRULY MATCHES what the user is looking for.
+1. Only list an item if it TRULY MATCHES what the user is looking for based on the keywords.
 2. If NONE of the matches are truly relevant, DO NOT list them. Instead, say you couldn't find any.
 3. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})"
+4. If there are matches but you feel the user's initial description was very vague (e.g., they just said "wallet"), you should STILL suggest the top matches, BUT also politely ask a follow-up question (e.g., "What color was it?" or "What brand?") to narrow it down.
 
 CRITICAL LANGUAGE RULE: 
-- If the user typed in Singlish (Sinhala words in English letters), you MUST reply in Singlish. NEVER use the Sinhala alphabet script.
+- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
 - If they typed in English, reply in English.
-- If they typed in Sinhala script, reply in Sinhala script.
+- If they typed in Sinhala script (අකුරු), reply in Sinhala script.
 
 Return ONLY a valid JSON object:
 {
