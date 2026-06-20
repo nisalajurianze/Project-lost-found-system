@@ -9,7 +9,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../../redux/slices/themeSlice';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { fetchUserNotifications, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/notificationSlice';
-import { FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText, FiMenu, FiX } from 'react-icons/fi';
+import { FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText, FiMenu, FiX, FiCheckSquare } from 'react-icons/fi';
 import { getInitials } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 
