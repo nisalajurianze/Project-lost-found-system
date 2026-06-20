@@ -38,7 +38,7 @@ export const NotificationCard = ({ notification, onRead, onDelete }) => {
       if (ref.itemType === 'Match') {
         navigate('/dashboard/my-matches');
       } else if (ref.itemType === 'ClaimRequest') {
-        navigate('/dashboard/my-claims');
+        navigate('/dashboard/claims');
       } else if (ref.itemType === 'LostItem') {
         navigate(`/lost-items/${ref.itemId}`);
       } else if (ref.itemType === 'FoundItem') {

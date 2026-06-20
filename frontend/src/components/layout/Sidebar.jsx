@@ -33,6 +33,7 @@ export const Sidebar = () => {
     { label: 'Report Found', path: '/dashboard/report-found', icon: <FiPackage /> },
     { label: 'My Lost Reports', path: '/dashboard/my-lost', icon: <FiFileText /> },
     { label: 'My Found Listings', path: '/dashboard/my-found', icon: <FiFileText /> },
+    { label: 'My Claims & Connections', path: '/dashboard/claims', icon: <FiCheckSquare /> },
     { label: 'AI Matches', path: '/dashboard/my-matches', icon: <FiActivity /> },
     {
       label: 'Notifications',
