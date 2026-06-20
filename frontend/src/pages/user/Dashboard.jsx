@@ -424,9 +424,18 @@ export const Dashboard = () => {
               ))}
             </div>
           )}
+
+          {/* Tips Card */}
+          <div className="dashboard-tips-card mt-6">
+            <div className="tips-header">
+              <FiTrendingUp size={16} />
+              <span>Pro Tip</span>
+            </div>
+            <p>Add detailed descriptions and photos when reporting items. AI matching is <strong>3x more accurate</strong> with clear images!</p>
+          </div>
         </div>
 
-        {/* Right: Quick Actions + Tips */}
+        {/* Right: Quick Actions */}
         <div className="dashboard-sidebar-col">
 
           {/* Quick Actions */}
@@ -480,15 +489,6 @@ export const Dashboard = () => {
               gradient="linear-gradient(135deg, #ec4899, #db2777)"
               delay={240}
             />
-          </div>
-
-          {/* Tips Card */}
-          <div className="dashboard-tips-card">
-            <div className="tips-header">
-              <FiTrendingUp size={16} />
-              <span>Pro Tip</span>
-            </div>
-            <p>Add detailed descriptions and photos when reporting items. AI matching is <strong>3x more accurate</strong> with clear images!</p>
           </div>
         </div>
       </div>
