@@ -30,8 +30,6 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
           <img
             src={mainImage}
             alt={item.itemName}
-            loading="lazy"
-            decoding="async"
             className="w-full h-full object-contain transition-transform duration-300 transform-gpu group-hover:scale-[1.05]"
           />
         ) : (
