@@ -27,6 +27,7 @@ export const LostItemDetail = () => {
   const { currentItem, isLoading, error } = useSelector((state) => state.lostItems);
   const [activeImage, setActiveImage] = useState('');
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [hasClaimedSession, setHasClaimedSession] = useState(false);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
 
   useEffect(() => {
@@ -71,7 +72,7 @@ export const LostItemDetail = () => {
   const hasImages = currentItem.images && currentItem.images.length > 0;
   const isOwner = currentItem.userId?._id === loggedInUserId;
   const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
-  const isClaimable = (currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser;
+  const isClaimable = (currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
   // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved
@@ -175,10 +176,14 @@ export const LostItemDetail = () => {
                 </p>
               </div>
               <div>
-                {currentItem.status === 'claimed' ? (
+                {currentItem.status === 'recovered' ? (
                   <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                    Item Resolved
+                    Item Recovered
                   </span>
+                ) : hasClaimedSession ? (
+                  <Button disabled variant="outline">
+                    Claim Pending Review
+                  </Button>
                 ) : isHandoverInProgress && (isOwner || isConnectedUser) ? (
                   <Button 
                     onClick={async () => {
@@ -196,7 +201,7 @@ export const LostItemDetail = () => {
                   >
                     Mark as Done
                   </Button>
-                ) : isClaimable ? (
+                ) : null : isClaimable ? (
                   isAuthenticated ? (
                     <>
                       <Button 
@@ -207,7 +212,10 @@ export const LostItemDetail = () => {
                       </Button>
                       <ClaimModal 
                         isOpen={isClaimModalOpen}
-                        onClose={() => setIsClaimModalOpen(false)}
+                        onClose={(isSuccess) => {
+                          setIsClaimModalOpen(false);
+                          if (isSuccess === true) setHasClaimedSession(true);
+                        }}
                         targetItemId={currentItem._id}
                         itemType="LostItem"
                         itemName={currentItem.itemName}

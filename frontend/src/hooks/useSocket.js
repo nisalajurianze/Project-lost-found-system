@@ -5,6 +5,7 @@
 
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { toast } from 'react-hot-toast';
 import socketService from '../services/socketService';
 import { addSocketNotification } from '../redux/slices/notificationSlice';
 
@@ -32,6 +33,12 @@ export const useSocket = (user) => {
 
     socketService.onNotification((notification) => {
       notificationBuffer.push(notification);
+
+      // Show beautiful toast notification inside the app
+      toast.success(
+        `${notification.title || 'New Update'}\n${notification.message}`,
+        { icon: '🔔', duration: 6000 }
+      );
       
       // Trigger native browser push notification if permitted and document is hidden
       // or just show it anyway for important alerts

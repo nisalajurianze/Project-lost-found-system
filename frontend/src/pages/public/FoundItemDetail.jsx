@@ -32,6 +32,8 @@ export const FoundItemDetail = () => {
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
   const [activeImage, setActiveImage] = useState('');
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [hasClaimedSession, setHasClaimedSession] = useState(false);
+
   useEffect(() => {
     dispatch(fetchFoundItemById(id));
     
@@ -74,7 +76,7 @@ export const FoundItemDetail = () => {
   const hasImages = currentItem.images && currentItem.images.length > 0;
   const isFinder = currentItem.userId?._id === loggedInUserId;
   const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
-  const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser;
+  const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser && !hasClaimedSession;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
   // Can see contact if visibility is public, or if they are the finder, or connected, or item is fully resolved
@@ -173,6 +175,10 @@ export const FoundItemDetail = () => {
                   <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
                     Item Resolved
                   </span>
+                ) : hasClaimedSession ? (
+                  <Button disabled variant="outline">
+                    Claim Pending Review
+                  </Button>
                 ) : isHandoverInProgress && (isFinder || isConnectedUser) ? (
                   <Button 
                     onClick={async () => {
@@ -201,7 +207,10 @@ export const FoundItemDetail = () => {
                       </Button>
                       <ClaimModal 
                         isOpen={isClaimModalOpen}
-                        onClose={() => setIsClaimModalOpen(false)}
+                        onClose={(isSuccess) => {
+                          setIsClaimModalOpen(false);
+                          if (isSuccess === true) setHasClaimedSession(true);
+                        }}
                         targetItemId={currentItem._id}
                         itemType="FoundItem"
                         itemName={currentItem.itemName}
