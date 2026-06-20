@@ -125,7 +125,7 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
             disabled={isLoading}
             icon={<FiCheck />}
           >
-            Approve
+            Connect & Verify
           </Button>
         </div>
       )}

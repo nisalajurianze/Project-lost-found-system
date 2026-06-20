@@ -115,13 +115,13 @@ export const MyClaims = () => {
         <Modal
           isOpen={!!reviewDialog}
           onClose={handleCloseReview}
-          title={reviewDialog.status === 'approved' ? 'Approve Claim Request' : 'Reject Claim Request'}
+          title={reviewDialog.status === 'approved' ? 'Connect & Share Contacts' : 'Reject Claim Request'}
           size="md"
         >
           <form onSubmit={handleSubmitReview} className="space-y-4 pt-2">
             <p className="text-sm text-surface-500 dark:text-surface-400">
               {reviewDialog.status === 'approved' 
-                ? 'Approve this claim. This will mark the found listing as claimed, and share your contact details with the claimant to coordinate.' 
+                ? 'This will share your contact details with the claimant so you can talk and verify the item. The item will be placed in the "Handover" stage but will NOT be closed yet.' 
                 : 'Reject this claim. This will notify the claimant that the claim has been declined. The item will remain available.'
               }
             </p>
@@ -152,7 +152,7 @@ export const MyClaims = () => {
                 type="submit"
                 loading={isSubmitting}
               >
-                {reviewDialog.status === 'approved' ? 'Approve' : 'Reject'}
+                {reviewDialog.status === 'approved' ? 'Connect & Verify' : 'Reject'}
               </Button>
             </div>
           </form>
