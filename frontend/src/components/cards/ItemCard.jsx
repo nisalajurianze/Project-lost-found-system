@@ -13,7 +13,6 @@ import { FiMapPin, FiClock } from 'react-icons/fi';
 export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   const isLost = type === 'lost';
   const detailPath = isLost ? `/lost-items/${item._id}` : `/found-items/${item._id}`;
-  const [imgError, setImgError] = useState(false);
   
   const displayLocation = isLost ? item.lostLocation : item.foundLocation;
   const displayDate = isLost ? item.lostDate : item.foundDate;
@@ -27,13 +26,12 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
       {/* Image Container */}
       <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden">
-        {mainImage && !imgError ? (
+        {mainImage ? (
           <img
             src={mainImage}
             alt={item.itemName}
             loading="lazy"
             decoding="async"
-            onError={() => setImgError(true)}
             className="w-full h-full object-contain transition-transform duration-300 transform-gpu group-hover:scale-[1.05]"
           />
         ) : (
