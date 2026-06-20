@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../services/api';
 
 // Helper to convert base64 public key to Uint8Array for the push manager
 const urlBase64ToUint8Array = (base64String) => {

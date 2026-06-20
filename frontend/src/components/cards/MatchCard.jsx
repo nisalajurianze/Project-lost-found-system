@@ -9,7 +9,7 @@ import Button from '../common/Button';
 import { FiCheck, FiX, FiLink, FiCheckCircle } from 'react-icons/fi';
 import { optimizeImageUrl } from '../../utils/helpers';
 
-export const MatchCard = ({ match, onConfirm, onReject, isLoading = false }) => {
+export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = false }) => {
   const lost = match.lostItemId;
   const found = match.foundItemId;
   
@@ -140,8 +140,7 @@ export const MatchCard = ({ match, onConfirm, onReject, isLoading = false }) => 
       )}
     </div>
   );
-};
+});
 
 export default MatchCard;
-// 
-
+//

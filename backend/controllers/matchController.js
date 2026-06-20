@@ -7,6 +7,7 @@ import Match from '../models/Match.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { paginate } from '../utils/pagination.js';
 import { createNotification } from '../services/notificationService.js';
 
 /**
@@ -34,6 +35,9 @@ const getMatches = asyncHandler(async (req, res) => {
     filter.status = { $ne: 'rejected' };
   }
 
+  const totalDocs = await Match.countDocuments(filter);
+  const pagination = paginate(req.query, totalDocs);
+
   const matches = await Match.find(filter)
     .populate({
       path: 'lostItemId',
@@ -44,9 +48,11 @@ const getMatches = asyncHandler(async (req, res) => {
       populate: { path: 'userId', select: 'fullName email phone profileImage' }
     })
     .sort({ similarityScore: -1, createdAt: -1 })
+    .skip(pagination.skip)
+    .limit(pagination.limit)
     .lean();
 
-  ApiResponse.ok(matches, 'Matches retrieved successfully.').send(res);
+  ApiResponse.ok({ matches, pagination }, 'Matches retrieved successfully.').send(res);
 });
 
 /**
