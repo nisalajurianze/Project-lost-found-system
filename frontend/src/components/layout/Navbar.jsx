@@ -84,7 +84,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
       if (itemType === 'Match') return '/dashboard/my-matches';
       if (itemType === 'LostItem') return `/lost-items/${itemId}`;
       if (itemType === 'FoundItem') return `/found-items/${itemId}`;
-      if (itemType === 'ClaimRequest') return '/dashboard/my-connections';
+      if (itemType === 'ClaimRequest') return '/dashboard/claims';
     }
     return null;
   };
