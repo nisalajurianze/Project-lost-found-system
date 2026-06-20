@@ -202,6 +202,13 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
         >
           <FiFileText className="text-surface-400 text-lg" /> My Found Listings
         </Link>
+        <Link 
+          to="/dashboard/claims" 
+          onClick={() => setProfileDropdownOpen(false)} 
+          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
+        >
+          <FiCheckSquare className="text-surface-400 text-lg" /> My Claims & Connections
+        </Link>
         {user?.role === 'admin' && (
           <Link 
             to="/admin" 
