@@ -34,7 +34,7 @@ self.addEventListener('notificationclick', function(event) {
     })
   );
 });
-const CACHE_NAME = 'smart-lf-cache-v2';
+const CACHE_NAME = 'smart-lf-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -63,8 +63,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Only intercept GET requests
   if (event.request.method !== 'GET') return;
-  // Ignore API requests (let them go to network)
-  if (event.request.url.includes('/api/')) return;
+  // Ignore API requests and external Cloudinary images (let them go to network)
+  if (event.request.url.includes('/api/') || event.request.url.includes('res.cloudinary.com')) return;
   
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
