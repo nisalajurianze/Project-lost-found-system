@@ -11,7 +11,6 @@ import { formatRelativeTime } from '../../utils/formatDate';
 import { FiMapPin, FiClock } from 'react-icons/fi';
 
 export const ItemCard = React.memo(({ item, type = 'lost' }) => {
-  const [imageError, setImageError] = useState(false);
   const isLost = type === 'lost';
   const detailPath = isLost ? `/lost-items/${item._id}` : `/found-items/${item._id}`;
   
@@ -20,7 +19,7 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
 
   // Use first image or a clean CSS placeholder card
   // Reduced width from 600px to 400px for 50% lighter payload on low-end networks
-  let mainImage = !imageError && item.images && item.images.length > 0 ? item.images[0].url : null;
+  let mainImage = item.images && item.images.length > 0 ? item.images[0].url : null;
   mainImage = optimizeImageUrl(mainImage, 400);
 
   return (
@@ -33,8 +32,7 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
             alt={item.itemName}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-contain transition-transform duration-300 transform-gpu will-change-transform group-hover:scale-[1.05] group-hover:translate-z-0"
-            onError={() => setImageError(true)}
+            className="w-full h-full object-contain transition-transform duration-300 transform-gpu group-hover:scale-[1.05]"
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-4xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">

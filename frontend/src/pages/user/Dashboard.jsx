@@ -167,7 +167,9 @@ export const Dashboard = () => {
       const statsRes = await api.get('/users/stats');
       setStats(statsRes.data.data);
       const matchesData = await matchService.getMatches('suggested');
-      setMatches(matchesData.slice(0, 2));
+      // Fix: Handle cases where backend returns paginated object { matches, pagination }
+      const matchesArray = Array.isArray(matchesData) ? matchesData : (matchesData.matches || []);
+      setMatches(matchesArray.slice(0, 2));
     } catch (err) {
       console.error('Failed to load student dashboard stats:', err);
     } finally {
