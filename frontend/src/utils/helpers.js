@@ -105,5 +105,6 @@ export const getConfidenceLabel = (score) => {
  * Injects format, quality, and sizing transformations.
  */
 export const optimizeImageUrl = (url, width = 800) => {
-  return url; // Disabled to prevent Cloudinary strict-transformation errors
+  if (!url) return null;
+  return url.replace(/^http:\/\//i, 'https://');
 };
