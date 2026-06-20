@@ -43,6 +43,17 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+export const googleLoginUser = createAsyncThunk(
+  'auth/googleLogin',
+  async (idToken, { rejectWithValue }) => {
+    try {
+      return await authService.googleLogin(idToken);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
   async (_, { rejectWithValue }) => {
@@ -120,6 +131,28 @@ const authSlice = createSlice({
         localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
       })
       .addCase(loginUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Google Login
+      .addCase(googleLoginUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(googleLoginUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+        
+        const safeUser = {
+          _id: action.payload.user._id,
+          fullName: action.payload.user.fullName,
+          role: action.payload.user.role,
+          profileImage: action.payload.user.profileImage
+        };
+        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
+      })
+      .addCase(googleLoginUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       })

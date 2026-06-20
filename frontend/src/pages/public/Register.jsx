@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser, loginUser, clearAuthError } from '../../redux/slices/authSlice';
+import { GoogleLogin } from '@react-oauth/google';
+import { registerUser, loginUser, googleLoginUser, clearAuthError } from '../../redux/slices/authSlice';
 import { validateEmail, validatePassword, validatePhone, validateStudentId } from '../../utils/validators';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -139,6 +140,20 @@ export const Register = () => {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      await dispatch(googleLoginUser(credentialResponse.credential)).unwrap();
+      toast.success('Welcome! You have successfully signed up with Google.');
+    } catch (err) {
+      const msg = err?.message || (typeof err === 'string' ? err : 'Google registration failed.');
+      toast.error(msg);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error('Google Sign-In was unsuccessful. Try again later.');
+  };
+
   if (registrationSuccess) {
     return (
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-surface-100 dark:bg-surface-950 transition-colors duration-300">
@@ -255,6 +270,24 @@ export const Register = () => {
             Sign Up
           </Button>
         </form>
+
+        <div className="mt-6 flex items-center justify-center space-x-2">
+          <span className="h-px w-full bg-surface-200 dark:bg-surface-800"></span>
+          <span className="text-xs text-surface-500 uppercase tracking-widest font-semibold">Or</span>
+          <span className="h-px w-full bg-surface-200 dark:bg-surface-800"></span>
+        </div>
+
+        <div className="mt-6 flex justify-center w-full">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="outline"
+            size="large"
+            width="100%"
+            text="signup_with"
+            shape="rectangular"
+          />
+        </div>
 
         <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 dark:text-surface-400">
           Already have an account?{' '}

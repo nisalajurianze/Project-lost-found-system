@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, clearAuthError } from '../../redux/slices/authSlice';
+import { GoogleLogin } from '@react-oauth/google';
+import { loginUser, googleLoginUser, clearAuthError } from '../../redux/slices/authSlice';
 import { validateEmail } from '../../utils/validators';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
@@ -69,6 +70,20 @@ export const Login = () => {
       const msg = err?.message || (typeof err === 'string' ? err : 'Failed to authenticate.');
       toast.error(msg);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      await dispatch(googleLoginUser(credentialResponse.credential)).unwrap();
+      toast.success('Welcome back!');
+    } catch (err) {
+      const msg = err?.message || (typeof err === 'string' ? err : 'Google login failed.');
+      toast.error(msg);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error('Google Sign-In was unsuccessful. Try again later.');
   };
 
   return (
@@ -152,6 +167,24 @@ export const Login = () => {
             Sign In
           </Button>
         </form>
+
+        <div className="mt-6 flex items-center justify-center space-x-2">
+          <span className="h-px w-full bg-surface-200 dark:bg-surface-800"></span>
+          <span className="text-xs text-surface-500 uppercase tracking-widest font-semibold">Or</span>
+          <span className="h-px w-full bg-surface-200 dark:bg-surface-800"></span>
+        </div>
+
+        <div className="mt-6 flex justify-center w-full">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleError}
+            theme="outline"
+            size="large"
+            width="100%"
+            text="signin_with"
+            shape="rectangular"
+          />
+        </div>
 
         <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 dark:text-surface-400">
           New to the platform?{' '}

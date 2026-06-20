@@ -11,8 +11,11 @@ import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import generateTokens from '../utils/generateTokens.js';
+import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from '../services/emailService.js';
 import { createNotification } from '../services/notificationService.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * Register a new user.
@@ -177,6 +180,77 @@ const login = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Google Sign-In or Sign-Up.
+ */
+const googleLogin = asyncHandler(async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    throw ApiError.badRequest('Google ID Token is required.');
+  }
+
+  let ticket;
+  try {
+    ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+  } catch (error) {
+    throw ApiError.unauthorized('Invalid Google Token.');
+  }
+
+  const payload = ticket.getPayload();
+  const { sub: googleId, email, name, picture } = payload;
+
+  let user = await User.findOne({ email }).select('+lockUntil +loginAttempts');
+
+  if (user) {
+    // If user exists but is locked
+    if (user.isLocked) {
+      throw ApiError.forbidden('Account is temporarily locked.');
+    }
+    if (!user.isActive) {
+      throw ApiError.forbidden('Your account has been deactivated. Please contact an admin.');
+    }
+
+    // Link googleId if they signed up with local before
+    if (!user.googleId) {
+      user.googleId = googleId;
+      user.authProvider = 'google';
+      // Consider them verified since Google verified their email
+      user.isVerified = true;
+      await user.save({ validateBeforeSave: false });
+    }
+  } else {
+    // Register new user
+    user = await User.create({
+      fullName: name,
+      email,
+      googleId,
+      authProvider: 'google',
+      isVerified: true, // Google verifies emails
+      profileImage: { url: picture, publicId: '' },
+    });
+    
+    // Notify user
+    await createNotification({
+      userId: user._id,
+      title: 'Welcome to Smart Lost & Found!',
+      message: 'You have successfully signed up with Google.',
+      type: 'welcome'
+    });
+  }
+
+  // Generate tokens
+  const tokens = await generateTokens(user, res, true);
+  
+  const userData = user.toObject();
+  delete userData.password;
+
+  ApiResponse.ok({ user: userData, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }, 'Google Login successful.').send(res);
+});
+
+/**
  * Refresh JWT tokens.
  */
 const refreshToken = asyncHandler(async (req, res) => {
@@ -326,6 +400,7 @@ export {
   register,
   verifyEmail,
   login,
+  googleLogin,
   refreshToken,
   logout,
   forgotPassword,

@@ -8,6 +8,7 @@ import {
   register,
   verifyEmail,
   login,
+  googleLogin,
   refreshToken,
   logout,
   forgotPassword,
@@ -63,6 +64,7 @@ const router = express.Router();
 router.post('/register', authLimiter, registerValidator, validate, register);
 router.get('/verify-email', verifyEmail);
 router.post('/login', loginLimiter, loginValidator, validate, login);
+router.post('/google', loginLimiter, googleLogin);
 router.get('/refresh-token', refreshToken);
 router.post('/refresh-token', refreshToken);
 router.post('/logout', protect, logout);

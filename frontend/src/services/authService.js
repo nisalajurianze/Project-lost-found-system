@@ -34,6 +34,24 @@ const authService = {
   },
 
   /**
+   * Google Login/Signup.
+   */
+  googleLogin: async (idToken) => {
+    const res = await api.post('/auth/google', { idToken });
+    const { user, accessToken, refreshToken } = res.data.data;
+    
+    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(user));
+    if (accessToken) {
+      localStorage.setItem('accessToken', accessToken);
+    }
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
+    
+    return { user };
+  },
+
+  /**
    * Verify email via token.
    */
   verifyEmail: async (token) => {

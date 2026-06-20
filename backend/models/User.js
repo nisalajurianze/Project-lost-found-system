@@ -26,21 +26,32 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
+      required: false,
       trim: true,
     },
     studentId: {
       type: String,
-      required: [true, 'Student ID is required'],
+      required: false,
+      sparse: true,
       unique: true,
       uppercase: true,
       trim: true,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: false,
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // Never return password by default
+    },
+    googleId: {
+      type: String,
+      sparse: true,
+      unique: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
     },
     profileImage: {
       url: {
@@ -121,8 +132,8 @@ userSchema.index({ createdAt: -1 });
 
 // ── Pre-save: hash password ─────────────────────────────────────────────
 userSchema.pre('save', async function (next) {
-  // Only hash if password field was modified
-  if (!this.isModified('password')) return next();
+  // Only hash if password field was modified and exists
+  if (!this.isModified('password') || !this.password) return next();
 
   try {
     const salt = await bcrypt.genSalt(12);
@@ -141,6 +152,7 @@ userSchema.pre('save', async function (next) {
  * @returns {Promise<boolean>}
  */
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
