@@ -201,7 +201,7 @@ export const LostItemDetail = () => {
                   >
                     Mark as Done
                   </Button>
-                ) : null : isClaimable ? (
+                ) : isClaimable ? (
                   isAuthenticated ? (
                     <>
                       <Button 
