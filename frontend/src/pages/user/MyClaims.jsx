@@ -6,7 +6,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchClaims, reviewClaimRequest } from '../../redux/slices/claimSlice';
+import { fetchClaims, reviewClaimRequest, shareClaimContact } from '../../redux/slices/claimSlice';
 import ClaimCard from '../../components/cards/ClaimCard';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
@@ -40,6 +40,17 @@ export const MyClaims = () => {
   const handleCloseReview = () => {
     setReviewDialog(null);
     setRemark('');
+  };
+
+  const handleShareContact = async (claimId) => {
+    if (window.confirm('Are you sure you want to share your contact details with this claimant?')) {
+      try {
+        await dispatch(shareClaimContact(claimId)).unwrap();
+        toast.success('Your contact details have been shared!');
+      } catch (err) {
+        toast.error(err || 'Failed to share contact details');
+      }
+    }
   };
 
   const handleSubmitReview = async (e) => {
@@ -95,6 +106,7 @@ export const MyClaims = () => {
                   claim={claim} 
                   canReview={isFounder}
                   onReview={handleOpenReview}
+                  onShareContact={handleShareContact}
                 />
               );
             })}

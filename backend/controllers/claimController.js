@@ -157,11 +157,11 @@ const getClaimRequests = asyncHandler(async (req, res) => {
     .populate('claimantId', 'fullName email phone studentId profileImage')
     .populate({
       path: 'foundItemId',
-      populate: { path: 'userId', select: 'fullName email' }
+      populate: { path: 'userId', select: 'fullName email phone' }
     })
     .populate({
       path: 'lostItemId',
-      populate: { path: 'userId', select: 'fullName email' }
+      populate: { path: 'userId', select: 'fullName email phone' }
     })
     .sort({ createdAt: -1 })
     .skip(pagination.skip)
@@ -422,9 +422,71 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
   ApiResponse.ok(claim, `Claim request reviewed and ${status} successfully.`).send(res);
 });
 
+/**
+ * Share contact info for a pending claim without approving it.
+ * Only the item owner can do this.
+ */
+const shareClaimContact = asyncHandler(async (req, res) => {
+  const claim = await ClaimRequest.findById(req.params.id)
+    .populate('foundItemId')
+    .populate('lostItemId')
+    .populate('claimantId', 'fullName email phone');
+
+  if (!claim) {
+    throw ApiError.notFound('Claim request not found.');
+  }
+
+  if (claim.status !== 'pending') {
+    throw ApiError.badRequest('Contact can only be shared for pending claims.');
+  }
+
+  if (claim.isContactShared) {
+    throw ApiError.badRequest('Contact has already been shared for this claim.');
+  }
+
+  const targetItem = claim.foundItemId || claim.lostItemId;
+  if (!targetItem) {
+    throw ApiError.internal('Claim has no associated item.');
+  }
+
+  // Ensure user is the item owner
+  if (targetItem.userId.toString() !== req.user._id.toString()) {
+    throw ApiError.forbidden('Only the item owner can share contact information.');
+  }
+
+  claim.isContactShared = true;
+  await claim.save();
+
+  // In-app notification to claimant
+  const { createNotification } = await import('../services/notificationService.js');
+  await createNotification({
+    userId: claim.claimantId._id,
+    title: '📱 Contact Shared',
+    message: `The poster of "${targetItem.itemName}" has shared their contact details with you. Please call them to verify ownership.`,
+    type: 'contact_shared',
+    relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
+  });
+
+  // Optional: Send email
+  import('../services/emailService.js').then(async (emailService) => {
+    await emailService.sendEmail({
+      to: claim.claimantId.email,
+      template: 'claimUpdate',
+      data: {
+        name: claim.claimantId.fullName,
+        itemName: targetItem.itemName,
+        message: `The poster has requested to share contacts to verify your claim over the phone.\n\nPoster Contact Details:\nName: ${req.user.fullName || 'N/A'}\nEmail: ${req.user.email || 'N/A'}\nPhone: ${req.user.phone || 'N/A'}`
+      }
+    }).catch(err => console.error('Failed to send contact share email:', err));
+  });
+
+  ApiResponse.ok(claim, 'Contact shared successfully.').send(res);
+});
+
 export {
   createClaimRequest,
   getClaimRequests,
   getClaimRequestById,
-  reviewClaimRequest
+  reviewClaimRequest,
+  shareClaimContact
 };

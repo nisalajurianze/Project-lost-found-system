@@ -44,6 +44,14 @@ const claimService = {
   reviewClaim: async (id, status, adminRemark) => {
     const res = await api.put(`/claims/${id}/review`, { status, adminRemark });
     return res.data.data;
+  },
+
+  /**
+   * Share contact info without approving the claim.
+   */
+  shareContact: async (id) => {
+    const res = await api.patch(`/claims/${id}/share-contact`);
+    return res.data.data;
   }
 };
 

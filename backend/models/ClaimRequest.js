@@ -73,6 +73,10 @@ const claimRequestSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    isContactShared: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

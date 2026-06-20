@@ -8,7 +8,8 @@ import {
   createClaimRequest,
   getClaimRequests,
   getClaimRequestById,
-  reviewClaimRequest
+  reviewClaimRequest,
+  shareClaimContact
 } from '../controllers/claimController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import authorize from '../middlewares/roleMiddleware.js';
@@ -31,5 +32,8 @@ router.get('/:id', mongoIdParam, validate, getClaimRequestById);
 
 // Claim verification reviews (Admin and Founder)
 router.put('/:id/review', mongoIdParam, reviewClaimValidator, validate, reviewClaimRequest);
+
+// Share contact info without approving
+router.patch('/:id/share-contact', mongoIdParam, validate, shareClaimContact);
 
 export default router;

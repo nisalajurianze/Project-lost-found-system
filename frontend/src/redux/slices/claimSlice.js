@@ -50,6 +50,17 @@ export const reviewClaimRequest = createAsyncThunk(
   }
 );
 
+export const shareClaimContact = createAsyncThunk(
+  'claims/shareContact',
+  async (id, { rejectWithValue }) => {
+    try {
+      return await claimService.shareContact(id);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const claimSlice = createSlice({
   name: 'claims',
   initialState: {
@@ -117,6 +128,20 @@ const claimSlice = createSlice({
         state.claims = state.claims.map(c => c._id === action.payload._id ? action.payload : c);
       })
       .addCase(reviewClaimRequest.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Share Contact
+      .addCase(shareClaimContact.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(shareClaimContact.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.currentClaim = action.payload;
+        state.claims = state.claims.map(c => c._id === action.payload._id ? action.payload : c);
+      })
+      .addCase(shareClaimContact.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

@@ -10,9 +10,10 @@ import Button from '../common/Button';
 import { FiExternalLink, FiCheck, FiX } from 'react-icons/fi';
 import { formatRelativeTime } from '../../utils/formatDate';
 
-export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false, isLoading = false }) => {
+export const ClaimCard = ({ claim, onReview, onShareContact, isAdmin = false, canReview = false, isLoading = false }) => {
   const claimant = claim.claimantId;
   const targetItem = claim.foundItemId || claim.lostItemId;
+  const itemOwner = targetItem?.userId;
   const itemType = claim.foundItemId ? 'Found Item' : 'Lost Item';
   const itemUrl = claim.foundItemId ? `/found-items/${targetItem._id}` : `/lost-items/${targetItem._id}`;
   
@@ -49,7 +50,7 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
             </span>
             <div className="text-xs text-surface-700 dark:text-surface-300 space-y-1 mt-1">
               <p className="font-semibold">👤 {claimant?.fullName || claimant?.name} ({claimant?.studentId})</p>
-              {(canReview || isAdmin || claim.status === 'approved') && (
+              {(canReview || isAdmin || claim.status === 'approved' || claim.isContactShared) && (
                 <>
                   <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {claimant?.email}</p>
                   {claimant?.phone && <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {claimant?.phone}</p>}
@@ -57,6 +58,20 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
               )}
             </div>
           </div>
+
+          {/* Show item owner's contact details to the claimant if contact is shared or approved */}
+          {!canReview && !isAdmin && (claim.status === 'approved' || claim.isContactShared) && itemOwner && (
+            <div className="mt-2 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg">
+              <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wide block mb-1">
+                Poster's Contact Info
+              </span>
+              <div className="text-xs text-surface-700 dark:text-surface-300 space-y-1">
+                <p className="font-semibold">👤 {itemOwner?.fullName || itemOwner?.name}</p>
+                <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {itemOwner?.email}</p>
+                {itemOwner?.phone && <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {itemOwner?.phone}</p>}
+              </div>
+            </div>
+          )}
 
           <div>
             <span className="text-[10px] font-bold text-surface-400 uppercase tracking-wide">
@@ -107,7 +122,7 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
 
       {/* Review Action Buttons */}
       {(isAdmin || canReview) && claim.status === 'pending' && (
-        <div className="flex gap-2 mt-6 pt-4 border-t border-surface-100 dark:border-surface-700/50 justify-end">
+        <div className="flex gap-2 mt-6 pt-4 border-t border-surface-100 dark:border-surface-700/50 justify-end flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -118,6 +133,21 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
           >
             Reject
           </Button>
+          {!claim.isContactShared ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onShareContact && onShareContact(claim._id)}
+              disabled={isLoading}
+              className="text-primary-600 border-primary-500/30 hover:bg-primary-50 dark:hover:bg-primary-900/30"
+            >
+              Share My Contact
+            </Button>
+          ) : (
+            <div className="px-3 py-1.5 flex items-center gap-1.5 text-xs font-semibold text-primary-600 bg-primary-50 dark:bg-primary-900/20 dark:text-primary-400 rounded-lg border border-primary-100 dark:border-primary-800/50">
+              <FiCheck /> Contact Shared
+            </div>
+          )}
           <Button
             variant="success"
             size="sm"
@@ -125,7 +155,7 @@ export const ClaimCard = ({ claim, onReview, isAdmin = false, canReview = false,
             disabled={isLoading}
             icon={<FiCheck />}
           >
-            Connect & Verify
+            Confirm as True Owner
           </Button>
         </div>
       )}
