@@ -43,6 +43,7 @@ const matchSlice = createSlice({
   name: 'matches',
   initialState: {
     matches: [],
+    pagination: null,
     currentMatch: null,
     isLoading: false,
     error: null
@@ -61,7 +62,8 @@ const matchSlice = createSlice({
       })
       .addCase(fetchMatches.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.matches = action.payload;
+        state.matches = action.payload.matches;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchMatches.rejected, (state, action) => {
         state.isLoading = false;
