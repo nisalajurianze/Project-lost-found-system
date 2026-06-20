@@ -9,9 +9,10 @@ import { useSelector } from 'react-redux';
 import {
   FiPlusCircle, FiPackage, FiActivity, FiCheckSquare,
   FiSearch, FiZap, FiArrowRight, FiTrendingUp,
-  FiMapPin, FiClock, FiStar, FiShield, FiShare, FiPlusSquare, FiX, FiDownload
+  FiMapPin, FiClock, FiStar, FiShield, FiShare, FiPlusSquare, FiX, FiDownload, FiAlertTriangle
 } from 'react-icons/fi';
 import MatchCard from '../../components/cards/MatchCard';
+import ProfileCompletionModal from '../../components/modals/ProfileCompletionModal';
 import api from '../../services/api';
 import matchService from '../../services/matchService';
 import Loader from '../../components/common/Loader';
@@ -104,6 +105,7 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   
   // App Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -246,6 +248,34 @@ export const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* ── Profile Incomplete Banner ── */}
+      {(!user?.phone || !user?.studentId) && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-full">
+              <FiAlertTriangle size={20} />
+            </div>
+            <div>
+              <h4 className="text-surface-900 dark:text-white font-bold">Profile Incomplete</h4>
+              <p className="text-sm text-surface-600 dark:text-surface-300">
+                Please add your phone number and student ID to use all features.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsProfileModalOpen(true)}
+            className="px-4 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-sm"
+          >
+            Complete Profile
+          </button>
+        </div>
+      )}
+      
+      <ProfileCompletionModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+      />
 
       {/* ── iOS PWA Instructions Modal ── */}
       {showIosPrompt && (

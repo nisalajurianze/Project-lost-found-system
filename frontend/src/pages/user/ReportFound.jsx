@@ -19,13 +19,16 @@ import toast from 'react-hot-toast';
 import aiService from '../../services/aiService';
 import AILoadingToast from '../../components/common/AILoadingToast';
 import { FiInfo } from 'react-icons/fi';
+import ProfileCompletionModal from '../../components/modals/ProfileCompletionModal';
 
 export const ReportFound = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const { categories } = useSelector((state) => state.categories);
+  const { user } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Form Fields
   const [itemName, setItemName] = useState('');
@@ -60,8 +63,26 @@ export const ReportFound = () => {
   };
 
   useEffect(() => {
-    dispatch(fetchCategories());
-  }, [dispatch]);
+    if (categories.length === 0) {
+      dispatch(fetchCategories());
+    }
+  }, [dispatch, categories.length]);
+
+  // Profile completion interceptor
+  useEffect(() => {
+    if (user && (!user.phone || !user.studentId)) {
+      setIsProfileModalOpen(true);
+    }
+  }, [user]);
+
+  const handleProfileModalClose = () => {
+    if (!user?.phone || !user?.studentId) {
+      navigate('/dashboard');
+      toast.error('You must complete your profile to report items.');
+    } else {
+      setIsProfileModalOpen(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -192,7 +213,14 @@ export const ReportFound = () => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-3xl mx-auto space-y-6">
+
+      <ProfileCompletionModal 
+        isOpen={isProfileModalOpen} 
+        onClose={handleProfileModalClose}
+        onSuccess={() => setIsProfileModalOpen(false)}
+      />
+
       <div className="page-header">
         <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
           Report Found Property

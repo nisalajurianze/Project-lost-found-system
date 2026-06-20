@@ -68,6 +68,16 @@ const authService = {
   },
 
   /**
+   * Update user profile (phone, studentId, etc).
+   */
+  updateProfile: async (profileData) => {
+    const res = await api.put('/users/profile', profileData);
+    const updatedUser = res.data.data;
+    localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
+  },
+
+  /**
    * Request password reset token.
    */
   forgotPassword: async (email) => {
