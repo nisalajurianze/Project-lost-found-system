@@ -182,11 +182,14 @@ export const FoundItemDetail = () => {
                 ) : isHandoverInProgress && (isFinder || isConnectedUser) ? (
                   <Button 
                     onClick={async () => {
-                      if (window.confirm('Are you sure you have physically resolved/returned this item?')) {
+                      const confirmMsg = isFinder 
+                        ? 'Have you verified the owner and physically handed over the item?' 
+                        : 'Have you physically received your item from the finder?';
+                      if (window.confirm(confirmMsg)) {
                         try {
                           await foundItemService.resolveFoundItem(currentItem._id);
                           dispatch(fetchFoundItemById(id));
-                          toast.success('Item marked as resolved!');
+                          toast.success('Item successfully marked as resolved!');
                         } catch (err) {
                           toast.error(err?.message || 'Failed to resolve item.');
                         }
@@ -194,7 +197,7 @@ export const FoundItemDetail = () => {
                     }} 
                     variant="primary"
                   >
-                    Mark as Done
+                    {isFinder ? 'Confirm Handover & Close' : 'Confirm Item Received'}
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (

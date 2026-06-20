@@ -187,11 +187,14 @@ export const LostItemDetail = () => {
                 ) : isHandoverInProgress && (isOwner || isConnectedUser) ? (
                   <Button 
                     onClick={async () => {
-                      if (window.confirm('Are you sure you have physically resolved/returned this item?')) {
+                      const confirmMsg = isOwner 
+                        ? 'Have you physically received your item back from the finder?' 
+                        : 'Have you verified the owner and physically handed over the item?';
+                      if (window.confirm(confirmMsg)) {
                         try {
                           await lostItemService.resolveLostItem(currentItem._id);
                           dispatch(fetchLostItemById(id));
-                          toast.success('Item marked as resolved!');
+                          toast.success('Item successfully marked as resolved!');
                         } catch (err) {
                           toast.error(err?.message || 'Failed to resolve item.');
                         }
@@ -199,7 +202,7 @@ export const LostItemDetail = () => {
                     }} 
                     variant="primary"
                   >
-                    Mark as Done
+                    {isOwner ? 'Confirm Item Received' : 'Confirm Handover & Close'}
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (
