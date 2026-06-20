@@ -34,7 +34,7 @@ self.addEventListener('notificationclick', function(event) {
     })
   );
 });
-const CACHE_NAME = 'smart-lf-cache-v1';
+const CACHE_NAME = 'smart-lf-cache-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
