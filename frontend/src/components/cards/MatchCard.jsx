@@ -6,7 +6,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../common/Button';
-import { FiCheck, FiX, FiLink } from 'react-icons/fi';
+import { FiCheck, FiX, FiLink, FiCheckCircle } from 'react-icons/fi';
 import { optimizeImageUrl } from '../../utils/helpers';
 
 export const MatchCard = ({ match, onConfirm, onReject, isLoading = false }) => {
@@ -127,9 +127,15 @@ export const MatchCard = ({ match, onConfirm, onReject, isLoading = false }) => 
           <span className="text-xs text-emerald-500 font-semibold flex items-center gap-1.5">
             <FiCheck /> Match Confirmed
           </span>
-          <Link to={`/found-items/${found._id}`} className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 px-4 py-2">
-            <FiLink /> View Item to Claim
-          </Link>
+          {['claimed', 'resolved', 'returned'].includes(found.status?.toLowerCase()) ? (
+            <span className="btn bg-surface-200 text-surface-600 dark:bg-surface-700 dark:text-surface-300 btn-sm rounded-lg flex items-center gap-1.5 px-4 py-2 cursor-default opacity-80">
+              <FiCheckCircle /> Item Claimed
+            </span>
+          ) : (
+            <Link to={`/found-items/${found._id}`} className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 px-4 py-2">
+              <FiLink /> View Item to Claim
+            </Link>
+          )}
         </div>
       )}
     </div>

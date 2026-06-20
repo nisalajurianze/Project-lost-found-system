@@ -4,6 +4,7 @@
 // ============================================
 
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -73,9 +74,55 @@ const deleteNotification = asyncHandler(async (req, res) => {
   ApiResponse.noContent('Notification deleted successfully.').send(res);
 });
 
+/**
+ * Save Push Subscription for the logged-in user.
+ */
+const subscribeToPush = asyncHandler(async (req, res) => {
+  const { subscription } = req.body;
+  if (!subscription || !subscription.endpoint) {
+    throw ApiError.badRequest('Invalid push subscription object.');
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found.');
+
+  user.pushSubscription = subscription;
+  await user.save();
+
+  ApiResponse.ok(null, 'Push subscription saved.').send(res);
+});
+
+/**
+ * Remove Push Subscription for the logged-in user.
+ */
+const unsubscribeFromPush = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (user && user.pushSubscription) {
+    user.pushSubscription = undefined;
+    await user.save();
+  }
+
+  ApiResponse.ok(null, 'Push subscription removed.').send(res);
+});
+
+/**
+ * Get VAPID Public Key for the frontend.
+ */
+const getVapidPublicKey = asyncHandler(async (req, res) => {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  if (!publicKey) {
+    throw ApiError.internal('Push notifications are not configured on the server.');
+  }
+  
+  ApiResponse.ok({ publicKey }, 'VAPID public key retrieved.').send(res);
+});
+
 export {
   getNotifications,
   markAsRead,
   markAllAsRead,
-  deleteNotification
+  deleteNotification,
+  subscribeToPush,
+  unsubscribeFromPush,
+  getVapidPublicKey
 };

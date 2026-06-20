@@ -8,7 +8,7 @@ import Select from '../../components/common/Select';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import StatusBadge from '../../components/common/StatusBadge';
-import { getConfidenceColor, getConfidenceLabel } from '../../utils/helpers';
+import { getConfidenceColor, getConfidenceLabel, optimizeImageUrl } from '../../utils/helpers';
 import { formatAbsoluteDate as formatDate } from '../../utils/formatDate';
 
 const ManageMatches = () => {
@@ -126,9 +126,9 @@ const ManageMatches = () => {
                       Lost Item
                     </span>
                     <div className="flex gap-3">
-                      <div className="h-16 w-16 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center font-bold text-lg overflow-hidden border border-red-200 dark:border-red-900/30">
+                      <div className="h-16 w-16 bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center font-bold text-lg overflow-hidden border border-red-200 dark:border-red-900/30 flex-shrink-0">
                         {lost.images?.[0]?.url ? (
-                          <img src={lost.images[0].url} alt={lost.itemName} className="h-full w-full object-cover" />
+                          <img src={optimizeImageUrl(lost.images[0].url, 200)} alt={lost.itemName} className="h-full w-full object-cover" />
                         ) : (
                           lost.itemName.charAt(0)
                         )}
@@ -155,9 +155,9 @@ const ManageMatches = () => {
                       Found Item
                     </span>
                     <div className="flex gap-3">
-                      <div className="h-16 w-16 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center font-bold text-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/30">
+                      <div className="h-16 w-16 bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center font-bold text-lg overflow-hidden border border-emerald-200 dark:border-emerald-900/30 flex-shrink-0">
                         {found.images?.[0]?.url ? (
-                          <img src={found.images[0].url} alt={found.itemName} className="h-full w-full object-cover" />
+                          <img src={optimizeImageUrl(found.images[0].url, 200)} alt={found.itemName} className="h-full w-full object-cover" />
                         ) : (
                           found.itemName.charAt(0)
                         )}

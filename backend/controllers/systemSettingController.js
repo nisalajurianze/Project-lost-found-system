@@ -16,6 +16,7 @@ export const getPublicSetting = asyncHandler(async (req, res) => {
   // Check cache
   const cachedValue = await getCache(cacheKey);
   if (cachedValue) {
+    res.set('Cache-Control', 'public, max-age=300');
     return ApiResponse.ok(cachedValue, 'Setting retrieved from cache').send(res);
   }
 
@@ -26,10 +27,13 @@ export const getPublicSetting = asyncHandler(async (req, res) => {
     return ApiResponse.ok(null, 'Setting not found (using defaults)').send(res);
   }
 
-  // Cache for 1 hour
-  await setCache(cacheKey, setting.value, 3600);
+  const publicValue = setting.value;
 
-  return ApiResponse.ok(setting.value, 'Setting retrieved successfully').send(res);
+  // Cache for 24 hours (public settings change rarely)
+  await setCache(cacheKey, publicValue, 86400);
+
+  res.set('Cache-Control', 'public, max-age=300');
+  return ApiResponse.ok(publicValue, 'Setting retrieved successfully').send(res);
 });
 
 // @desc    Create or update a setting

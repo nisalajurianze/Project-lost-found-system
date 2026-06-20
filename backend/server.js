@@ -190,8 +190,8 @@ const startServer = async () => {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Compression middleware
-  app.use(compression());
+  // Compression middleware (Level 6 for balanced CPU/compression ratio)
+  app.use(compression({ level: 6 }));
 
   // Cookie parser (needed for JWT in HTTP-only cookies)
   app.use(cookieParser());

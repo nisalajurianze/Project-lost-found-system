@@ -87,14 +87,18 @@
 
   .glass-card {
     @apply glass rounded-2xl p-6;
+    contain: layout style; /* Performance boost for low-end devices */
   }
 
   .glass-card-hover {
     @apply glass-card transition-all duration-300;
+    will-change: transform, box-shadow; /* Tell browser to composite on GPU */
+    backface-visibility: hidden; /* Prevent anti-aliasing artifacts */
+    -webkit-font-smoothing: subpixel-antialiased;
   }
 
   .glass-card-hover:hover {
-    transform: translateY(-4px) scale(1.01);
+    transform: translate3d(0, -4px, 0) scale(1.01); /* Force 3D transform for hardware acceleration */
     box-shadow: 0 20px 60px rgba(99, 102, 241, 0.15);
   }
 
@@ -186,11 +190,18 @@
   .card {
     @apply bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 
            dark:border-surface-700 shadow-sm;
+    contain: layout style; /* Performance boost for grid rendering */
   }
 
   .card-hover {
     @apply card transition-all duration-300 hover:shadow-lg hover:-translate-y-1
            dark:hover:border-primary-500/30 dark:hover:shadow-glow;
+    will-change: transform, box-shadow;
+    backface-visibility: hidden;
+  }
+  
+  .card-hover:hover {
+    transform: translate3d(0, -4px, 0);
   }
 
   /* ========== Badge System ========== */

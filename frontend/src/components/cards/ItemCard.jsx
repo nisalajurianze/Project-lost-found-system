@@ -19,8 +19,9 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
   const displayDate = isLost ? item.lostDate : item.foundDate;
 
   // Use first image or a clean CSS placeholder card
+  // Reduced width from 600px to 400px for 50% lighter payload on low-end networks
   let mainImage = !imageError && item.images && item.images.length > 0 ? item.images[0].url : null;
-  mainImage = optimizeImageUrl(mainImage, 600);
+  mainImage = optimizeImageUrl(mainImage, 400);
 
   return (
     <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
@@ -30,7 +31,9 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
           <img
             src={mainImage}
             alt={item.itemName}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-contain transition-transform duration-300 transform-gpu will-change-transform group-hover:scale-[1.05] group-hover:translate-z-0"
             onError={() => setImageError(true)}
           />
         ) : (

@@ -14,9 +14,12 @@ import {
 } from 'lucide-react';
 import { fetchAdminStats } from '../../redux/slices/adminSlice';
 import StatCard from '../../components/cards/StatCard';
-import MonthlyReportsChart from '../../components/charts/MonthlyReportsChart';
-import StatusPieChart from '../../components/charts/StatusPieChart';
 import Loader from '../../components/common/Loader';
+import { lazyWithRetry } from '../../utils/lazyWithRetry';
+
+// Lazy load heavy chart components
+const MonthlyReportsChart = lazyWithRetry(() => import('../../components/charts/MonthlyReportsChart'));
+const StatusPieChart = lazyWithRetry(() => import('../../components/charts/StatusPieChart'));
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
@@ -127,10 +130,12 @@ const AdminDashboard = () => {
               Monthly Comparison (Lost vs Found)
             </h2>
           </div>
-          <MonthlyReportsChart 
-            monthlyLost={analytics.monthlyLost} 
-            monthlyFound={analytics.monthlyFound} 
-          />
+          <React.Suspense fallback={<div className="h-64 flex items-center justify-center bg-surface-50 dark:bg-surface-800 rounded-xl"><Loader /></div>}>
+            <MonthlyReportsChart 
+              monthlyLost={analytics.monthlyLost} 
+              monthlyFound={analytics.monthlyFound} 
+            />
+          </React.Suspense>
         </div>
 
         {/* Claim status pie breakdown */}
@@ -141,7 +146,9 @@ const AdminDashboard = () => {
             </div>
             Lost Item Statuses
           </h2>
-          <StatusPieChart data={analytics.lostStatusBreakdown} />
+          <React.Suspense fallback={<div className="h-64 flex items-center justify-center bg-surface-50 dark:bg-surface-800 rounded-xl"><Loader /></div>}>
+            <StatusPieChart data={analytics.lostStatusBreakdown} />
+          </React.Suspense>
         </div>
       </div>
 

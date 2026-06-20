@@ -62,6 +62,7 @@ const EditFoundItem = lazyWithRetry(() => import('./pages/user/EditFoundItem'));
 const MyLostItems = lazyWithRetry(() => import('./pages/user/MyLostItems'));
 const MyFoundItems = lazyWithRetry(() => import('./pages/user/MyFoundItems'));
 const MyMatches = lazyWithRetry(() => import('./pages/user/MyMatches'));
+const MyClaims = lazyWithRetry(() => import('./pages/user/MyClaims'));
 const Notifications = lazyWithRetry(() => import('./pages/user/Notifications'));
 const VerifyResolution = lazyWithRetry(() => import('./pages/protected/VerifyResolution'));
 
@@ -171,6 +172,7 @@ const App = () => {
             <Route path="/dashboard/my-lost" element={<MyLostItems />} />
             <Route path="/dashboard/my-found" element={<MyFoundItems />} />
             <Route path="/dashboard/my-matches" element={<MyMatches />} />
+            <Route path="/dashboard/claims" element={<MyClaims />} />
             <Route path="/dashboard/notifications" element={<Notifications />} />
             <Route path="/dashboard/verify-resolution/:type/:id" element={<VerifyResolution />} />
           </Route>

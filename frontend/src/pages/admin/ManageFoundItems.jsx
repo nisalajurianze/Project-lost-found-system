@@ -12,7 +12,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import StatusBadge from '../../components/common/StatusBadge';
 import Button from '../../components/common/Button';
 import { formatAbsoluteDate as formatDate } from '../../utils/formatDate';
-import { getInitials } from '../../utils/helpers';
+import { getInitials, optimizeImageUrl } from '../../utils/helpers';
 
 const ManageFoundItems = () => {
   const dispatch = useDispatch();
@@ -127,7 +127,7 @@ const ManageFoundItems = () => {
                 {/* Thumbnail */}
                 <div className="h-32 w-full md:w-32 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center border border-slate-200 dark:border-slate-800">
                   {item.images?.[0]?.url ? (
-                    <img src={item.images[0].url} alt={item.itemName} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                    <img src={optimizeImageUrl(item.images[0].url, 150)} alt={item.itemName} className="h-full w-full object-contain group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <CheckCircle className="h-10 w-10 text-slate-400" />
                   )}

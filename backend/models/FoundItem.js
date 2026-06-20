@@ -118,10 +118,6 @@ const foundItemSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
-    resolvedAt: {
-      type: Date,
-      default: null,
-    },
     isArchived: {
       type: Boolean,
       default: false,

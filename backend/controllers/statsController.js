@@ -11,6 +11,8 @@ const CACHE_TTL_SECONDS = 600; // Cache for 10 minutes
 export const getPublicStats = asyncHandler(async (req, res) => {
   const cachedStats = await getCache(CACHE_KEY_PUBLIC_STATS);
   if (cachedStats) {
+    // Tell browser to cache for 5 minutes
+    res.set('Cache-Control', 'public, max-age=300');
     return ApiResponse.ok(cachedStats, 'Public stats retrieved from cache.').send(res);
   }
 
@@ -26,7 +28,9 @@ export const getPublicStats = asyncHandler(async (req, res) => {
     aiMatchAccuracy: 96 // Fixed baseline until AI stats are fully tracked
   };
 
-  await setCache(CACHE_KEY_PUBLIC_STATS, stats, CACHE_TTL_SECONDS);
+  await setCache(CACHE_KEY_PUBLIC_STATS, stats, 300);
 
+  // Tell browser to cache for 5 minutes
+  res.set('Cache-Control', 'public, max-age=300');
   return ApiResponse.ok(stats, 'Public stats retrieved successfully.').send(res);
 });

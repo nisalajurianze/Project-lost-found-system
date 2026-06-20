@@ -9,13 +9,14 @@ import { useSelector } from 'react-redux';
 import {
   FiPlusCircle, FiPackage, FiActivity, FiCheckSquare,
   FiSearch, FiZap, FiArrowRight, FiTrendingUp,
-  FiMapPin, FiClock, FiStar, FiShield
+  FiMapPin, FiClock, FiStar, FiShield, FiShare, FiPlusSquare, FiX, FiDownload
 } from 'react-icons/fi';
 import MatchCard from '../../components/cards/MatchCard';
 import api from '../../services/api';
 import matchService from '../../services/matchService';
 import Loader from '../../components/common/Loader';
 import toast from 'react-hot-toast';
+import { subscribeToPushNotifications } from '../../utils/pushNotifications';
 
 // Animated number counter
 const AnimatedNumber = ({ value }) => {
@@ -101,6 +102,65 @@ export const Dashboard = () => {
   });
   const [matches, setMatches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
+  const [showIosPrompt, setShowIosPrompt] = useState(false);
+  
+  // App Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      setShowPushPrompt(true);
+    }
+
+    // Listen for PWA Install Prompt (Android/Chrome)
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallPrompt(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      toast.success('App installed successfully!');
+    }
+    
+    setDeferredPrompt(null);
+    setShowInstallPrompt(false);
+  };
+
+  const handleEnablePush = async () => {
+    // iOS Safari Web Push requires PWA (Add to Home Screen)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isIOS && !isStandalone) {
+      setShowIosPrompt(true);
+      return;
+    }
+
+    try {
+      await subscribeToPushNotifications();
+      toast.success('Push notifications enabled!');
+      setShowPushPrompt(false);
+    } catch (err) {
+      toast.error('Could not enable push notifications. Check browser settings.');
+      console.error(err);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -147,6 +207,88 @@ export const Dashboard = () => {
 
   return (
     <div className="dashboard-premium">
+      {/* ── App Install Prompt (Android/Chrome) ── */}
+      {showInstallPrompt && (
+        <div className="bg-primary-900/40 border border-primary-500/30 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary-500/20 text-primary-400 rounded-full">
+              <FiDownload size={20} />
+            </div>
+            <div>
+              <h4 className="text-white font-medium">Install App</h4>
+              <p className="text-sm text-surface-300">Add Smart L&F to your home screen for a faster, app-like experience!</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowInstallPrompt(false)} className="px-4 py-2 text-sm text-surface-300 hover:text-white transition-colors">Not Now</button>
+            <button onClick={handleInstallApp} className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg shadow-lg shadow-primary-900/50 transition-all font-medium">Install</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Push Notification Prompt ── */}
+      {showPushPrompt && !showIosPrompt && (
+        <div className="bg-primary-900/40 border border-primary-500/30 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary-500/20 text-primary-400 rounded-full">
+              <FiZap size={20} />
+            </div>
+            <div>
+              <h4 className="text-white font-medium">Enable Push Notifications</h4>
+              <p className="text-sm text-surface-300">Get instantly notified when we find a match or your claim updates!</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowPushPrompt(false)} className="px-4 py-2 text-sm text-surface-300 hover:text-white transition-colors">Not Now</button>
+            <button onClick={handleEnablePush} className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg shadow-lg shadow-primary-900/50 transition-all font-medium">Enable</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── iOS PWA Instructions Modal ── */}
+      {showIosPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm">
+          <div className="bg-surface-800 border border-surface-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative">
+            <button 
+              onClick={() => setShowIosPrompt(false)}
+              className="absolute top-4 right-4 text-surface-400 hover:text-white transition-colors"
+            >
+              <FiX size={24} />
+            </button>
+            
+            <div className="w-12 h-12 bg-primary-500/20 rounded-2xl flex items-center justify-center mb-4">
+              <FiZap className="text-primary-400 text-xl" />
+            </div>
+            
+            <h3 className="text-xl font-bold text-white mb-2">iOS Push Notifications</h3>
+            <p className="text-surface-300 mb-6 text-sm leading-relaxed">
+              To receive instant notifications on your iPhone or iPad, you need to add this app to your Home Screen first.
+            </p>
+            
+            <div className="bg-surface-900/50 rounded-xl p-4 space-y-4 mb-6 border border-surface-700/50">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">1</div>
+                <p className="text-sm text-surface-300">Tap the <FiShare className="inline mx-1 text-primary-400" /> <b>Share</b> button in your Safari menu bar.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">2</div>
+                <p className="text-sm text-surface-300">Scroll down and tap <FiPlusSquare className="inline mx-1 text-primary-400" /> <b>Add to Home Screen</b>.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">3</div>
+                <p className="text-sm text-surface-300">Open the app from your Home Screen to enable notifications!</p>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setShowIosPrompt(false)}
+              className="w-full py-3 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-xl transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero Welcome Banner ── */}
       <div className="dashboard-hero">
@@ -291,7 +433,7 @@ export const Dashboard = () => {
               delay={120}
             />
             <QuickActionCard
-              to="/dashboard/my-claims"
+              to="/dashboard/claims"
               icon={FiCheckSquare}
               label="My Claims"
               description="Track your claim statuses"

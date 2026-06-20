@@ -60,6 +60,13 @@ const userSchema = new mongoose.Schema(
       },
       default: 'user',
     },
+    pushSubscription: {
+      endpoint: String,
+      keys: {
+        p256dh: String,
+        auth: String
+      }
+    },
     isVerified: {
       type: Boolean,
       default: false,

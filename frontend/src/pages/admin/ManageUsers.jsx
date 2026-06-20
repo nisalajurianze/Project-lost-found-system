@@ -21,7 +21,7 @@ import Pagination from '../../components/common/Pagination';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import { getInitials } from '../../utils/helpers';
+import { getInitials, optimizeImageUrl } from '../../utils/helpers';
 
 const ManageUsers = () => {
   const dispatch = useDispatch();
@@ -164,7 +164,7 @@ const ManageUsers = () => {
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center border border-indigo-200 dark:border-indigo-800 overflow-hidden">
                             {user.profileImage?.url ? (
-                              <img src={user.profileImage.url} alt={user.fullName} className="h-full w-full object-cover" />
+                              <img src={optimizeImageUrl(user.profileImage.url, 150)} alt={user.fullName} className="h-full w-full object-cover" />
                             ) : (
                               getInitials(user.fullName)
                             )}

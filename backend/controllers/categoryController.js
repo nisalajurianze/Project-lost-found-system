@@ -20,7 +20,8 @@ const getCategories = asyncHandler(async (req, res) => {
   // 1. Try to fetch from Redis cache
   const cachedData = await getCache(CACHE_KEY_CATEGORIES);
   if (cachedData) {
-    console.log('⚡ Redis Cache Hit: getCategories');
+    console.log('🔄 Redis Cache Hit: getCategories');
+    res.set('Cache-Control', 'public, max-age=300');
     return ApiResponse.ok(cachedData, 'Categories retrieved from cache.').send(res);
   }
 
@@ -32,6 +33,7 @@ const getCategories = asyncHandler(async (req, res) => {
   // 3. Save to Redis cache
   await setCache(CACHE_KEY_CATEGORIES, categories, CACHE_TTL_SECONDS);
 
+  res.set('Cache-Control', 'public, max-age=300');
   ApiResponse.ok(categories, 'Categories retrieved from database.').send(res);
 });
 

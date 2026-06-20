@@ -165,7 +165,8 @@ const getClaimRequests = asyncHandler(async (req, res) => {
     })
     .sort({ createdAt: -1 })
     .skip(pagination.skip)
-    .limit(pagination.limit);
+    .limit(pagination.limit)
+    .lean();
 
   ApiResponse.ok({ claims, pagination }, 'Claim requests retrieved successfully.').send(res);
 });

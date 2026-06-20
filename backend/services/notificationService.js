@@ -4,7 +4,9 @@
 // ============================================
 
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { getIO } from '../config/socket.js';
+import webpush from 'web-push';
 
 /**
  * Create a notification in the database and emit it via Socket.IO.
@@ -53,6 +55,39 @@ const createNotification = async ({
         isRead: notification.isRead,
         createdAt: notification.createdAt,
       });
+    }
+
+    // Attempt Native Web Push Notification delivery
+    const user = await User.findById(userId).select('+pushSubscription');
+    if (user && user.pushSubscription && user.pushSubscription.endpoint) {
+      // Configure web-push with VAPID keys if they exist in the env
+      if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(
+          process.env.VAPID_SUBJECT || 'mailto:smartlostandfound.seusl@gmail.com',
+          process.env.VAPID_PUBLIC_KEY,
+          process.env.VAPID_PRIVATE_KEY
+        );
+        
+        const pushPayload = JSON.stringify({
+          title: notification.title,
+          body: notification.message,
+          icon: '/android-chrome-192x192.png',
+          data: {
+            url: notification.relatedItem?.itemType ? `/${notification.relatedItem.itemType === 'FoundItem' ? 'found-items' : 'lost-items'}/${notification.relatedItem.itemId}` : '/'
+          }
+        });
+
+        try {
+          await webpush.sendNotification(user.pushSubscription, pushPayload);
+        } catch (pushErr) {
+          console.warn(`⚠️ Failed to send web push notification: ${pushErr.message}`);
+          if (pushErr.statusCode === 410) {
+            // Subscription has expired or is no longer valid, remove it
+            user.pushSubscription = undefined;
+            await user.save();
+          }
+        }
+      }
     }
 
     return notification;
