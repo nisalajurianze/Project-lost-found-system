@@ -5,7 +5,6 @@
 # Smart Lost & Found Management System 
 #SEUSL Group Project
 
-[![Build Status](https://github.com/ebay/smart-lost-found/actions/workflows/ci.yml/badge.svg)](https://github.com/ebay/smart-lost-found/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node version](https://img.shields.io/badge/node-%3E%3D%2018.0.0-blue.svg)](https://nodejs.org)
 [![MongoDB](https://img.shields.io/badge/database-MongoDB-green.svg)](https://www.mongodb.com)
