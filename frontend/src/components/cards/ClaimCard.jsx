@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
 import Button from '../common/Button';
 import { FiExternalLink, FiCheck, FiX } from 'react-icons/fi';
+import { User } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/formatDate';
 
 export const ClaimCard = ({ claim, onReview, onShareContact, isAdmin = false, canReview = false, isLoading = false }) => {
@@ -49,7 +50,7 @@ export const ClaimCard = ({ claim, onReview, onShareContact, isAdmin = false, ca
               Claimant Profile
             </span>
             <div className="text-xs text-surface-700 dark:text-surface-300 space-y-1 mt-1">
-              <p className="font-semibold">👤 {claimant?.fullName || claimant?.name} ({claimant?.studentId})</p>
+              <p className="font-semibold flex items-center gap-1.5"><User size={12} className="text-surface-400" /> {claimant?.fullName || claimant?.name} ({claimant?.studentId})</p>
               {(canReview || isAdmin || claim.status === 'approved' || claim.isContactShared) && (
                 <>
                   <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {claimant?.email}</p>
@@ -66,7 +67,7 @@ export const ClaimCard = ({ claim, onReview, onShareContact, isAdmin = false, ca
                 Poster's Contact Info
               </span>
               <div className="text-xs text-surface-700 dark:text-surface-300 space-y-1">
-                <p className="font-semibold">👤 {itemOwner?.fullName || itemOwner?.name}</p>
+                <p className="font-semibold flex items-center gap-1.5"><User size={12} className="text-surface-400" /> {itemOwner?.fullName || itemOwner?.name}</p>
                 <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {itemOwner?.email}</p>
                 {itemOwner?.phone && <p className="flex items-center gap-1.5"><FiExternalLink className="text-[10px]" /> {itemOwner?.phone}</p>}
               </div>

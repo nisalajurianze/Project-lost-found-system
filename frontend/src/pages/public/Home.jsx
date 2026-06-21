@@ -7,6 +7,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlusCircle, FiSearch, FiFileText, FiShield, FiCpu, FiMessageSquare } from 'react-icons/fi';
+import { MapPin, Calendar } from 'lucide-react';
 import Button from '../../components/common/Button';
 import lostItemService from '../../services/lostItemService';
 import foundItemService from '../../services/foundItemService';
@@ -215,9 +216,9 @@ export const Home = () => {
                       {item.description}
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-surface-100 dark:border-surface-700/50 flex flex-col gap-1 text-xs text-surface-400">
-                    <p>📍 Location: <strong>{item.lostLocation}</strong></p>
-                    <p>📅 Reported: <strong>{new Date(item.createdAt).toLocaleDateString()}</strong></p>
+                  <div className="mt-4 pt-3 border-t border-surface-100 dark:border-surface-700/50 flex flex-col gap-1.5 text-xs text-surface-400">
+                    <p className="flex items-center gap-1.5"><MapPin size={14} className="text-surface-400" /> <span>Location: <strong>{item.lostLocation}</strong></span></p>
+                    <p className="flex items-center gap-1.5"><Calendar size={14} className="text-surface-400" /> <span>Reported: <strong>{new Date(item.createdAt).toLocaleDateString()}</strong></span></p>
                   </div>
                 </Link>
               ))}
@@ -268,9 +269,9 @@ export const Home = () => {
                       {item.description}
                     </p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-surface-100 dark:border-surface-700/50 flex flex-col gap-1 text-xs text-surface-400">
-                    <p>📍 Location: <strong>{item.foundLocation}</strong></p>
-                    <p>📅 Found: <strong>{new Date(item.foundDate || item.createdAt).toLocaleDateString()}</strong></p>
+                  <div className="mt-4 pt-3 border-t border-surface-100 dark:border-surface-700/50 flex flex-col gap-1.5 text-xs text-surface-400">
+                    <p className="flex items-center gap-1.5"><MapPin size={14} className="text-surface-400" /> <span>Location: <strong>{item.foundLocation}</strong></span></p>
+                    <p className="flex items-center gap-1.5"><Calendar size={14} className="text-surface-400" /> <span>Found: <strong>{new Date(item.foundDate || item.createdAt).toLocaleDateString()}</strong></span></p>
                   </div>
                 </Link>
               ))}

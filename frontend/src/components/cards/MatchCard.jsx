@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import Button from '../common/Button';
 import { FiCheck, FiX, FiLink, FiCheckCircle } from 'react-icons/fi';
 import { optimizeImageUrl } from '../../utils/helpers';
+import { MapPin, Calendar, User } from 'lucide-react';
 
 export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = false }) => {
   const lost = match.lostItemId;
@@ -59,10 +60,10 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
           <p className="text-xs text-surface-500 dark:text-surface-400 mt-2 line-clamp-2">
             {lost.description}
           </p>
-          <div className="mt-auto pt-3 flex flex-col gap-1 text-[11px] text-surface-500 dark:text-surface-400">
-            <p className="truncate">📍 Location: <strong>{lost.lostLocation}</strong></p>
-            <p>📅 Date: <strong>{new Date(lost.lostDate).toLocaleDateString()}</strong></p>
-            <p className="truncate">👤 Reported By: <strong>{lost.userId?.fullName || 'Me'}</strong></p>
+          <div className="mt-auto pt-3 flex flex-col gap-1.5 text-[11px] text-surface-500 dark:text-surface-400">
+            <p className="truncate flex items-center gap-1.5"><MapPin size={12} className="text-surface-400" /> <span>Location: <strong>{lost.lostLocation}</strong></span></p>
+            <p className="flex items-center gap-1.5"><Calendar size={12} className="text-surface-400" /> <span>Date: <strong>{new Date(lost.lostDate).toLocaleDateString()}</strong></span></p>
+            <p className="truncate flex items-center gap-1.5"><User size={12} className="text-surface-400" /> <span>Reported By: <strong>{lost.userId?.fullName || 'Me'}</strong></span></p>
           </div>
         </div>
 
@@ -84,10 +85,10 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
           <p className="text-xs text-surface-500 dark:text-surface-400 mt-2 line-clamp-2">
             {found.description}
           </p>
-          <div className="mt-auto pt-3 flex flex-col gap-1 text-[11px] text-surface-500 dark:text-surface-400">
-            <p className="truncate">📍 Location: <strong>{found.foundLocation}</strong></p>
-            <p>📅 Date: <strong>{new Date(found.foundDate).toLocaleDateString()}</strong></p>
-            <p className="truncate">👤 Reported By: <strong>{found.userId?.fullName || 'Me'}</strong></p>
+          <div className="mt-auto pt-3 flex flex-col gap-1.5 text-[11px] text-surface-500 dark:text-surface-400">
+            <p className="truncate flex items-center gap-1.5"><MapPin size={12} className="text-surface-400" /> <span>Location: <strong>{found.foundLocation}</strong></span></p>
+            <p className="flex items-center gap-1.5"><Calendar size={12} className="text-surface-400" /> <span>Date: <strong>{new Date(found.foundDate).toLocaleDateString()}</strong></span></p>
+            <p className="truncate flex items-center gap-1.5"><User size={12} className="text-surface-400" /> <span>Reported By: <strong>{found.userId?.fullName || 'Me'}</strong></span></p>
           </div>
         </div>
       </div>
