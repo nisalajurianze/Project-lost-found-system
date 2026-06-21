@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./docs/animated-logo.svg" width="200" alt="Smart Lost & Found Logo" />
 </p>
 
@@ -10,7 +10,6 @@
 [![Node version](https://img.shields.io/badge/node-%3E%3D%2018.0.0-blue.svg)](https://nodejs.org)
 [![MongoDB](https://img.shields.io/badge/database-MongoDB-green.svg)](https://www.mongodb.com)
 [![Redis](https://img.shields.io/badge/cache-Redis-red.svg)](https://redis.io)
-
 
 ## 👥 Team Members
 
@@ -83,22 +82,22 @@ Traditional university lost and found divisions suffer from several operational 
 
 ## 4. System Architecture
 ```
-  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-  â”‚                        FRONT-END                          â”‚
-  â”‚              React / Vite / Redux / Tailwind              â”‚
-  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                                â”‚ HTTP / JSON / WebSockets
-                                â–¼
-  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-  â”‚                        BACK-END                           â”‚
-  â”‚                  Express / Node.js Server                 â”‚
-  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                 â”‚                              â”‚
-                 â–¼                              â–¼
-  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-  â”‚          DATABASE           â”‚â”‚          CACHING           â”‚
-  â”‚           MongoDB           â”‚â”‚           Redis            â”‚
-  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+  ┌───────────────────────────────────────────────────────────┐
+  │                        FRONT-END                          │
+  │              React / Vite / Redux / Tailwind              │
+  └─────────────────────────────┬─────────────────────────────┘
+                                │ HTTP / JSON / WebSockets
+                                ▼
+  ┌───────────────────────────────────────────────────────────┐
+  │                        BACK-END                           │
+  │                  Express / Node.js Server                 │
+  └──────────────┬──────────────────────────────┬─────────────┘
+                 │                              │
+                 ▼                              ▼
+  ┌─────────────────────────────┐┌────────────────────────────┐
+  │          DATABASE           ││          CACHING           │
+  │           MongoDB           ││           Redis            │
+  └─────────────────────────────┘└────────────────────────────┘
 ```
 
 ---
@@ -120,34 +119,34 @@ Traditional university lost and found divisions suffer from several operational 
 ## 6. Folder Structure
 ```
 d:\Project lost & found system\
-â”‚
-â”œâ”€â”€ README.md                           # Main Documentation
-â”œâ”€â”€ docker-compose.yml                  # Local Container Orchestration
-â”œâ”€â”€ .dockerignore                       # Docker exclusion file
-â”‚
-â”œâ”€â”€ backend\
-â”‚   â”œâ”€â”€ package.json                    # Backend Dependencies
-â”‚   â”œâ”€â”€ server.js                       # Express Application Entry
-â”‚   â”œâ”€â”€ config\                         # DB, Socket, Redis & Cloudinary configs
-â”‚   â”œâ”€â”€ controllers\                    # Business Logic Controllers (10 files)
-â”‚   â”œâ”€â”€ models\                         # Mongoose Database Schemas (10 files)
-â”‚   â”œâ”€â”€ routes\                         # API Routers mapping endpoints (10 files)
-â”‚   â”œâ”€â”€ middlewares\                    # Security, uploads, & validation middlewares
-â”‚   â”œâ”€â”€ services\                       # Cloudinary, Email, Sockets & AI matching
-â”‚   â””â”€â”€ seed\                           # Database Seeder file
-â”‚
-â””â”€â”€ frontend\
-    â”œâ”€â”€ package.json                    # Frontend Dependencies
-    â”œâ”€â”€ tailwind.config.js              # Styling Framework rules
-    â”œâ”€â”€ index.html                      # DOM Entry
-    â””â”€â”€ src\
-        â”œâ”€â”€ main.jsx                    # React Entry
-        â”œâ”€â”€ App.jsx                     # Route Mapping Engine
-        â”œâ”€â”€ components\                 # Common, layouts, cards & charts (30+ components)
-        â”œâ”€â”€ pages\                      # Public, User and Admin Panels (28 pages)
-        â”œâ”€â”€ redux\                      # Redux Toolkit Slices (9 slices)
-        â”œâ”€â”€ services\                   # Backend HTTP API Client integrations
-        â””â”€â”€ hooks\                      # Custom hooks (Auth, Socket, Debounce)
+│
+├── README.md                           # Main Documentation
+├── docker-compose.yml                  # Local Container Orchestration
+├── .dockerignore                       # Docker exclusion file
+│
+├── backend\
+│   ├── package.json                    # Backend Dependencies
+│   ├── server.js                       # Express Application Entry
+│   ├── config\                         # DB, Socket, Redis & Cloudinary configs
+│   ├── controllers\                    # Business Logic Controllers (10 files)
+│   ├── models\                         # Mongoose Database Schemas (10 files)
+│   ├── routes\                         # API Routers mapping endpoints (10 files)
+│   ├── middlewares\                    # Security, uploads, & validation middlewares
+│   ├── services\                       # Cloudinary, Email, Sockets & AI matching
+│   └── seed\                           # Database Seeder file
+│
+└── frontend\
+    ├── package.json                    # Frontend Dependencies
+    ├── tailwind.config.js              # Styling Framework rules
+    ├── index.html                      # DOM Entry
+    └── src\
+        ├── main.jsx                    # React Entry
+        ├── App.jsx                     # Route Mapping Engine
+        ├── components\                 # Common, layouts, cards & charts (30+ components)
+        ├── pages\                      # Public, User and Admin Panels (28 pages)
+        ├── redux\                      # Redux Toolkit Slices (9 slices)
+        ├── services\                   # Backend HTTP API Client integrations
+        └── hooks\                      # Custom hooks (Auth, Socket, Debounce)
 ```
 
 ---
@@ -155,14 +154,14 @@ d:\Project lost & found system\
 ## 7. User Roles and Permissions
 | Permission / Role | Guest | Registered User | Administrator |
 |--------------------|:-----:|:---------------:|:-------------:|
-| View public listings |  âœ…  |       âœ…       |      âœ…      |
-| Report Lost/Found  |  âŒ  |       âœ…       |      âœ…      |
-| View Match alerts  |  âŒ  |       âœ…       |      âœ…      |
-| Submit Claim       |  âŒ  |       âœ…       |      âœ…      |
-| Deactivate Users   |  âŒ  |       âŒ       |      âœ…      |
-| Review Claims      |  âŒ  |       âŒ       |      âœ…      |
-| Add Categories     |  âŒ  |       âŒ       |      âœ…      |
-| View Audit Logs    |  âŒ  |       âŒ       |      âœ…      |
+| View public listings |  ✅  |       ✅       |      ✅      |
+| Report Lost/Found  |  ❌  |       ✅       |      ✅      |
+| View Match alerts  |  ❌  |       ✅       |      ✅      |
+| Submit Claim       |  ❌  |       ✅       |      ✅      |
+| Deactivate Users   |  ❌  |       ❌       |      ✅      |
+| Review Claims      |  ❌  |       ❌       |      ✅      |
+| Add Categories     |  ❌  |       ❌       |      ✅      |
+| View Audit Logs    |  ❌  |       ❌       |      ✅      |
 
 ---
 
@@ -340,7 +339,7 @@ Reports undergo similarity evaluations matching:
 - **Category Match**: Direct filter comparison.
 - **Location Similarity**: Triggers score matches.
 - **Description Matching**: Evaluates keywords and tags (e.g., color, brands, phone models).
-- Matches with score â‰¥ 60% generate notifications.
+- Matches with score ≥ 60% generate notifications.
 
 ---
 
@@ -426,6 +425,3 @@ This project is developed as a course project submission for software engineerin
 
 ## 30. License
 Distributed under the MIT License. See `LICENSE` for more information.
-
-
-
