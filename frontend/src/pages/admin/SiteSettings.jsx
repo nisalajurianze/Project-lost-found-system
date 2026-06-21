@@ -241,6 +241,8 @@ export const SiteSettings = () => {
             />
           </button>
         </div>
+      </div>
+
       <div className="card p-6 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 mt-6">
         <div className="flex justify-between items-center mb-4 border-b border-surface-100 dark:border-surface-700 pb-3">
           <h2 className="text-lg font-bold font-display text-surface-900 dark:text-white">
