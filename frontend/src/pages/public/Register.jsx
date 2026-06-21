@@ -77,7 +77,7 @@ export const Register = () => {
     }
 
     try {
-      await dispatch(
+      const res = await dispatch(
         registerUser({
           fullName,
           email,
@@ -88,12 +88,15 @@ export const Register = () => {
         })
       ).unwrap();
 
-      toast.success('Registration successful! Logging in...');
-
-      // Auto login after successful registration
-      await dispatch(
-        loginUser({ email, password })
-      ).unwrap();
+      if (res && res.token) {
+        toast.success('Registration successful! Welcome aboard!');
+      } else {
+        toast.success('Registration successful! Please check your email.');
+        // Auto login after successful registration (will prompt for email verification or succeed if disabled)
+        await dispatch(
+          loginUser({ email, password })
+        ).unwrap();
+      }
 
       // Show a nice prompt for profile picture
       toast.custom((t) => (

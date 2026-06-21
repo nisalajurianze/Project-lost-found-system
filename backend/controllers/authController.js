@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import SystemSetting from '../models/SystemSetting.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -33,9 +34,13 @@ const register = asyncHandler(async (req, res) => {
     throw ApiError.conflict('Student ID is already registered.');
   }
 
-  // Create verification token
-  const token = crypto.randomBytes(32).toString('hex');
-  const tokenExpire = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  // Check system setting for email verification requirement
+  const emailVerifSetting = await SystemSetting.findOne({ key: 'require_email_verification' });
+  const requireEmailVerification = emailVerifSetting ? emailVerifSetting.value : true;
+
+  // Create verification token (only if required)
+  const token = requireEmailVerification ? crypto.randomBytes(32).toString('hex') : undefined;
+  const tokenExpire = requireEmailVerification ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined;
 
   // Create user
   const user = await User.create({
@@ -44,36 +49,58 @@ const register = asyncHandler(async (req, res) => {
     phone,
     studentId,
     password,
+    isVerified: !requireEmailVerification,
     verificationToken: token,
     verificationTokenExpire: tokenExpire
   });
 
-  // Send verification email
-  const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
-  await sendEmail({
-    to: user.email,
-    template: 'verification',
-    data: {
-      name: user.fullName,
-      verificationUrl
-    }
-  });
+  if (requireEmailVerification) {
+    // Send verification email
+    const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+    await sendEmail({
+      to: user.email,
+      template: 'verification',
+      data: {
+        name: user.fullName,
+        verificationUrl
+      }
+    });
 
-  // Create system notification
-  await createNotification({
-    userId: user._id,
-    title: 'Welcome to Smart Lost & Found!',
-    message: 'Please verify your email address to unlock all features.',
-    type: 'welcome'
-  });
+    // Create system notification
+    await createNotification({
+      userId: user._id,
+      title: 'Welcome to Smart Lost & Found!',
+      message: 'Please verify your email address to unlock all features.',
+      type: 'welcome'
+    });
 
-  // Response without password/refresh token (handled by schema transforms)
-  const userData = user.toObject();
-  delete userData.password;
-  delete userData.verificationToken;
-  delete userData.verificationTokenExpire;
+    // Response without password/refresh token
+    const userData = user.toObject();
+    delete userData.password;
+    delete userData.verificationToken;
+    delete userData.verificationTokenExpire;
 
-  ApiResponse.created(userData, 'Registration successful. Please check your email to verify your account.').send(res);
+    return ApiResponse.created(userData, 'Registration successful. Please check your email to verify your account.').send(res);
+  } else {
+    // Verification is disabled, instantly log them in
+    const { accessToken, refreshToken } = await generateTokens(user, res, false);
+    
+    // Setup refresh token cookie is already handled by generateTokens
+    
+    await createNotification({
+      userId: user._id,
+      title: 'Welcome to Smart Lost & Found!',
+      message: 'Your account has been created successfully.',
+      type: 'welcome'
+    });
+    
+    const userData = user.toObject();
+    delete userData.password;
+    delete userData.verificationToken;
+    delete userData.verificationTokenExpire;
+    
+    return ApiResponse.created({ token: accessToken, data: userData }, 'Registration successful.').send(res);
+  }
 });
 
 /**
@@ -160,9 +187,12 @@ const login = asyncHandler(async (req, res) => {
   }
 
   // SEC-012: Enforce email verification on login
-  // if (!user.isVerified) {
-  //   throw ApiError.forbidden('Please verify your email address before logging in.');
-  // }
+  const emailVerifSetting = await SystemSetting.findOne({ key: 'require_email_verification' });
+  const requireEmailVerification = emailVerifSetting ? emailVerifSetting.value : true;
+  
+  if (requireEmailVerification && !user.isVerified) {
+    throw ApiError.forbidden('Please verify your email address before logging in.');
+  }
 
   // Reset login attempts on success
   user.loginAttempts = 0;

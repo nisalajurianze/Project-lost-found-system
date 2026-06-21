@@ -14,6 +14,8 @@ export const SiteSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [requireEmailVerification, setRequireEmailVerification] = useState(true);
+  const [isSavingAuth, setIsSavingAuth] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -28,6 +30,11 @@ export const SiteSettings = () => {
           email: res.data.email || '',
           phone: res.data.phone || ''
         });
+      }
+      
+      const authRes = await settingService.getPublicSetting('require_email_verification');
+      if (authRes && authRes.data !== null && authRes.data !== undefined) {
+        setRequireEmailVerification(authRes.data === true || authRes.data === 'true');
       }
     } catch (err) {
       if (err.response && err.response.status === 404) {
@@ -52,6 +59,21 @@ export const SiteSettings = () => {
       console.error(err);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleAuthSetting = async () => {
+    setIsSavingAuth(true);
+    const newValue = !requireEmailVerification;
+    try {
+      await settingService.updateSetting('require_email_verification', newValue, 'Require email verification for new registrations');
+      setRequireEmailVerification(newValue);
+      toast.success(newValue ? 'Email verification enabled' : 'Email verification disabled');
+    } catch (err) {
+      toast.error('Failed to update authentication settings');
+      console.error(err);
+    } finally {
+      setIsSavingAuth(false);
     }
   };
 
@@ -152,6 +174,38 @@ export const SiteSettings = () => {
             </div>
           )}
         </form>
+      </div>
+
+      <div className="card p-6 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 mt-6">
+        <div className="flex justify-between items-center mb-4 border-b border-surface-100 dark:border-surface-700 pb-3">
+          <h2 className="text-lg font-bold font-display text-surface-900 dark:text-white">
+            Authentication Settings
+          </h2>
+        </div>
+
+        <div className="flex items-center justify-between p-4 bg-surface-50 dark:bg-surface-900 rounded-lg border border-surface-200 dark:border-surface-700">
+          <div>
+            <h3 className="text-base font-semibold text-surface-900 dark:text-white">
+              Require Email Verification
+            </h3>
+            <p className="text-sm text-surface-500 dark:text-surface-400 mt-1 max-w-lg">
+              When enabled, new users must verify their email address before logging in. Disable this for easier testing or demonstrations.
+            </p>
+          </div>
+          <button
+            type="button"
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${requireEmailVerification ? 'bg-primary-600' : 'bg-surface-300 dark:bg-surface-600'} ${isSavingAuth ? 'opacity-50 cursor-not-allowed' : ''}`}
+            role="switch"
+            aria-checked={requireEmailVerification}
+            onClick={handleToggleAuthSetting}
+            disabled={isSavingAuth}
+          >
+            <span
+              aria-hidden="true"
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${requireEmailVerification ? 'translate-x-5' : 'translate-x-0'}`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

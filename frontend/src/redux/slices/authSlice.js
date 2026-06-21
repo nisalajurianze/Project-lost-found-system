@@ -105,8 +105,22 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(registerUser.fulfilled, (state) => {
+      .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
+        
+        // If email verification is disabled, backend sends a token and logs user in directly
+        if (action.payload && action.payload.token && action.payload.data) {
+          state.user = action.payload.data;
+          state.isAuthenticated = true;
+          
+          const safeUser = {
+            _id: action.payload.data._id,
+            fullName: action.payload.data.fullName,
+            role: action.payload.data.role,
+            profileImage: action.payload.data.profileImage
+          };
+          localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
+        }
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
