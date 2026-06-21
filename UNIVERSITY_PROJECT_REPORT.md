@@ -2,7 +2,7 @@
 # SEUSL Group Project
 
 ## Team Members
-* **Nisal** (GitHub: [@nisalajurianze](https://github.com/nisalajurianze))
+* **Nisala** (GitHub: [@nisalajurianze](https://github.com/nisalajurianze))
 * **Dinuka** (GitHub: [@dinukahansana](https://github.com/dinukahansana))
 * **Heshan** (GitHub: [@Heshan-3](https://github.com/Heshan-3))
 * **Janidu** (GitHub: [@janidu200301](https://github.com/janidu200301))
