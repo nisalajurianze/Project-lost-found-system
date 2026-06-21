@@ -62,6 +62,33 @@ const createClaimRequest = asyncHandler(async (req, res) => {
     throw ApiError.badRequest(`You have reached the maximum allowed active claims (${maxPendingAllowed}). Please wait for them to be reviewed.`);
   }
 
+  // --- ANTI-FRAUD / VELOCITY CHECK: Check claims submitted in the last 24 hours ---
+  const spamSettingVelocity = await SystemSetting.findOne({ key: 'spam_max_claims_per_day' });
+  const maxClaimsPerDay = spamSettingVelocity && spamSettingVelocity.value !== undefined ? parseInt(spamSettingVelocity.value, 10) : 3;
+
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const recentClaimsCount = await ClaimRequest.countDocuments({ 
+    claimantId, 
+    createdAt: { $gte: oneDayAgo } 
+  });
+
+  if (recentClaimsCount >= maxClaimsPerDay) {
+    // Suspend user for abnormal velocity
+    await User.findByIdAndUpdate(claimantId, { isActive: false });
+    
+    // Notify them via email
+    await sendEmail({
+      to: req.user.email,
+      template: 'accountSuspended',
+      data: {
+        name: req.user.fullName || req.user.name,
+        reason: 'suspicious claim velocity (submitting too many claims in a short timeframe)'
+      }
+    });
+
+    throw ApiError.forbidden('Your account has been suspended due to suspicious activity (abnormal claim volume). Please contact support.');
+  }
+
   // Check if user has already submitted a pending/approved claim for this item
   const query = { claimantId, status: { $in: ['pending', 'approved'] } };
   if (foundItemId) query.foundItemId = foundItemId;

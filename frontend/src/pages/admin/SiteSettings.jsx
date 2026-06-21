@@ -20,7 +20,8 @@ export const SiteSettings = () => {
   // Anti-Spam
   const [spamSettings, setSpamSettings] = useState({
     spam_max_pending_claims: 5,
-    spam_max_rejected_claims: 3
+    spam_max_rejected_claims: 3,
+    spam_max_claims_per_day: 3
   });
   const [isSavingSpam, setIsSavingSpam] = useState(false);
 
@@ -46,11 +47,13 @@ export const SiteSettings = () => {
 
       const pendingRes = await settingService.getPublicSetting('spam_max_pending_claims');
       const rejectedRes = await settingService.getPublicSetting('spam_max_rejected_claims');
+      const velocityRes = await settingService.getPublicSetting('spam_max_claims_per_day');
       
       setSpamSettings(prev => ({
         ...prev,
         spam_max_pending_claims: pendingRes?.data ? parseInt(pendingRes.data, 10) : prev.spam_max_pending_claims,
         spam_max_rejected_claims: rejectedRes?.data ? parseInt(rejectedRes.data, 10) : prev.spam_max_rejected_claims,
+        spam_max_claims_per_day: velocityRes?.data ? parseInt(velocityRes.data, 10) : prev.spam_max_claims_per_day,
       }));
     } catch (err) {
       if (err.response && err.response.status === 404) {
@@ -99,6 +102,7 @@ export const SiteSettings = () => {
     try {
       await settingService.updateSetting('spam_max_pending_claims', parseInt(spamSettings.spam_max_pending_claims, 10), 'Max concurrent pending claims before blocking requests');
       await settingService.updateSetting('spam_max_rejected_claims', parseInt(spamSettings.spam_max_rejected_claims, 10), 'Max rejected claims before auto-suspending account');
+      await settingService.updateSetting('spam_max_claims_per_day', parseInt(spamSettings.spam_max_claims_per_day, 10), 'Max claims a user can submit in a 24-hour period before auto-ban (Velocity Check)');
       toast.success('Anti-Spam settings updated');
     } catch (err) {
       toast.error('Failed to update anti-spam settings');
@@ -265,6 +269,17 @@ export const SiteSettings = () => {
             onChange={(e) => setSpamSettings({ ...spamSettings, spam_max_rejected_claims: e.target.value })}
             placeholder="e.g. 3"
             helperText="If a user hits this threshold of rejected claims, their account will be automatically suspended."
+            required
+          />
+          <Input
+            type="number"
+            min="1"
+            max="100"
+            label="Max Claims Per 24 Hours (Velocity Check)"
+            value={spamSettings.spam_max_claims_per_day}
+            onChange={(e) => setSpamSettings({ ...spamSettings, spam_max_claims_per_day: e.target.value })}
+            placeholder="e.g. 3"
+            helperText="Detects abnormal request rates. Exceeding this limit in a 24-hour window will instantly ban the user."
             required
           />
 
