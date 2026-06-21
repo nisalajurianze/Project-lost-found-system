@@ -9,7 +9,8 @@ import {
   getUsers,
   updateUserStatus,
   updateUserRole,
-  getAdminLogs
+  getAdminLogs,
+  deleteUser
 } from '../controllers/adminController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import authorize from '../middlewares/roleMiddleware.js';
@@ -26,6 +27,7 @@ router.get('/stats', getDashboardStats);
 router.get('/users', getUsers);
 router.put('/users/:id/status', mongoIdParam, validate, updateUserStatus);
 router.put('/users/:id/role', mongoIdParam, validate, updateUserRole);
+router.delete('/users/:id', mongoIdParam, validate, deleteUser);
 router.get('/logs', getAdminLogs);
 
 export default router;

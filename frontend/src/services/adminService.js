@@ -44,6 +44,14 @@ const adminService = {
   getAdminLogs: async (params = {}) => {
     const res = await api.get('/admin/logs', { params });
     return res.data.data; // { logs, pagination }
+  },
+
+  /**
+   * Hard delete user account.
+   */
+  deleteUser: async (id) => {
+    const res = await api.delete(`/admin/users/${id}`);
+    return res.data.data;
   }
 };
 

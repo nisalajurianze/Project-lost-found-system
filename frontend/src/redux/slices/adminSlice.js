@@ -61,6 +61,18 @@ export const fetchAdminAuditLogs = createAsyncThunk(
   }
 );
 
+export const deleteUserAccount = createAsyncThunk(
+  'admin/deleteUser',
+  async (id, { rejectWithValue }) => {
+    try {
+      await adminService.deleteUser(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 const adminSlice = createSlice({
   name: 'admin',
   initialState: {
@@ -109,6 +121,10 @@ const adminSlice = createSlice({
       // Update Role
       .addCase(updateUserRole.fulfilled, (state, action) => {
         state.users = state.users.map(u => u._id === action.payload._id ? action.payload : u);
+      })
+      // Delete User
+      .addCase(deleteUserAccount.fulfilled, (state, action) => {
+        state.users = state.users.filter(u => u._id !== action.payload);
       })
       // Fetch Logs
       .addCase(fetchAdminAuditLogs.pending, (state) => {

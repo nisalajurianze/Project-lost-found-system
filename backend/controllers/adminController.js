@@ -239,10 +239,44 @@ const getAdminLogs = asyncHandler(async (req, res) => {
   ApiResponse.ok({ logs, pagination }, 'Admin logs retrieved.').send(res);
 });
 
+/**
+ * Hard delete a user account.
+ */
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    throw ApiError.notFound('User not found.');
+  }
+
+  if (user._id.toString() === req.user._id.toString()) {
+    throw ApiError.badRequest('You cannot delete your own account.');
+  }
+
+  if (user.role === 'admin') {
+    throw ApiError.forbidden('You cannot delete another administrator account. Demote them first.');
+  }
+
+  await User.findByIdAndDelete(user._id);
+
+  // Log action
+  await AdminLog.create({
+    adminId: req.user._id,
+    action: 'USER_DELETED',
+    targetModel: 'User',
+    targetId: user._id,
+    details: `Deleted user: ${user.email}`,
+    ipAddress: req.ip || ''
+  });
+
+  ApiResponse.ok(null, 'User account successfully deleted.').send(res);
+});
+
 export {
   getDashboardStats,
   getUsers,
   updateUserStatus,
   updateUserRole,
-  getAdminLogs
+  getAdminLogs,
+  deleteUser
 };

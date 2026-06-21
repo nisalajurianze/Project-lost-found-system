@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Search, 
@@ -13,7 +13,7 @@ import {
   ShieldOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { fetchUsersList, toggleUserActivation, updateUserRole } from '../../redux/slices/adminSlice';
+import { fetchUsersList, toggleUserActivation, updateUserRole, deleteUserAccount } from '../../redux/slices/adminSlice';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -34,6 +34,7 @@ const ManageUsers = () => {
   const [page, setPage] = useState(1);
   const [toggleUser, setToggleUser] = useState(null); // { id, isActive, name } for confirm modal
   const [roleToggleUser, setRoleToggleUser] = useState(null); // { id, name, currentRole } for role change modal
+  const [deleteUser, setDeleteUser] = useState(null); // { id, name } for delete modal
 
   useEffect(() => {
     dispatch(fetchUsersList({ search, role, page, limit: 10 }));
@@ -86,8 +87,20 @@ const ManageUsers = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteUser) return;
+    try {
+      await dispatch(deleteUserAccount(deleteUser.id)).unwrap();
+      toast.success(`User "${deleteUser.name}" has been permanently deleted.`);
+    } catch (err) {
+      toast.error(err || 'Failed to delete user.');
+    } finally {
+      setDeleteUser(null);
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-24">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -254,6 +267,16 @@ const ManageUsers = () => {
                               <span className="flex items-center justify-center gap-1 w-full text-indigo-600 dark:text-indigo-400"><Shield className="h-4 w-4" /> Make Admin</span>
                             )}
                           </Button>
+                          <Button 
+                            variant="danger"
+                            size="sm"
+                            disabled={isSelf || user.role === 'admin'}
+                            onClick={() => setDeleteUser({ id: user._id, name: user.fullName })}
+                            className="w-9 px-0 flex items-center justify-center"
+                            title={user.role === 'admin' ? "Cannot delete admin" : "Delete User"}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -304,9 +327,23 @@ const ManageUsers = () => {
           variant={roleToggleUser.currentRole === 'admin' ? 'danger' : 'primary'}
         />
       )}
+
+      {/* Confirm Delete Modal */}
+      {deleteUser && (
+        <ConfirmDialog 
+          isOpen={!!deleteUser}
+          onClose={() => setDeleteUser(null)}
+          onConfirm={handleDeleteUser}
+          title="Delete User Permanently?"
+          message={`Are you sure you want to permanently delete "${deleteUser.name}"? This action cannot be undone and will remove all their personal data. (Their reported items will remain but show as deleted user)`}
+          confirmText="Delete User"
+          variant="danger"
+        />
+      )}
     </div>
   );
 };
 
 export default ManageUsers;
+
 
