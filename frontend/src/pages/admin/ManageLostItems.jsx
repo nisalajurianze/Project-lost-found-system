@@ -70,11 +70,7 @@ const ManageLostItems = () => {
     }
   };
 
-  // Convert categories list to select format
-  const categoryOptions = categories.map(cat => ({
-    value: cat.name,
-    label: cat.name
-  }));
+
 
   const lostStatusOptions = [
     { value: 'pending', label: 'Pending' },
@@ -96,13 +92,22 @@ const ManageLostItems = () => {
         </p>
       </div>
 
-      {/* Filter Bar */}
       <SearchFilter 
-        onSearch={handleSearch}
-        onFilter={handleFilter}
-        categories={categoryOptions}
-        statuses={lostStatusOptions}
-        placeholder="Search by title, description, or location..."
+        search={search}
+        onSearchChange={handleSearch}
+        category={category}
+        onCategoryChange={(val) => handleFilter({ category: val })}
+        status={status}
+        onStatusChange={(val) => handleFilter({ status: val })}
+        categories={categories}
+        statusOptions={lostStatusOptions}
+        onClear={() => {
+          setSearch('');
+          setCategory('');
+          setStatus('');
+          setSort('newest');
+          setPage(1);
+        }}
       />
 
       {/* Items list */}

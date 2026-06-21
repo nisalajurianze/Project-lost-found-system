@@ -41,10 +41,13 @@ export const SearchFilter = ({
     return () => clearTimeout(handler);
   }, [localSearch, search, onSearchChange]);
 
-  const categoryOptions = categories.map((cat) => ({
-    value: cat.name,
-    label: `${cat.icon} ${cat.name}`
-  }));
+  const categoryOptions = categories.map((cat) => {
+    if (cat.label && cat.value !== undefined) return cat;
+    return {
+      value: cat.name || cat,
+      label: cat.icon ? `${cat.icon} ${cat.name}` : cat.name || cat
+    };
+  });
 
   return (
     <div className="w-full flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-start gap-3">
