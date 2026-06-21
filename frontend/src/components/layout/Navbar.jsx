@@ -9,7 +9,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme } from '../../redux/slices/themeSlice';
 import { logoutUser } from '../../redux/slices/authSlice';
 import { fetchUserNotifications, markAllNotificationsRead, markNotificationRead } from '../../redux/slices/notificationSlice';
-import { FiSun, FiMoon, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText, FiMenu, FiX, FiCheckSquare } from 'react-icons/fi';
+import { FiSun, FiMoon, FiMonitor, FiBell, FiUser, FiLogOut, FiCheckCircle, FiClock, FiFileText, FiMenu, FiX, FiCheckSquare } from 'react-icons/fi';
 import { getInitials } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 
@@ -177,7 +177,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             onClick={() => dispatch(toggleTheme())}
             className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center"
           >
-            {themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
+            {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
           </button>
         </div>
 
@@ -284,7 +284,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               className="p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors"
               aria-label="Toggle Theme"
             >
-              {themeMode === 'dark' ? <FiSun className="text-xl" /> : <FiMoon className="text-xl" />}
+              {themeMode === 'system' ? <FiMonitor className="text-xl" /> : themeMode === 'dark' ? <FiSun className="text-xl" /> : <FiMoon className="text-xl" />}
             </button>
 
             {/* Notification Bell */}
@@ -407,7 +407,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                 className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                 aria-label="Toggle Theme"
               >
-                {themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
+                {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
               </button>
             )}
           </div>

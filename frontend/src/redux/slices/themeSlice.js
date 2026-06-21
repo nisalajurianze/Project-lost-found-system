@@ -8,21 +8,32 @@ import { LOCAL_STORAGE_THEME_KEY } from '../../utils/constants';
 
 // Detect default theme preference
 const getInitialTheme = () => {
+  // If there's a cached theme, return it ('light', 'dark', or 'system')
   const cachedTheme = localStorage.getItem(LOCAL_STORAGE_THEME_KEY);
   if (cachedTheme) return cachedTheme;
 
-  const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return userPrefersDark ? 'dark' : 'light';
+  // Otherwise default to 'system'
+  return 'system';
+};
+
+const applyThemeToDOM = (mode) => {
+  if (mode === 'dark') {
+    document.documentElement.classList.add('dark');
+  } else if (mode === 'light') {
+    document.documentElement.classList.remove('dark');
+  } else if (mode === 'system') {
+    const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (userPrefersDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
 };
 
 const initialTheme = getInitialTheme();
 
-// Set DOM class at initial boot
-if (initialTheme === 'dark') {
-  document.documentElement.classList.add('dark');
-} else {
-  document.documentElement.classList.remove('dark');
-}
+applyThemeToDOM(initialTheme);
 
 const themeSlice = createSlice({
   name: 'theme',
@@ -31,26 +42,20 @@ const themeSlice = createSlice({
   },
   reducers: {
     toggleTheme: (state) => {
-      const nextMode = state.mode === 'light' ? 'dark' : 'light';
+      let nextMode = 'light';
+      if (state.mode === 'light') nextMode = 'dark';
+      else if (state.mode === 'dark') nextMode = 'system';
+      else if (state.mode === 'system') nextMode = 'light';
+      
       state.mode = nextMode;
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, nextMode);
-
-      if (nextMode === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      applyThemeToDOM(nextMode);
     },
     setTheme: (state, action) => {
-      const mode = action.payload; // 'light' or 'dark'
+      const mode = action.payload; // 'light', 'dark', or 'system'
       state.mode = mode;
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, mode);
-
-      if (mode === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      applyThemeToDOM(mode);
     }
   }
 });
