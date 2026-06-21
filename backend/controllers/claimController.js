@@ -7,6 +7,8 @@ import ClaimRequest from '../models/ClaimRequest.js';
 import FoundItem from '../models/FoundItem.js';
 import LostItem from '../models/LostItem.js';
 import Match from '../models/Match.js';
+import SystemSetting from '../models/SystemSetting.js';
+import User from '../models/User.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -49,6 +51,15 @@ const createClaimRequest = asyncHandler(async (req, res) => {
   const reporterIdStr = reporter ? reporter._id.toString() : null;
   if (reporterIdStr === claimantId.toString()) {
     throw ApiError.badRequest('You cannot submit a claim for an item you reported yourself.');
+  }
+
+  // --- ANTI-SPAM: Check pending claims limit ---
+  const spamSettingPending = await SystemSetting.findOne({ key: 'spam_max_pending_claims' });
+  const maxPendingAllowed = spamSettingPending && spamSettingPending.value !== undefined ? parseInt(spamSettingPending.value, 10) : 5;
+  
+  const pendingClaimsCount = await ClaimRequest.countDocuments({ claimantId, status: 'pending' });
+  if (pendingClaimsCount >= maxPendingAllowed) {
+    throw ApiError.badRequest(`You have reached the maximum allowed active claims (${maxPendingAllowed}). Please wait for them to be reviewed.`);
   }
 
   // Check if user has already submitted a pending/approved claim for this item
@@ -265,6 +276,29 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
   await claim.save();
 
   const claimant = claim.claimantId;
+
+  // --- ANTI-FRAUD: Check rejected claims limit if this was rejected ---
+  if (status === 'rejected') {
+    const spamSettingRejected = await SystemSetting.findOne({ key: 'spam_max_rejected_claims' });
+    const maxRejectedAllowed = spamSettingRejected && spamSettingRejected.value !== undefined ? parseInt(spamSettingRejected.value, 10) : 3;
+
+    const rejectedCount = await ClaimRequest.countDocuments({ claimantId: claimant._id, status: 'rejected' });
+    if (rejectedCount >= maxRejectedAllowed) {
+      // Suspend user
+      await User.findByIdAndUpdate(claimant._id, { isActive: false });
+      
+      // Notify them
+      await sendEmail({
+        to: claimant.email,
+        template: 'accountSuspended',
+        data: {
+          name: claimant.fullName || claimant.name,
+          reason: 'suspicious claim behavior (too many rejected claims)'
+        }
+      });
+    }
+  }
+
   const poster = targetItem.userId;
 
   if (status === 'approved') {

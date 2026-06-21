@@ -17,6 +17,13 @@ export const SiteSettings = () => {
   const [requireEmailVerification, setRequireEmailVerification] = useState(true);
   const [isSavingAuth, setIsSavingAuth] = useState(false);
 
+  // Anti-Spam
+  const [spamSettings, setSpamSettings] = useState({
+    spam_max_pending_claims: 5,
+    spam_max_rejected_claims: 3
+  });
+  const [isSavingSpam, setIsSavingSpam] = useState(false);
+
   useEffect(() => {
     fetchSettings();
   }, []);
@@ -36,6 +43,15 @@ export const SiteSettings = () => {
       if (authRes && authRes.data !== null && authRes.data !== undefined) {
         setRequireEmailVerification(authRes.data === true || authRes.data === 'true');
       }
+
+      const pendingRes = await settingService.getPublicSetting('spam_max_pending_claims');
+      const rejectedRes = await settingService.getPublicSetting('spam_max_rejected_claims');
+      
+      setSpamSettings(prev => ({
+        ...prev,
+        spam_max_pending_claims: pendingRes?.data ? parseInt(pendingRes.data, 10) : prev.spam_max_pending_claims,
+        spam_max_rejected_claims: rejectedRes?.data ? parseInt(rejectedRes.data, 10) : prev.spam_max_rejected_claims,
+      }));
     } catch (err) {
       if (err.response && err.response.status === 404) {
         // Not found is fine for initial setup
@@ -74,6 +90,21 @@ export const SiteSettings = () => {
       console.error(err);
     } finally {
       setIsSavingAuth(false);
+    }
+  };
+
+  const handleSaveSpamSettings = async (e) => {
+    e.preventDefault();
+    setIsSavingSpam(true);
+    try {
+      await settingService.updateSetting('spam_max_pending_claims', parseInt(spamSettings.spam_max_pending_claims, 10), 'Max concurrent pending claims before blocking requests');
+      await settingService.updateSetting('spam_max_rejected_claims', parseInt(spamSettings.spam_max_rejected_claims, 10), 'Max rejected claims before auto-suspending account');
+      toast.success('Anti-Spam settings updated');
+    } catch (err) {
+      toast.error('Failed to update anti-spam settings');
+      console.error(err);
+    } finally {
+      setIsSavingSpam(false);
     }
   };
 
@@ -206,7 +237,50 @@ export const SiteSettings = () => {
             />
           </button>
         </div>
+      <div className="card p-6 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 mt-6">
+        <div className="flex justify-between items-center mb-4 border-b border-surface-100 dark:border-surface-700 pb-3">
+          <h2 className="text-lg font-bold font-display text-surface-900 dark:text-white">
+            Anti-Spam & Fraud Prevention
+          </h2>
+        </div>
+
+        <form onSubmit={handleSaveSpamSettings} className="space-y-4">
+          <Input
+            type="number"
+            min="1"
+            max="100"
+            label="Max Pending Claims (Spam Prevention)"
+            value={spamSettings.spam_max_pending_claims}
+            onChange={(e) => setSpamSettings({ ...spamSettings, spam_max_pending_claims: e.target.value })}
+            placeholder="e.g. 5"
+            helperText="The maximum number of unresolved claims a user can have at any one time."
+            required
+          />
+          <Input
+            type="number"
+            min="1"
+            max="100"
+            label="Max Rejected Claims Before Auto-Ban"
+            value={spamSettings.spam_max_rejected_claims}
+            onChange={(e) => setSpamSettings({ ...spamSettings, spam_max_rejected_claims: e.target.value })}
+            placeholder="e.g. 3"
+            helperText="If a user hits this threshold of rejected claims, their account will be automatically suspended."
+            required
+          />
+
+          <div className="pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isSavingSpam}
+              icon={<FiSave />}
+            >
+              Save Anti-Spam Settings
+            </Button>
+          </div>
+        </form>
       </div>
+
     </div>
   );
 };

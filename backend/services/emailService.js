@@ -282,6 +282,22 @@ const templates = {
       <p style="color:#6b7280;font-size:13px;">Please contact them to coordinate returning the item.</p>
       `
     ),
+
+  // 9. Account Suspended
+  accountSuspended: (name, reason) =>
+    baseTemplate(
+      'Account Suspended',
+      `
+      <h2 style="margin:0 0 16px;color:#1f2937;font-size:20px;">Account Suspended 🚫</h2>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;">
+        Hi ${name}, your account on Smart Lost &amp; Found has been suspended due to <strong>${reason}</strong>.
+      </p>
+      <p style="color:#4b5563;font-size:15px;line-height:1.6;">
+        If you believe this is an error, please contact the administration for an appeal.
+      </p>
+      ${buttonHtml('Contact Support', process.env.CLIENT_URL || 'http://localhost:5173')}
+      `
+    ),
 };
 
 // ── Send Email Function ─────────────────────────────────────────────────
@@ -297,14 +313,17 @@ const templates = {
  */
 const sendEmail = async ({ to, template, data = {} }) => {
   // Build subject line based on template
-  const subjects = {
-    verification: '🔍 Verify Your Email - Smart Lost & Found',
-    welcome: '🎉 Welcome to Smart Lost & Found!',
-    passwordReset: '🔐 Password Reset Request - Smart Lost & Found',
-    matchFound: '🎯 Potential Match Found! - Smart Lost & Found',
-    claimApproved: '✅ Claim Approved - Smart Lost & Found',
-    claimRejected: '❌ Claim Update - Smart Lost & Found',
-  };
+    const subjects = {
+      verification: '📧 Verify Your Email - Smart Lost & Found',
+      welcome: '🎉 Welcome to Smart Lost & Found!',
+      passwordReset: '🔐 Password Reset Request - Smart Lost & Found',
+      matchFound: '🎯 Potential Match Found! - Smart Lost & Found',
+      claimApproved: '✅ Claim Approved - Smart Lost & Found',
+      claimRejected: '❌ Claim Update - Smart Lost & Found',
+      claimReceived: '🛡️ New Claim Request - Smart Lost & Found',
+      claimApprovedFounder: '✅ Claim Approved - Smart Lost & Found',
+      accountSuspended: '🚫 Account Suspended - Smart Lost & Found',
+    };
 
   const subject = subjects[template] || 'Smart Lost & Found Notification';
 
