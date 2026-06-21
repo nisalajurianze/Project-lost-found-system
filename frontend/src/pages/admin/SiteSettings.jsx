@@ -3,7 +3,7 @@ import settingService from '../../services/settingService';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
-import { FiSave } from 'react-icons/fi';
+import { FiSave, FiEdit2 } from 'react-icons/fi';
 
 export const SiteSettings = () => {
   const [contactDetails, setContactDetails] = useState({
@@ -13,6 +13,7 @@ export const SiteSettings = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -45,6 +46,7 @@ export const SiteSettings = () => {
     try {
       await settingService.updateSetting('contact_details', contactDetails, 'Public contact details for the Contact Us page');
       toast.success('Contact details updated successfully');
+      setIsEditing(false);
     } catch (err) {
       toast.error('Failed to update contact details');
       console.error(err);
@@ -79,9 +81,22 @@ export const SiteSettings = () => {
       </div>
 
       <div className="card p-6 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700">
-        <h2 className="text-lg font-bold font-display text-surface-900 dark:text-white mb-6 border-b border-surface-100 dark:border-surface-700 pb-3">
-          Contact Details
-        </h2>
+        <div className="flex justify-between items-center mb-6 border-b border-surface-100 dark:border-surface-700 pb-3">
+          <h2 className="text-lg font-bold font-display text-surface-900 dark:text-white">
+            Contact Details
+          </h2>
+          {!isEditing && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              icon={<FiEdit2 />}
+            >
+              Edit
+            </Button>
+          )}
+        </div>
 
         <form onSubmit={handleSaveContactDetails} className="space-y-4">
           <Input
@@ -91,6 +106,7 @@ export const SiteSettings = () => {
             onChange={handleChange}
             placeholder="e.g. Student Affairs Office, Admin Building, 2nd Floor"
             required
+            disabled={!isEditing}
           />
           <Input
             type="email"
@@ -100,6 +116,7 @@ export const SiteSettings = () => {
             onChange={handleChange}
             placeholder="e.g. support-lostfound@university.edu"
             required
+            disabled={!isEditing}
           />
           <Input
             label="Telephone Line"
@@ -108,18 +125,32 @@ export const SiteSettings = () => {
             onChange={handleChange}
             placeholder="e.g. +94 55 2226262 (Ext: 1104)"
             required
+            disabled={!isEditing}
           />
 
-          <div className="pt-4">
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={isSaving}
-              icon={<FiSave />}
-            >
-              Save Contact Details
-            </Button>
-          </div>
+          {isEditing && (
+            <div className="pt-4 flex gap-3">
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={isSaving}
+                icon={<FiSave />}
+              >
+                Save Contact Details
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setIsEditing(false);
+                  fetchSettings(); // Reset fields to last saved state
+                }}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
         </form>
       </div>
     </div>
@@ -127,3 +158,4 @@ export const SiteSettings = () => {
 };
 
 export default SiteSettings;
+
