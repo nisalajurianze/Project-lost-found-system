@@ -1,4 +1,11 @@
-# 🎓 Comprehensive University Project Report: Smart Lost & Found Management System
+# 🎓 Comprehensive University Project Report: Smart Lost & Found Management System 
+# SEUSL Group Project
+
+## Team Members
+* **Nisal** (GitHub: [@nisalajurianze](https://github.com/nisalajurianze))
+* **Dinuka** (GitHub: [@dinukahansana](https://github.com/dinukahansana))
+* **Heshan** (GitHub: [@Heshan-3](https://github.com/Heshan-3))
+* **Janidu** (GitHub: [@janidu200301](https://github.com/janidu200301))
 
 ## 1. Executive Summary
 The **Smart Lost & Found Management System** is a full-stack, AI-integrated web application built to streamline the reporting, tracking, and recovery of lost and found items. Designed specifically for large organizational ecosystems like universities, the platform integrates robust user authentication, real-time notifications, intelligent item matching, and a highly secure peer-to-peer verification workflow. 

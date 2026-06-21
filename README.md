@@ -418,3 +418,4 @@ This project is developed as a course project submission for software engineerin
 
 ## 30. License
 Distributed under the MIT License. See `LICENSE` for more information.
+
