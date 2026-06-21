@@ -126,10 +126,29 @@ const App = () => {
 
   // Apply dark mode theme class globally
   useEffect(() => {
-    if (mode === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const applyTheme = () => {
+      if (mode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (mode === 'light') {
+        document.documentElement.classList.remove('dark');
+      } else if (mode === 'system') {
+        const userPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (userPrefersDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+
+    applyTheme();
+
+    // Listen for OS theme changes if in system mode
+    if (mode === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => applyTheme();
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [mode]);
 
