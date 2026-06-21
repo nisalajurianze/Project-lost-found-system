@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Search, 
@@ -153,15 +153,15 @@ const ManageUsers = () => {
       ) : (
         <div className="space-y-4">
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:backdrop-blur-md">
-            <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
+            <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th scope="col" className="px-6 py-4">User</th>
-                  <th scope="col" className="px-6 py-4">ID Number</th>
-                  <th scope="col" className="px-6 py-4">Contact Info</th>
-                  <th scope="col" className="px-6 py-4">Role</th>
-                  <th scope="col" className="px-6 py-4">Status</th>
-                  <th scope="col" className="px-6 py-4 text-right">Actions</th>
+                  <th scope="col" className="px-4 py-3">User</th>
+                  <th scope="col" className="px-4 py-3">ID Number</th>
+                  <th scope="col" className="px-4 py-3">Contact Info</th>
+                  <th scope="col" className="px-4 py-3">Role</th>
+                  <th scope="col" className="px-4 py-3">Status</th>
+                  <th scope="col" className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
@@ -173,7 +173,7 @@ const ManageUsers = () => {
                       className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
                     >
                       {/* Name / Profile */}
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center border border-indigo-200 dark:border-indigo-800 overflow-hidden">
                             {user.profileImage?.url ? (
@@ -192,12 +192,12 @@ const ManageUsers = () => {
                       </td>
 
                       {/* ID Number */}
-                      <td className="px-6 py-4 font-mono font-medium text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-3 font-mono font-medium text-slate-700 dark:text-slate-300">
                         {user.studentId}
                       </td>
 
                       {/* Contact Info */}
-                      <td className="px-6 py-4 space-y-1">
+                      <td className="px-4 py-3 space-y-1">
                         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                           <Mail className="h-3.5 w-3.5" />
                           <span>{user.email}</span>
@@ -209,7 +209,7 @@ const ManageUsers = () => {
                       </td>
 
                       {/* Role */}
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${
                           user.role === 'admin' 
                             ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30' 
@@ -220,7 +220,7 @@ const ManageUsers = () => {
                       </td>
 
                       {/* Status */}
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           user.isActive 
                             ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400' 
@@ -232,7 +232,7 @@ const ManageUsers = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
                           <Button 
                             variant={user.isActive ? 'danger' : 'success'}
@@ -243,12 +243,15 @@ const ManageUsers = () => {
                               isActive: user.isActive, 
                               name: user.fullName 
                             })}
+                            className="w-9 xl:w-auto px-0 xl:px-3 flex items-center justify-center"
+                            title={user.isActive ? 'Suspend' : 'Activate'}
                           >
-                            {user.isActive ? (
-                              <span className="flex items-center gap-1"><UserX className="h-4 w-4" /> Suspend</span>
-                            ) : (
-                              <span className="flex items-center gap-1"><UserCheck className="h-4 w-4" /> Activate</span>
-                            )}
+                            <span className="hidden xl:flex items-center gap-1">
+                              {user.isActive ? <><UserX className="h-4 w-4" /> Suspend</> : <><UserCheck className="h-4 w-4" /> Activate</>}
+                            </span>
+                            <span className="xl:hidden">
+                              {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
+                            </span>
                           </Button>
                           <Button 
                             variant="secondary"
@@ -259,13 +262,19 @@ const ManageUsers = () => {
                               name: user.fullName,
                               currentRole: user.role
                             })}
-                            className="w-[110px]"
+                            className="w-9 xl:w-[110px] px-0 xl:px-3 flex items-center justify-center"
+                            title={user.role === 'admin' ? 'Demote Admin' : 'Make Admin'}
                           >
-                            {user.role === 'admin' ? (
-                              <span className="flex items-center justify-center gap-1 w-full text-amber-600 dark:text-amber-400"><ShieldOff className="h-4 w-4" /> Demote</span>
-                            ) : (
-                              <span className="flex items-center justify-center gap-1 w-full text-indigo-600 dark:text-indigo-400"><Shield className="h-4 w-4" /> Make Admin</span>
-                            )}
+                            <span className="hidden xl:flex items-center justify-center gap-1 w-full">
+                              {user.role === 'admin' ? (
+                                <><ShieldOff className="h-4 w-4 text-amber-600 dark:text-amber-400" /> <span className="text-amber-600 dark:text-amber-400">Demote</span></>
+                              ) : (
+                                <><Shield className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> <span className="text-indigo-600 dark:text-indigo-400">Make Admin</span></>
+                              )}
+                            </span>
+                            <span className="xl:hidden">
+                              {user.role === 'admin' ? <ShieldOff className="h-4 w-4 text-amber-600 dark:text-amber-400" /> : <Shield className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />}
+                            </span>
                           </Button>
                           <Button 
                             variant="danger"
