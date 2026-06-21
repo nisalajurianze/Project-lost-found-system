@@ -177,16 +177,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             onClick={() => {
               dispatch(toggleTheme());
               const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
-              import('react-hot-toast').then(toast => {
-                toast.default.success(`Theme changed to ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, {
-                  icon: nextTheme === 'dark' ? '🌙' : nextTheme === 'light' ? '☀️' : '🖥️',
-                  style: {
-                    borderRadius: '10px',
-                    background: '#333',
-                    color: '#fff',
-                  },
-                });
-              });
+              triggerThemeToast(nextTheme);
             }}
             className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center"
           >
@@ -244,6 +235,27 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
     </div>
   );
 
+  const triggerThemeToast = (nextTheme) => {
+    import('react-hot-toast').then(({ toast }) => {
+      toast.dismiss('theme-toast');
+      toast.custom((t) => (
+        <div
+          className={`${
+            t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'
+          } transition-all duration-300 ease-out bg-surface-900 dark:bg-white text-white dark:text-surface-900 rounded-full p-4 shadow-glow flex items-center justify-center`}
+        >
+          {nextTheme === 'dark' ? (
+            <FiMoon className="text-3xl animate-[spin_0.5s_ease-out]" />
+          ) : nextTheme === 'light' ? (
+            <FiSun className="text-3xl animate-[spin_0.5s_ease-out]" />
+          ) : (
+            <FiMonitor className="text-3xl animate-[bounce_0.5s_ease-out]" />
+          )}
+        </div>
+      ), { id: 'theme-toast', duration: 1500 });
+    });
+  };
+
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-surface-200/50 bg-white/75 backdrop-blur-md dark:border-surface-800/50 dark:bg-surface-900/75 transition-colors duration-300">
       <div className="w-full px-4 sm:px-6 lg:px-8">
@@ -296,16 +308,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               onClick={() => {
                 dispatch(toggleTheme());
                 const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
-                import('react-hot-toast').then(toast => {
-                  toast.default.success(`Theme changed to ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, {
-                    icon: nextTheme === 'dark' ? '🌙' : nextTheme === 'light' ? '☀️' : '🖥️',
-                    style: {
-                      borderRadius: '10px',
-                      background: '#333',
-                      color: '#fff',
-                    },
-                  });
-                });
+                triggerThemeToast(nextTheme);
               }}
               className="p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors"
               aria-label="Toggle Theme"
@@ -432,16 +435,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                 onClick={() => {
                   dispatch(toggleTheme());
                   const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
-                  import('react-hot-toast').then(toast => {
-                    toast.default.success(`Theme changed to ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, {
-                      icon: nextTheme === 'dark' ? '🌙' : nextTheme === 'light' ? '☀️' : '🖥️',
-                      style: {
-                        borderRadius: '10px',
-                        background: '#333',
-                        color: '#fff',
-                      },
-                    });
-                  });
+                  triggerThemeToast(nextTheme);
                 }}
                 className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                 aria-label="Toggle Theme"
