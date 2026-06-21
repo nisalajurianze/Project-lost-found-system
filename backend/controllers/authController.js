@@ -232,7 +232,13 @@ const googleLogin = asyncHandler(async (req, res) => {
   const payload = ticket.getPayload();
   const { sub: googleId, email, name, picture } = payload;
 
-  let user = await User.findOne({ email }).select('+lockUntil +loginAttempts');
+  // 1. Try to find by googleId first (most reliable identifier for Google Auth)
+  let user = await User.findOne({ googleId }).select('+lockUntil +loginAttempts');
+
+  // 2. If not found by googleId, try finding by email
+  if (!user) {
+    user = await User.findOne({ email }).select('+lockUntil +loginAttempts');
+  }
 
   if (user) {
     // If user exists but is locked
@@ -243,12 +249,24 @@ const googleLogin = asyncHandler(async (req, res) => {
       throw ApiError.forbidden('Your account has been deactivated. Please contact an admin.');
     }
 
-    // Link googleId if they signed up with local before
+    let isModified = false;
+
+    // Link googleId if they signed up with local before, or update if missing
     if (!user.googleId) {
       user.googleId = googleId;
       user.authProvider = 'google';
       // Consider them verified since Google verified their email
       user.isVerified = true;
+      isModified = true;
+    }
+
+    // If email changed in Google, update it in our DB
+    if (user.email !== email) {
+      user.email = email;
+      isModified = true;
+    }
+
+    if (isModified) {
       await user.save({ validateBeforeSave: false });
     }
   } else {
