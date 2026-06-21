@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./docs/animated-logo.svg" width="200" alt="Smart Lost & Found Logo" />
+</p>
+
 # Smart Lost & Found Management System 
 #SEUSL Group Project
 
