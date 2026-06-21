@@ -11,6 +11,7 @@ import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
 import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import settingService from '../../services/settingService';
+import feedbackService from '../../services/feedbackService';
 
 export const Contact = () => {
   const { user } = useSelector((state) => state.auth);
@@ -34,18 +35,40 @@ export const Contact = () => {
     fetchContactInfo();
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success('Your message has been sent! We will contact you soon.');
+    // If not logged in, we only simulate sending (for public UX)
+    if (!user) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(false);
+        toast.success('Your message has been sent! We will contact you soon.');
+        setName('');
+        setEmail('');
+        setMessage('');
+      }, 1000);
+      return;
+    }
+
+    // If logged in, send actual feedback to backend
+    setIsLoading(true);
+    try {
+      await feedbackService.createFeedback({
+        subject: `Contact Form Message from ${name}`,
+        message: message,
+        rating: 5, // Default rating for contact queries
+        category: 'general'
+      });
+      toast.success('Your message has been sent successfully to the admins!');
       setName(user?.fullName || '');
       setEmail(user?.email || '');
       setMessage('');
-    }, 1000);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err.message || 'Failed to send message.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const contactInfos = [

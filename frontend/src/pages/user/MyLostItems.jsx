@@ -7,12 +7,13 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchLostItems, deleteLostReport, clearLostItemsList } from '../../redux/slices/lostItemSlice';
 import { Link } from 'react-router-dom';
-import { FiEdit2, FiTrash2, FiEye, FiPlusCircle } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiEye, FiPlusCircle, FiMessageSquare } from 'react-icons/fi';
 import StatusBadge from '../../components/common/StatusBadge';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Pagination from '../../components/common/Pagination';
+import FeedbackModal from '../../components/common/FeedbackModal';
 import toast from 'react-hot-toast';
 
 export const MyLostItems = () => {
@@ -21,6 +22,7 @@ export const MyLostItems = () => {
   const { items, pagination, isLoading } = useSelector((state) => state.lostItems);
 
   const [page, setPage] = useState(1);
+  const [feedbackDialog, setFeedbackDialog] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -108,6 +110,15 @@ export const MyLostItems = () => {
                         <StatusBadge status={item.status} />
                       </td>
                       <td className="px-6 py-4 text-right flex justify-end gap-2.5">
+                        {item.status === 'claimed' && (
+                          <button
+                            onClick={() => setFeedbackDialog(item)}
+                            className="p-1.5 text-surface-500 hover:text-amber-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
+                            title="Leave Feedback"
+                          >
+                            <FiMessageSquare />
+                          </button>
+                        )}
                         <Link
                           to={`/lost-items/${item._id}`}
                           className="p-1.5 text-surface-500 hover:text-primary-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
@@ -145,6 +156,15 @@ export const MyLostItems = () => {
             onPageChange={(nextPage) => setPage(nextPage)}
           />
         </>
+      )}
+
+      {/* Feedback Modal */}
+      {feedbackDialog && (
+        <FeedbackModal
+          isOpen={!!feedbackDialog}
+          onClose={() => setFeedbackDialog(null)}
+          defaultSubject={`Feedback on my lost item: "${feedbackDialog.itemName}"`}
+        />
       )}
 
       {/* Delete Dialog */}

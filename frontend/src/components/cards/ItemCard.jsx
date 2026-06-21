@@ -8,9 +8,10 @@ import { Link } from 'react-router-dom';
 import StatusBadge from '../common/StatusBadge';
 import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
-import { FiMapPin, FiClock } from 'react-icons/fi';
+import { FiMapPin, FiClock, FiMessageSquare } from 'react-icons/fi';
+import Button from '../common/Button';
 
-export const ItemCard = React.memo(({ item, type = 'lost' }) => {
+export const ItemCard = React.memo(({ item, type = 'lost', onFeedback }) => {
   const isLost = type === 'lost';
   const detailPath = isLost ? `/lost-items/${item._id}` : `/found-items/${item._id}`;
   
@@ -75,6 +76,24 @@ export const ItemCard = React.memo(({ item, type = 'lost' }) => {
             <span>{formatRelativeTime(displayDate)}</span>
           </div>
         </div>
+
+        {/* Leave Feedback Action for Resolved Items */}
+        {item.status === 'claimed' && onFeedback && (
+          <div className="border-t border-surface-100 dark:border-surface-700/50 pt-3 mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault(); // Prevent navigating to detail page
+                onFeedback(item);
+              }}
+              icon={<FiMessageSquare />}
+              className="w-full justify-center text-amber-600 border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-900/30 dark:text-amber-400"
+            >
+              Leave Feedback
+            </Button>
+          </div>
+        )}
       </div>
     </Link>
   );

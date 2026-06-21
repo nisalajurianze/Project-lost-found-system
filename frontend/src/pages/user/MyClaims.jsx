@@ -14,6 +14,7 @@ import Pagination from '../../components/common/Pagination';
 import Modal from '../../components/common/Modal';
 import Button from '../../components/common/Button';
 import Textarea from '../../components/common/Textarea';
+import FeedbackModal from '../../components/common/FeedbackModal';
 import toast from 'react-hot-toast';
 
 export const MyClaims = () => {
@@ -27,6 +28,9 @@ export const MyClaims = () => {
   const [reviewDialog, setReviewDialog] = useState(null); // { id, status }
   const [remark, setRemark] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Feedback Modal state
+  const [feedbackDialog, setFeedbackDialog] = useState(null); // claim object
 
   useEffect(() => {
     dispatch(fetchClaims({ page, limit: 9 }));
@@ -107,6 +111,7 @@ export const MyClaims = () => {
                   canReview={isFounder}
                   onReview={handleOpenReview}
                   onShareContact={handleShareContact}
+                  onFeedback={(claim) => setFeedbackDialog(claim)}
                 />
               );
             })}
@@ -169,6 +174,15 @@ export const MyClaims = () => {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Feedback Modal */}
+      {feedbackDialog && (
+        <FeedbackModal
+          isOpen={!!feedbackDialog}
+          onClose={() => setFeedbackDialog(null)}
+          defaultSubject={`Feedback on my claim for "${feedbackDialog.foundItemId?.itemName || feedbackDialog.lostItemId?.itemName || 'Item'}"`}
+        />
       )}
 
     </div>
