@@ -12,12 +12,9 @@
 [![Redis](https://img.shields.io/badge/cache-Redis-red.svg)](https://redis.io)
 
 
-## ðŸ‘¥ Team Members
+## 👥 Team Members
 
 | Nisala | Dinuka | Heshan | Janidu |
-|:---:|:---:|:---:|:---:|
-| <a href="https://github.com/nisalajurianze"><img src="https://github.com/nisalajurianze.png" width="100" style="border-radius:50%" alt="Nisala" /></a> | <a href="https://github.com/dinukahansana"><img src="https://github.com/dinukahansana.png" width="100" style="border-radius:50%" alt="Dinuka" /></a> | <a href="https://github.com/Heshan-3"><img src="https://github.com/Heshan-3.png" width="100" style="border-radius:50%" alt="Heshan" /></a> | <a href="https://github.com/janidu200301"><img src="https://github.com/janidu200301.png" width="100" style="border-radius:50%" alt="Janidu" /></a> |
-| [@nisalajurianze](https://github.com/nisalajurianze) | [@dinukahansana](https://github.com/dinukahansana) | [@Heshan-3](https://github.com/Heshan-3) | [@janidu200301](https://github.com/janidu200301) |
 |:---:|:---:|:---:|:---:|
 | <a href="https://github.com/nisalajurianze"><img src="https://github.com/nisalajurianze.png" width="100" style="border-radius:50%" alt="Nisala" /></a> | <a href="https://github.com/dinukahansana"><img src="https://github.com/dinukahansana.png" width="100" style="border-radius:50%" alt="Dinuka" /></a> | <a href="https://github.com/Heshan-3"><img src="https://github.com/Heshan-3.png" width="100" style="border-radius:50%" alt="Heshan" /></a> | <a href="https://github.com/janidu200301"><img src="https://github.com/janidu200301.png" width="100" style="border-radius:50%" alt="Janidu" /></a> |
 | [@nisalajurianze](https://github.com/nisalajurianze) | [@dinukahansana](https://github.com/dinukahansana) | [@Heshan-3](https://github.com/Heshan-3) | [@janidu200301](https://github.com/janidu200301) |
