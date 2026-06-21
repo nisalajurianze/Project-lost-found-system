@@ -175,9 +175,10 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           <span className="text-sm font-medium text-surface-600 dark:text-surface-400">Theme Mode</span>
           <button
             onClick={() => {
+              const oldTheme = themeMode;
               dispatch(toggleTheme());
               const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
-              triggerThemeToast(nextTheme);
+              triggerThemeToast(oldTheme, nextTheme);
             }}
             className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center"
           >
@@ -235,22 +236,28 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
     </div>
   );
 
-  const triggerThemeToast = (nextTheme) => {
+  const triggerThemeToast = (oldTheme, nextTheme) => {
     import('react-hot-toast').then(({ toast }) => {
       toast.dismiss('theme-toast');
       toast.custom((t) => (
         <div
           className={`${
             t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'
-          } transition-all duration-300 ease-out bg-surface-900 dark:bg-white text-white dark:text-surface-900 rounded-full p-4 shadow-glow flex items-center justify-center`}
+          } transition-all duration-300 ease-out bg-surface-900 dark:bg-white text-white dark:text-surface-900 rounded-full px-6 py-3 shadow-glow flex items-center justify-center gap-4`}
         >
-          {nextTheme === 'dark' ? (
-            <FiMoon className="text-3xl animate-[spin_0.5s_ease-out]" />
-          ) : nextTheme === 'light' ? (
-            <FiSun className="text-3xl animate-[spin_0.5s_ease-out]" />
-          ) : (
-            <FiMonitor className="text-3xl animate-[bounce_0.5s_ease-out]" />
-          )}
+          <div className="opacity-50">
+            {oldTheme === 'dark' ? <FiMoon className="text-xl" /> : oldTheme === 'light' ? <FiSun className="text-xl" /> : <FiMonitor className="text-xl" />}
+          </div>
+          <span className="animate-pulse text-sm">➔</span>
+          <div>
+            {nextTheme === 'dark' ? (
+              <FiMoon className="text-3xl text-primary-400 animate-[spin_0.5s_ease-out]" />
+            ) : nextTheme === 'light' ? (
+              <FiSun className="text-3xl text-amber-500 animate-[spin_0.5s_ease-out]" />
+            ) : (
+              <FiMonitor className="text-3xl text-primary-500 animate-[bounce_0.5s_ease-out]" />
+            )}
+          </div>
         </div>
       ), { id: 'theme-toast', duration: 1500 });
     });
@@ -306,9 +313,10 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {/* Theme Toggle */}
             <button
               onClick={() => {
+                const oldTheme = themeMode;
                 dispatch(toggleTheme());
                 const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
-                triggerThemeToast(nextTheme);
+                triggerThemeToast(oldTheme, nextTheme);
               }}
               className="p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors"
               aria-label="Toggle Theme"
@@ -433,9 +441,10 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {!isAuthenticated && (
               <button
                 onClick={() => {
+                  const oldTheme = themeMode;
                   dispatch(toggleTheme());
                   const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
-                  triggerThemeToast(nextTheme);
+                  triggerThemeToast(oldTheme, nextTheme);
                 }}
                 className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                 aria-label="Toggle Theme"
