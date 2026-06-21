@@ -190,7 +190,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             }}
             className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center"
           >
-            {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
+            {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiMoon className="text-lg" /> : <FiSun className="text-lg" />}
           </button>
         </div>
 
@@ -310,7 +310,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               className="p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors"
               aria-label="Toggle Theme"
             >
-              {themeMode === 'system' ? <FiMonitor className="text-xl" /> : themeMode === 'dark' ? <FiSun className="text-xl" /> : <FiMoon className="text-xl" />}
+              {themeMode === 'system' ? <FiMonitor className="text-xl" /> : themeMode === 'dark' ? <FiMoon className="text-xl" /> : <FiSun className="text-xl" />}
             </button>
 
             {/* Notification Bell */}
@@ -446,7 +446,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                 className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                 aria-label="Toggle Theme"
               >
-                {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
+                {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiMoon className="text-lg" /> : <FiSun className="text-lg" />}
               </button>
             )}
           </div>
