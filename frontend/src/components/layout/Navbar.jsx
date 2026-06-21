@@ -174,7 +174,20 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
         <div className="flex items-center justify-between px-4 py-2 sm:hidden border-b border-surface-100 dark:border-surface-700 mb-2 pb-3">
           <span className="text-sm font-medium text-surface-600 dark:text-surface-400">Theme Mode</span>
           <button
-            onClick={() => dispatch(toggleTheme())}
+            onClick={() => {
+              dispatch(toggleTheme());
+              const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+              import('react-hot-toast').then(toast => {
+                toast.default.success(`Theme changed to ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, {
+                  icon: nextTheme === 'dark' ? '🌙' : nextTheme === 'light' ? '☀️' : '🖥️',
+                  style: {
+                    borderRadius: '10px',
+                    background: '#333',
+                    color: '#fff',
+                  },
+                });
+              });
+            }}
             className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center"
           >
             {themeMode === 'system' ? <FiMonitor className="text-lg" /> : themeMode === 'dark' ? <FiSun className="text-lg" /> : <FiMoon className="text-lg" />}
@@ -280,7 +293,20 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           <div className="hidden md:flex items-center gap-4">
             {/* Theme Toggle */}
             <button
-              onClick={() => dispatch(toggleTheme())}
+              onClick={() => {
+                dispatch(toggleTheme());
+                const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+                import('react-hot-toast').then(toast => {
+                  toast.default.success(`Theme changed to ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, {
+                    icon: nextTheme === 'dark' ? '🌙' : nextTheme === 'light' ? '☀️' : '🖥️',
+                    style: {
+                      borderRadius: '10px',
+                      background: '#333',
+                      color: '#fff',
+                    },
+                  });
+                });
+              }}
               className="p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors"
               aria-label="Toggle Theme"
             >
@@ -403,7 +429,20 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {/* Theme Toggle for Unauthenticated Mobile Users */}
             {!isAuthenticated && (
               <button
-                onClick={() => dispatch(toggleTheme())}
+                onClick={() => {
+                  dispatch(toggleTheme());
+                  const nextTheme = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+                  import('react-hot-toast').then(toast => {
+                    toast.default.success(`Theme changed to ${nextTheme.charAt(0).toUpperCase() + nextTheme.slice(1)}`, {
+                      icon: nextTheme === 'dark' ? '🌙' : nextTheme === 'light' ? '☀️' : '🖥️',
+                      style: {
+                        borderRadius: '10px',
+                        background: '#333',
+                        color: '#fff',
+                      },
+                    });
+                  });
+                }}
                 className="p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                 aria-label="Toggle Theme"
               >
