@@ -34,6 +34,14 @@ const connectDB = async () => {
 
       console.log(`✅ MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
 
+      // Drop old incorrect studentId index if it exists (so mongoose can recreate it as sparse)
+      try {
+        await conn.connection.db.collection('users').dropIndex('studentId_1');
+        console.log('✅ Dropped old studentId_1 index');
+      } catch (err) {
+        // Ignore if index doesn't exist
+      }
+
       // Connection event listeners for monitoring
       mongoose.connection.on('error', (err) => {
         console.error(`❌ MongoDB connection error: ${err.message}`);

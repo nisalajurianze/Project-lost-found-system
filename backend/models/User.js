@@ -36,6 +36,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       uppercase: true,
       trim: true,
+      set: v => (v === '' || v === null) ? undefined : v
     },
     password: {
       type: String,

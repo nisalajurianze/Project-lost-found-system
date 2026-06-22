@@ -102,7 +102,8 @@ const startServer = async () => {
         upgradeInsecureRequests: [],
       }
     } : false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
   }));
 
   // CORS configuration
