@@ -51,6 +51,18 @@ const startServer = async () => {
   // Connect MongoDB
   await connectDB();
 
+  // Ensure main admin account is active and has admin role
+  try {
+    const User = (await import('./models/User.js')).default;
+    await User.updateOne(
+      { email: 'smartlostandfound.seusl@gmail.com' },
+      { $set: { isActive: true, role: 'admin' } }
+    );
+    console.log('✅ Main admin account verified and active.');
+  } catch (err) {
+    console.error('⚠️ Could not verify main admin account:', err.message);
+  }
+
   // Connect Redis (gracefully falls back if unavailable)
   await initRedis();
 
