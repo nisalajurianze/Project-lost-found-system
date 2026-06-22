@@ -42,8 +42,8 @@ const createClaimRequest = asyncHandler(async (req, res) => {
     throw ApiError.notFound(`${itemType === 'FoundItem' ? 'Found' : 'Lost'} item not found.`);
   }
 
-  if (targetItem.status === 'claimed') {
-    throw ApiError.badRequest('This item has already been successfully resolved.');
+  if (targetItem.status === 'claimed' || targetItem.status === 'in_progress') {
+    throw ApiError.badRequest('This item is currently not available for new claims.');
   }
 
   // Prevent user claiming their own reported item
