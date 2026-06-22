@@ -83,7 +83,7 @@ export const LostItemDetail = () => {
   const hasImages = currentItem.images && currentItem.images.length > 0;
   const isOwner = (currentItem.userId?._id || currentItem.userId) === loggedInUserId;
   const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
-  const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
+  const isClaimable = (currentItem.status === 'available' || currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
   // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved
