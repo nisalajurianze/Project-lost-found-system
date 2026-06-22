@@ -562,7 +562,7 @@ const checkClaimExists = asyncHandler(async (req, res) => {
     claimantId,
     status: { $in: ['pending', 'approved'] },
     $or: [{ foundItemId: itemId }, { lostItemId: itemId }]
-  }).select('_id status');
+  }).select('_id status isContactShared');
 
   ApiResponse.ok({ hasClaim: !!claim, claim }, 'Claim check completed.').send(res);
 });
