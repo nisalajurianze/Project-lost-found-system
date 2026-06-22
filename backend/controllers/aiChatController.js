@@ -166,9 +166,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
 ${userContextText}${historyText}The user just said: "${message}"
 
 CRITICAL LANGUAGE RULE: 
-- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
-- If they typed in English, reply in English.
-- If they typed in Sinhala script (අකුරු), reply in Sinhala script.
+- If the user types a simple English greeting like "hi", "hello", "hey", or converses in English, you MUST reply entirely in English. DO NOT ask annoying or overly complex questions if they just say "hi"; just say a warm, brief hello and ask how you can help.
+- If the user types in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe", "kohomada"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
+- If they type in Tamil, reply in Tamil.
+- If they type in Sinhala script (අකුරු), reply in Sinhala script.
+- MATCH THEIR LANGUAGE EXACTLY.
 
 Determine their intent based on the context:
 - "lost": They lost a specific item and want to search for it (e.g., "ape lap eka nathi una", "mage purse eka naha").
@@ -178,14 +180,14 @@ Determine their intent based on the context:
 - "general": They are just saying hi, asking a general question, or making small talk.
 
 Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. 
-CRITICAL: Translate colloquial/slang Singlish terms to proper English object names. For example, if they say "lap", the keyword MUST be "laptop".
-Look at the Conversation History to find missing context. Auto-correct spelling mistakes in keywords (e.g. "camra" -> "camera").
+CRITICAL: Translate colloquial/slang terms to proper English object names. For example, if they say "lap", the keyword MUST be "laptop".
+Look at the Conversation History to find missing context. Auto-correct spelling mistakes in keywords (e.g. "camra" -> "camera"). If they say "black phone", keywords should be ["black", "phone"].
 
 Return ONLY a valid JSON object exactly like this:
 {
   "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
   "keywords": ["array", "of", "english", "keywords"],
-  "responseIfGeneral": "If intent is 'general', write a natural, friendly reply. MUST follow the CRITICAL LANGUAGE RULE.",
+  "responseIfGeneral": "If intent is 'general', write a natural, friendly reply. If they just said 'hi', give a simple short greeting without asking annoying questions. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST follow the CRITICAL LANGUAGE RULE.",
   "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST follow the CRITICAL LANGUAGE RULE.",
   "quickReplies": ["Provide 2 to 3 examples of what the USER might reply. For example, if you ask 'What color?', suggest 'Black', 'Silver', 'White'. NEVER put a question mark '?' in quick replies. These are buttons the user clicks to reply to YOU."]
@@ -252,9 +254,11 @@ ${userContextText}${historyText}The user wants to see a list of ${analysis.inten
 ${itemSummary}
 
 CRITICAL LANGUAGE RULE: 
-- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
-- If they typed in English, reply in English.
-- If they typed in Sinhala script (අකුරු), reply in Sinhala script.
+- If the user types a simple English greeting like "hi", "hello", "hey", or converses in English, you MUST reply entirely in English.
+- If the user types in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters.
+- If they type in Tamil, reply in Tamil.
+- If they type in Sinhala script (අකුරු), reply in Sinhala script.
+- MATCH THEIR LANGUAGE EXACTLY.
 
 Return ONLY a valid JSON object:
 {
@@ -297,14 +301,23 @@ Return ONLY a valid JSON object:
   // Escape regex characters
   const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regexPatterns = analysis.keywords.map(kw => new RegExp(escapeRegex(kw), 'i'));
+  
+  // Require ALL keywords to match somewhere in the item document for better precision
+  const keywordQueries = regexPatterns.map(regex => ({
+    $or: [
+      { itemName: regex },
+      { description: regex },
+      { tags: regex },
+      { category: regex },
+      { foundLocation: regex },
+      { lostLocation: regex }
+    ]
+  }));
+
   const dbItems = await targetModel.find({
     status: statusFilter,
-    $or: [
-      { itemName: { $in: regexPatterns } },
-      { description: { $in: regexPatterns } },
-      { aiKeywords: { $in: regexPatterns } }
-    ]
-  }).limit(5).lean();
+    $and: keywordQueries
+  }).sort({ createdAt: -1 }).limit(10).lean();
 
   if (dbItems.length === 0) {
     return ApiResponse.ok({ 
@@ -330,9 +343,11 @@ IMPORTANT RULES:
 5. Show empathy. If they lost something, briefly acknowledge the stress of losing it. If they found something, praise them for their honesty. This makes you feel human and incredibly intelligent.
 
 CRITICAL LANGUAGE RULE: 
-- If the user typed in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
-- If they typed in English, reply in English.
-- If they typed in Sinhala script (අකුරු), reply in Sinhala script.
+- If the user types a simple English greeting like "hi", "hello", "hey", or converses in English, you MUST reply entirely in English.
+- If the user types in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters.
+- If they type in Tamil, reply in Tamil.
+- If they type in Sinhala script (අකුරු), reply in Sinhala script.
+- MATCH THEIR LANGUAGE EXACTLY.
 
 Return ONLY a valid JSON object:
 {

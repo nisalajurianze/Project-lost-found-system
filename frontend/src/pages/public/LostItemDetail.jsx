@@ -81,8 +81,8 @@ export const LostItemDetail = () => {
   }
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
-  const isOwner = (currentItem.userId?._id || currentItem.userId) === loggedInUserId;
-  const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
+  const isOwner = (currentItem.userId?._id || currentItem.userId)?.toString() === loggedInUserId?.toString();
+  const isConnectedUser = currentItem.connectedUserId?.toString() === loggedInUserId?.toString();
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
