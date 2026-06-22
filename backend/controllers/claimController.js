@@ -118,10 +118,6 @@ const createClaimRequest = asyncHandler(async (req, res) => {
 
   const claim = await ClaimRequest.create(claimData);
 
-  // Update item status to 'in_progress' since a claim is now active
-  targetItem.status = 'in_progress';
-  await targetItem.save();
-
   // Notify item reporter (if reported by a user)
   if (reporter) {
     await createNotification({
