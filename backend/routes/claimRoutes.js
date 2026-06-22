@@ -9,7 +9,8 @@ import {
   getClaimRequests,
   getClaimRequestById,
   reviewClaimRequest,
-  shareClaimContact
+  shareClaimContact,
+  checkClaimExists
 } from '../controllers/claimController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import authorize from '../middlewares/roleMiddleware.js';
@@ -28,6 +29,7 @@ router.use(protect);
 
 router.post('/', uploadProofImages, createClaimValidator, validate, createClaimRequest);
 router.get('/', getClaimRequests);
+router.get('/check/:itemId', validate, checkClaimExists);
 router.get('/:id', mongoIdParam, validate, getClaimRequestById);
 
 // Claim verification reviews (Admin and Founder)

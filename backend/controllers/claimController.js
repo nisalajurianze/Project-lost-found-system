@@ -550,10 +550,27 @@ const shareClaimContact = asyncHandler(async (req, res) => {
   ApiResponse.ok(claim, 'Contact shared successfully.').send(res);
 });
 
+/**
+ * Check if the current user has an active claim for a specific item.
+ */
+const checkClaimExists = asyncHandler(async (req, res) => {
+  const { itemId } = req.params;
+  const claimantId = req.user._id;
+
+  const claim = await ClaimRequest.findOne({
+    claimantId,
+    status: { $in: ['pending', 'approved'] },
+    $or: [{ foundItemId: itemId }, { lostItemId: itemId }]
+  }).select('_id status');
+
+  ApiResponse.ok({ hasClaim: !!claim, claim }, 'Claim check completed.').send(res);
+});
+
 export {
   createClaimRequest,
   getClaimRequests,
   getClaimRequestById,
   reviewClaimRequest,
-  shareClaimContact
+  shareClaimContact,
+  checkClaimExists
 };

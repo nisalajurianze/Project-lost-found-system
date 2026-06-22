@@ -28,6 +28,17 @@ export const LostItemDetail = () => {
   const [activeImage, setActiveImage] = useState('');
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [hasClaimedSession, setHasClaimedSession] = useState(false);
+  const [hasExistingClaim, setHasExistingClaim] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && id) {
+      import('../../services/claimService').then((module) => {
+        module.default.checkClaim(id).then((data) => {
+          setHasExistingClaim(data.hasClaim);
+        }).catch(() => {});
+      });
+    }
+  }, [isAuthenticated, id]);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
 
   useEffect(() => {
@@ -72,7 +83,7 @@ export const LostItemDetail = () => {
   const hasImages = currentItem.images && currentItem.images.length > 0;
   const isOwner = (currentItem.userId?._id || currentItem.userId) === loggedInUserId;
   const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
-  const isClaimable = (currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession;
+  const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
   // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved
@@ -176,11 +187,11 @@ export const LostItemDetail = () => {
                 </p>
               </div>
               <div>
-                {currentItem.status === 'recovered' ? (
+                {currentItem.status === 'claimed' ? (
                   <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                    Item Recovered
+                    Item Resolved
                   </span>
-                ) : hasClaimedSession ? (
+                ) : hasClaimedSession || hasExistingClaim ? (
                   <Button disabled variant="outline">
                     Claim Pending Review
                   </Button>

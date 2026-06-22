@@ -49,9 +49,14 @@ const claimService = {
   /**
    * Share contact info without approving the claim.
    */
-  shareContact: async (id) => {
-    const res = await api.patch(`/claims/${id}/share-contact`);
-    return res.data.data;
+  shareContact: async (claimId) => {
+    const response = await api.patch(`/claims/${claimId}/share-contact`);
+    return response.data.data;
+  },
+
+  checkClaim: async (itemId) => {
+    const response = await api.get(`/claims/check/${itemId}`);
+    return response.data.data;
   }
 };
 
