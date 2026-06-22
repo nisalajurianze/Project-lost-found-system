@@ -58,7 +58,7 @@ const createClaimRequest = asyncHandler(async (req, res) => {
   const maxPendingAllowed = spamSettingPending && spamSettingPending.value !== undefined ? parseInt(spamSettingPending.value, 10) : 5;
   
   const pendingClaimsCount = await ClaimRequest.countDocuments({ claimantId, status: 'pending' });
-  if (pendingClaimsCount >= maxPendingAllowed) {
+  if (pendingClaimsCount >= maxPendingAllowed && req.user.role !== 'admin') {
     throw ApiError.badRequest(`You have reached the maximum allowed active claims (${maxPendingAllowed}). Please wait for them to be reviewed.`);
   }
 
@@ -72,7 +72,7 @@ const createClaimRequest = asyncHandler(async (req, res) => {
     createdAt: { $gte: oneDayAgo } 
   });
 
-  if (recentClaimsCount >= maxClaimsPerDay) {
+  if (recentClaimsCount >= maxClaimsPerDay && req.user.role !== 'admin') {
     // Suspend user for abnormal velocity
     await User.findByIdAndUpdate(claimantId, { isActive: false });
     
@@ -305,7 +305,7 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
   const claimant = claim.claimantId;
 
   // --- ANTI-FRAUD: Check rejected claims limit if this was rejected ---
-  if (status === 'rejected') {
+  if (status === 'rejected' && claimant.role !== 'admin') {
     const spamSettingRejected = await SystemSetting.findOne({ key: 'spam_max_rejected_claims' });
     const maxRejectedAllowed = spamSettingRejected && spamSettingRejected.value !== undefined ? parseInt(spamSettingRejected.value, 10) : 3;
 
