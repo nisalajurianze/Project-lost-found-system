@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import Button from '../common/Button';
 import { FiCheck, FiX, FiLink, FiCheckCircle } from 'react-icons/fi';
 import { optimizeImageUrl } from '../../utils/helpers';
@@ -16,12 +17,21 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
   
   if (!lost || !found) return null;
 
-  // Retrieve matching score styles
   const getScoreColor = (score) => {
     if (score >= 80) return 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30';
     if (score >= 60) return 'text-primary-500 bg-primary-50 dark:bg-primary-950/20 border-primary-200 dark:border-primary-900/30';
     return 'text-amber-500 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30';
   };
+
+  const { user } = useSelector((state) => state.auth);
+  
+  // Determine link based on user ownership
+  // If the user posted the Found item, they should visit the Lost item to claim "I have this"
+  // If the user posted the Lost item, they should visit the Found item to claim "This is mine"
+  const isUserFinder = user && found.userId && found.userId._id === user._id;
+  
+  const targetLink = isUserFinder ? `/lost-items/${lost._id}` : `/found-items/${found._id}`;
+  const targetStatus = isUserFinder ? lost.status : found.status;
 
   return (
     <div className="card p-6 border-l-4 border-l-primary-500">
@@ -128,12 +138,12 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
           <span className="text-xs text-emerald-500 font-semibold flex items-center gap-1.5">
             <FiCheck /> Match Confirmed
           </span>
-          {['claimed', 'resolved', 'returned'].includes(found.status?.toLowerCase()) ? (
+          {['claimed', 'resolved', 'returned', 'closed'].includes(targetStatus?.toLowerCase()) ? (
             <span className="btn bg-surface-200 text-surface-600 dark:bg-surface-700 dark:text-surface-300 btn-sm rounded-lg flex items-center gap-1.5 px-4 py-2 cursor-default opacity-80">
-              <FiCheckCircle /> Item Claimed
+              <FiCheckCircle /> Item Resolved
             </span>
           ) : (
-            <Link to={`/found-items/${found._id}`} className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 px-4 py-2">
+            <Link to={targetLink} className="btn btn-primary btn-sm rounded-lg flex items-center gap-1.5 px-4 py-2">
               <FiLink /> View Item to Claim
             </Link>
           )}
