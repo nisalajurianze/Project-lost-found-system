@@ -171,7 +171,9 @@ export const ClaimCard = ({ claim, onReview, onShareContact, onFeedback, onResol
               onClick={() => onResolve(targetItem._id, itemType, canReview)}
               disabled={isLoading}
             >
-              {canReview ? 'Confirm Handover & Close' : 'Confirm Item Received'}
+              {canReview 
+                ? (itemType === 'Found Item' ? 'Confirm Handover & Close' : 'Confirm Item Received') 
+                : (itemType === 'Found Item' ? 'Confirm Item Received' : 'Confirm Handover & Close')}
             </Button>
           )}
           {onFeedback && (

@@ -82,10 +82,17 @@ export const MyClaims = () => {
     }
   };
 
-  const handleResolveItem = async (targetItemId, itemType, isFounder) => {
-    const confirmMsg = isFounder 
-      ? 'Have you verified the owner and physically handed over the item?' 
-      : 'Have you physically received your item from the finder?';
+  const handleResolveItem = async (targetItemId, itemType, canReview) => {
+    let confirmMsg = '';
+    if (itemType === 'Found Item') {
+      confirmMsg = canReview 
+        ? 'Have you verified the owner and physically handed over the item?' 
+        : 'Have you physically received your item from the finder?';
+    } else {
+      confirmMsg = canReview
+        ? 'Have you physically received your item from the finder?'
+        : 'Have you verified the owner and physically handed over the item?';
+    }
     if (window.confirm(confirmMsg)) {
       try {
         if (itemType === 'Found Item') {
