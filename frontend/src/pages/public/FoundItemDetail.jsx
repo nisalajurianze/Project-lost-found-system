@@ -85,8 +85,8 @@ export const FoundItemDetail = () => {
   }
 
   const hasImages = currentItem.images && currentItem.images.length > 0;
-  const isFinder = (currentItem.userId?._id || currentItem.userId) === loggedInUserId;
-  const isConnectedUser = currentItem.connectedUserId === loggedInUserId;
+  const isFinder = (currentItem.userId?._id || currentItem.userId)?.toString() === loggedInUserId?.toString();
+  const isConnectedUser = currentItem.connectedUserId?.toString() === loggedInUserId?.toString();
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
