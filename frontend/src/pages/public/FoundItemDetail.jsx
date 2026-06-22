@@ -177,7 +177,7 @@ export const FoundItemDetail = () => {
                 </p>
                 <p className="text-xs text-surface-500 dark:text-surface-400">
                   {isHandoverInProgress 
-                    ? 'Contact the other party to arrange a handover.' 
+                    ? ((isFinder || isConnectedUser) ? 'Contact the other party to arrange a handover.' : 'This item is currently being handed over to its verified owner.') 
                     : 'Connect with the finder to get your item back.'}
                 </p>
               </div>

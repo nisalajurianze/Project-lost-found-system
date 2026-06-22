@@ -182,7 +182,7 @@ export const LostItemDetail = () => {
                 </p>
                 <p className="text-xs text-surface-500 dark:text-surface-400">
                   {isHandoverInProgress 
-                    ? 'Contact the other party to arrange a handover.' 
+                    ? ((isOwner || isConnectedUser) ? 'Contact the other party to arrange a handover.' : 'This item is currently being handed over to its owner.') 
                     : 'Connect with the reporter to return their item.'}
                 </p>
               </div>
