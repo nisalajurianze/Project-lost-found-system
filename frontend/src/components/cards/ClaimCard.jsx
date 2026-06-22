@@ -60,8 +60,8 @@ export const ClaimCard = ({ claim, onReview, onShareContact, onFeedback, onResol
             </div>
           </div>
 
-          {/* Show item owner's contact details to the claimant if contact is shared or approved */}
-          {!canReview && !isAdmin && (claim.status === 'approved' || claim.isContactShared) && itemOwner && (
+          {/* Show item owner's contact details if contact is shared or approved, or if user is admin */}
+          {(isAdmin || claim.status === 'approved' || claim.isContactShared) && itemOwner && (
             <div className="mt-2 p-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg">
               <span className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wide block mb-1">
                 Poster's Contact Info
