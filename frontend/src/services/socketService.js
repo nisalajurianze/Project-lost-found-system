@@ -19,7 +19,10 @@ const socketService = {
       withCredentials: true,
       autoConnect: true,
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000
+      reconnectionDelay: 1000,
+      auth: {
+        token: localStorage.getItem('accessToken')
+      }
     });
 
     socket.on('connect', () => {

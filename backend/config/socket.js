@@ -53,20 +53,25 @@ const initSocket = (httpServer) => {
   io.on('connection', (socket) => {
     console.log(`🔌 Socket connected: ${socket.id}`);
 
-    // Parse cookies from socket request
+    // Parse token from socket handshake auth or cookies
     let userRole = 'user';
     let authUserId = null;
     try {
-      if (socket.request.headers.cookie) {
+      let token = socket.handshake.auth?.token;
+      
+      if (!token && socket.request.headers.cookie) {
         const cookies = cookie.parse(socket.request.headers.cookie);
-        if (cookies.accessToken) {
-          const decoded = jwt.verify(cookies.accessToken, process.env.JWT_ACCESS_SECRET);
-          userRole = decoded.role;
-          authUserId = decoded.id;
-        }
+        token = cookies.accessToken;
+      }
+      
+      if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        userRole = decoded.role;
+        authUserId = decoded.id;
       }
     } catch (e) {
       // Ignore errors, default to 'user'
+      console.warn(`Socket auth error: ${e.message}`);
     }
 
     // Join user-specific room for targeted notifications
