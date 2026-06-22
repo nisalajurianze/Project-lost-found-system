@@ -118,6 +118,10 @@ const createClaimRequest = asyncHandler(async (req, res) => {
 
   const claim = await ClaimRequest.create(claimData);
 
+  // Update item status to 'in_progress' since a claim is now active
+  targetItem.status = 'in_progress';
+  await targetItem.save();
+
   // Notify item reporter (if reported by a user)
   if (reporter) {
     await createNotification({
@@ -452,7 +456,7 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
     const activeClaimsCount = await ClaimRequest.countDocuments(query);
 
     // If no other pending claims, set item back to available
-    if (activeClaimsCount === 0 && targetItem.status === 'matched') {
+    if (activeClaimsCount === 0 && (targetItem.status === 'matched' || targetItem.status === 'in_progress')) {
       targetItem.status = 'available';
       await targetItem.save();
     }

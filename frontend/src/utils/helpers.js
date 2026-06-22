@@ -8,7 +8,7 @@
  */
 export const capitalize = (str) => {
   if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  return str.replace(/_/g, ' ').charAt(0).toUpperCase() + str.replace(/_/g, ' ').slice(1);
 };
 
 /**
@@ -44,6 +44,8 @@ export const getStatusBadgeClass = (status) => {
       return 'badge-success';
     case 'rejected':
       return 'badge-danger';
+    case 'in_progress':
+      return 'badge-warning'; // yellow
     
     default:
       return 'badge-neutral';
