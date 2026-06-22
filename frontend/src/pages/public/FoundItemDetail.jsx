@@ -365,7 +365,11 @@ export const FoundItemDetail = () => {
                       Finder info is protected
                     </p>
                     <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-                      {isAuthenticated ? "You must click 'This is mine' to exchange contact details." : "Please log in to connect and view contact details."}
+                      {isAuthenticated 
+                        ? (hasClaimedSession || hasExistingClaim 
+                            ? "You have submitted a claim. Please check 'My Claims' in your dashboard to view shared contacts or status updates." 
+                            : "You must click 'This is mine' to exchange contact details.") 
+                        : "Please log in to connect and view contact details."}
                     </p>
                   </div>
                   <div className="pt-2">
