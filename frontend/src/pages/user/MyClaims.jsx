@@ -7,6 +7,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchClaims, reviewClaimRequest, shareClaimContact } from '../../redux/slices/claimSlice';
+import foundItemService from '../../services/foundItemService';
+import lostItemService from '../../services/lostItemService';
 import ClaimCard from '../../components/cards/ClaimCard';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
@@ -80,6 +82,25 @@ export const MyClaims = () => {
     }
   };
 
+  const handleResolveItem = async (targetItemId, itemType, isFounder) => {
+    const confirmMsg = isFounder 
+      ? 'Have you verified the owner and physically handed over the item?' 
+      : 'Have you physically received your item from the finder?';
+    if (window.confirm(confirmMsg)) {
+      try {
+        if (itemType === 'Found Item') {
+          await foundItemService.resolveFoundItem(targetItemId);
+        } else {
+          await lostItemService.resolveLostItem(targetItemId);
+        }
+        toast.success('Item successfully marked as resolved!');
+        dispatch(fetchClaims({ page, limit: 9 }));
+      } catch (err) {
+        toast.error(err?.response?.data?.message || err?.message || 'Failed to resolve item.');
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
@@ -113,6 +134,7 @@ export const MyClaims = () => {
                   canReview={isFounder}
                   onReview={handleOpenReview}
                   onShareContact={handleShareContact}
+                  onResolve={handleResolveItem}
                   onFeedback={(claim) => setFeedbackDialog(claim)}
                 />
               );

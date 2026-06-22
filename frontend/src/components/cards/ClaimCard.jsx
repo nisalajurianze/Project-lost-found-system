@@ -11,7 +11,7 @@ import { FiExternalLink, FiCheck, FiX, FiMessageSquare } from 'react-icons/fi';
 import { User } from 'lucide-react';
 import { formatRelativeTime } from '../../utils/formatDate';
 
-export const ClaimCard = ({ claim, onReview, onShareContact, onFeedback, isAdmin = false, canReview = false, isLoading = false }) => {
+export const ClaimCard = ({ claim, onReview, onShareContact, onFeedback, onResolve, isAdmin = false, canReview = false, isLoading = false }) => {
   const claimant = claim.claimantId;
   const targetItem = claim.foundItemId || claim.lostItemId;
   const itemOwner = targetItem?.userId;
@@ -162,17 +162,29 @@ export const ClaimCard = ({ claim, onReview, onShareContact, onFeedback, isAdmin
       )}
 
       {/* Leave Feedback Action for Approved Claims */}
-      {!isAdmin && claim.status === 'approved' && onFeedback && (
-        <div className="flex gap-2 mt-6 pt-4 border-t border-surface-100 dark:border-surface-700/50 justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onFeedback(claim)}
-            icon={<FiMessageSquare />}
-            className="text-amber-600 border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-900/30 dark:text-amber-400"
-          >
-            Leave Feedback
-          </Button>
+      {!isAdmin && claim.status === 'approved' && (
+        <div className="flex gap-2 mt-6 pt-4 border-t border-surface-100 dark:border-surface-700/50 justify-end flex-wrap">
+          {targetItem.status === 'in_progress' && onResolve && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => onResolve(targetItem._id, itemType, canReview)}
+              disabled={isLoading}
+            >
+              {canReview ? 'Confirm Handover & Close' : 'Confirm Item Received'}
+            </Button>
+          )}
+          {onFeedback && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onFeedback(claim)}
+              icon={<FiMessageSquare />}
+              className="text-amber-600 border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-900/30 dark:text-amber-400"
+            >
+              Leave Feedback
+            </Button>
+          )}
         </div>
       )}
     </div>
