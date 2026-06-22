@@ -106,6 +106,35 @@
     box-shadow: 0 20px 60px rgba(99, 102, 241, 0.25);
   }
 
+  /* Specific item card hover effects */
+  .lost-card-hover {
+    border: 1px solid rgba(244, 63, 94, 0.15) !important;
+  }
+  .dark .lost-card-hover {
+    border-color: rgba(244, 63, 94, 0.2) !important;
+  }
+  .lost-card-hover:hover {
+    border-color: rgba(244, 63, 94, 0.5) !important;
+    box-shadow: 0 20px 60px rgba(244, 63, 94, 0.15) !important;
+  }
+  .dark .lost-card-hover:hover {
+    box-shadow: 0 20px 60px rgba(244, 63, 94, 0.25) !important;
+  }
+
+  .found-card-hover {
+    border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  }
+  .dark .found-card-hover {
+    border-color: rgba(16, 185, 129, 0.2) !important;
+  }
+  .found-card-hover:hover {
+    border-color: rgba(16, 185, 129, 0.5) !important;
+    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.15) !important;
+  }
+  .dark .found-card-hover:hover {
+    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.25) !important;
+  }
+
   /* ========== Button System ========== */
   .btn {
     @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl 

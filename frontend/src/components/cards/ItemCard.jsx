@@ -23,8 +23,10 @@ export const ItemCard = React.memo(({ item, type = 'lost', onFeedback }) => {
   let mainImage = item.images && item.images.length > 0 ? item.images[0].url : null;
   mainImage = optimizeImageUrl(mainImage, 400);
 
+  const typeStyles = isLost ? 'lost-card-hover' : 'found-card-hover';
+
   return (
-    <Link to={detailPath} className="glass-card-hover flex flex-col h-full overflow-hidden">
+    <Link to={detailPath} className={`glass-card-hover ${typeStyles} flex flex-col h-full overflow-hidden group`}>
       {/* Image Container */}
       <div className="relative w-full aspect-[4/3] bg-surface-100 dark:bg-surface-800 overflow-hidden">
         {mainImage ? (
