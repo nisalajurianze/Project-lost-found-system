@@ -489,9 +489,15 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
  */
 const shareClaimContact = asyncHandler(async (req, res) => {
   const claim = await ClaimRequest.findById(req.params.id)
-    .populate('foundItemId')
-    .populate('lostItemId')
-    .populate('claimantId', 'fullName email phone');
+    .populate({
+      path: 'foundItemId',
+      populate: { path: 'userId', select: 'fullName email phone' }
+    })
+    .populate({
+      path: 'lostItemId',
+      populate: { path: 'userId', select: 'fullName email phone' }
+    })
+    .populate('claimantId', 'fullName email phone studentId profileImage');
 
   if (!claim) {
     throw ApiError.notFound('Claim request not found.');

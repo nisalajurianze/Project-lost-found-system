@@ -102,7 +102,9 @@ export const MyClaims = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {claims.map((claim) => {
-              const isFounder = claim.foundItemId && claim.foundItemId.userId && claim.foundItemId.userId._id === user?._id;
+              const targetItem = claim.foundItemId || claim.lostItemId;
+              const targetUserId = typeof targetItem?.userId === 'object' ? targetItem.userId._id : targetItem?.userId;
+              const isFounder = targetUserId === user?._id;
               
               return (
                 <ClaimCard 
