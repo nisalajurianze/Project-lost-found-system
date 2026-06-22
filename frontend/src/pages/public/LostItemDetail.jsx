@@ -29,12 +29,16 @@ export const LostItemDetail = () => {
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
   const [hasClaimedSession, setHasClaimedSession] = useState(false);
   const [hasExistingClaim, setHasExistingClaim] = useState(false);
+  const [isContactShared, setIsContactShared] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated && id) {
       import('../../services/claimService').then((module) => {
         module.default.checkClaim(id).then((data) => {
           setHasExistingClaim(data.hasClaim);
+          if (data.claim?.isContactShared) {
+            setIsContactShared(true);
+          }
         }).catch(() => {});
       });
     }
@@ -86,8 +90,8 @@ export const LostItemDetail = () => {
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
   
-  // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved
-  const canSeeContact = currentItem.contactVisibility === 'public' || isOwner || isConnectedUser || currentItem.status === 'claimed';
+  // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved, or if contact was explicitly shared
+  const canSeeContact = currentItem.contactVisibility === 'public' || isOwner || isConnectedUser || currentItem.status === 'claimed' || isContactShared;
 
   return (
     <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
