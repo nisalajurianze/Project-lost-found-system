@@ -56,11 +56,15 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
 
   const hasUnreadMatch = notifications.some(n => n.type === 'match_found' && !n.isRead);
 
-  const handleBellClick = () => {
-    setNotificationDropdownOpen(!notificationDropdownOpen);
-    if (!notificationDropdownOpen && (!notifications || notifications.length === 0)) {
+  // Fetch initial notifications on load to get the unread count
+  React.useEffect(() => {
+    if (isAuthenticated) {
       dispatch(fetchUserNotifications({ page: 1, limit: 5 }));
     }
+  }, [isAuthenticated, dispatch]);
+
+  const handleBellClick = () => {
+    setNotificationDropdownOpen(!notificationDropdownOpen);
   };
 
   const handleLogout = () => {

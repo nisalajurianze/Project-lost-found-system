@@ -92,7 +92,9 @@ const notificationSlice = createSlice({
         state.pagination = action.payload.pagination;
         
         // Calculate unread count
-        state.unreadCount = action.payload.notifications.filter(n => !n.isRead).length;
+        state.unreadCount = action.payload.unreadCount !== undefined 
+          ? action.payload.unreadCount 
+          : action.payload.notifications.filter(n => !n.isRead).length;
       })
       .addCase(fetchUserNotifications.rejected, (state, action) => {
         state.isLoading = false;

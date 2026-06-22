@@ -30,8 +30,9 @@ const getNotifications = asyncHandler(async (req, res) => {
     .skip(pagination.skip)
     .limit(pagination.limit)
     .lean();
+  const unreadCount = await Notification.countDocuments({ userId, isRead: false });
 
-  ApiResponse.ok({ notifications, pagination }, 'Notifications retrieved successfully.').send(res);
+  ApiResponse.ok({ notifications, pagination, unreadCount }, 'Notifications retrieved successfully.').send(res);
 });
 
 /**
