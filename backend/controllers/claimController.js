@@ -517,7 +517,8 @@ const shareClaimContact = asyncHandler(async (req, res) => {
   }
 
   // Ensure user is the item owner
-  if (targetItem.userId.toString() !== req.user._id.toString()) {
+  const itemOwnerId = targetItem.userId._id ? targetItem.userId._id.toString() : targetItem.userId.toString();
+  if (itemOwnerId !== req.user._id.toString()) {
     throw ApiError.forbidden('Only the item owner can share contact information.');
   }
 
