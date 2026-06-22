@@ -21,7 +21,8 @@ import toast from 'react-hot-toast';
 
 export const MyClaims = () => {
   const dispatch = useDispatch();
-  const { claims, pagination, isLoading } = useSelector((state) => state.claims);
+  const { claims, isLoading, pagination } = useSelector((state) => state.claims);
+  const { notifications } = useSelector((state) => state.notifications);
   const { user } = useSelector((state) => state.auth);
 
   const [page, setPage] = useState(1);
@@ -37,6 +38,22 @@ export const MyClaims = () => {
   useEffect(() => {
     dispatch(fetchClaims({ page, limit: 9 }));
   }, [dispatch, page]);
+
+  // Refetch claims when a new notification arrives (e.g. contact shared, claim approved)
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      const latestNotification = notifications[0];
+      // If it's a claim related notification, refetch to get updated status/contact info
+      if (
+        latestNotification?.type === 'contact_shared' || 
+        latestNotification?.type === 'claim_approved' || 
+        latestNotification?.type === 'claim_rejected' ||
+        latestNotification?.type === 'claim_submitted'
+      ) {
+        dispatch(fetchClaims({ page, limit: 9 }));
+      }
+    }
+  }, [notifications, dispatch, page]);
 
   const handleOpenReview = (claimId, reviewStatus) => {
     setReviewDialog({ id: claimId, status: reviewStatus });
