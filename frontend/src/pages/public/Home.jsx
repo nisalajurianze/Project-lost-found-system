@@ -203,7 +203,7 @@ export const Home = () => {
                 <Link 
                   to={`/lost-items/${item._id}`} 
                   key={item._id} 
-                  className="card bg-white dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                  className="card lost-card-hover bg-white dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 group"
                 >
                   <div>
                     <span className="text-xs font-bold text-primary-500 dark:text-primary-400 uppercase">
@@ -256,7 +256,7 @@ export const Home = () => {
                 <Link 
                   to={`/found-items/${item._id}`} 
                   key={item._id} 
-                  className="card bg-surface-50 dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                  className="card found-card-hover bg-surface-50 dark:bg-surface-800 p-5 shadow-md flex flex-col justify-between hover:-translate-y-1 transition-all duration-300 group"
                 >
                   <div>
                     <span className="text-xs font-bold text-emerald-500 uppercase">
