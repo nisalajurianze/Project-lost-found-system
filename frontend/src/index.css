@@ -39,6 +39,12 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  @media (min-width: 1024px) {
+    html {
+      zoom: 0.8; /* Zoom out by 20% on desktop */
+    }
+  }
+
   body {
     @apply font-sans text-surface-900 dark:text-surface-50 bg-surface-50 dark:bg-surface-900 transition-colors duration-300;
     min-height: 100vh;
