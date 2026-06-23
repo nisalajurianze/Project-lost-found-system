@@ -71,7 +71,10 @@ const authService = {
    * Update user profile (phone, studentId, etc).
    */
   updateProfile: async (profileData) => {
-    const res = await api.put('/users/profile', profileData);
+    const config = profileData instanceof FormData 
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {};
+    const res = await api.put('/users/profile', profileData, config);
     const updatedUser = res.data.data;
     localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(updatedUser));
     return updatedUser;
