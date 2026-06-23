@@ -34,6 +34,7 @@
   }
 
   html {
+    font-size: 14px; /* ~87.5% scale for mobile to fix zoom issue */
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
