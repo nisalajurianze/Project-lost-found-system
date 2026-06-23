@@ -123,12 +123,12 @@ const updateProfileValidator = [
     .isLength({ min: 2, max: 100 })
     .withMessage('Full name must be 2-100 characters'),
   body('phone')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isMobilePhone('any')
     .withMessage('Please provide a valid phone number'),
   body('studentId')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isLength({ min: 2, max: 30 })
     .withMessage('Student ID must be 2-30 characters'),

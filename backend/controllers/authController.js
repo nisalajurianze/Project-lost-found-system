@@ -230,7 +230,8 @@ const googleLogin = asyncHandler(async (req, res) => {
   }
 
   const payload = ticket.getPayload();
-  const { sub: googleId, email, name, picture } = payload;
+  let { sub: googleId, email, name, picture } = payload;
+  email = email.toLowerCase(); // Ensure lowercase matching
 
   // 1. Try to find by googleId first (most reliable identifier for Google Auth)
   let user = await User.findOne({ googleId }).select('+lockUntil +loginAttempts');
