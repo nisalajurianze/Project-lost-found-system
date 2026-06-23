@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 export const Footer = () => {
   return (
     <footer className="w-full border-t border-surface-200/50 bg-white dark:border-surface-800/50 dark:bg-surface-950/80 transition-colors duration-300 py-8 no-print mt-auto pb-24 lg:pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-col items-center md:items-start">
             <Link to="/" className="flex items-center gap-1.5 mb-2 hover:opacity-80 transition-opacity w-fit">

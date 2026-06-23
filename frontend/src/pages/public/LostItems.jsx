@@ -77,7 +77,7 @@ export const LostItems = () => {
 
   return (
     <div className="flex-1 pt-4 pb-8 sm:pt-6 sm:pb-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
-      <div className="page-container max-w-7xl mx-auto">
+      <div className="page-container max-w-screen-2xl mx-auto">
         
         {/* Header & Controls */}
         <div className="flex flex-col gap-4 mb-6">
