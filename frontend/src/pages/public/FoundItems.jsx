@@ -79,8 +79,8 @@ export const FoundItems = () => {
       <div className="page-container max-w-screen-2xl mx-auto">
         
         {/* Header & Controls */}
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="flex flex-row items-center justify-between">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-row items-center justify-between xl:justify-start gap-4">
             <div className="flex items-center gap-3">
               <h1 className="text-xl sm:text-2xl font-extrabold font-display text-surface-900 dark:text-white whitespace-nowrap">
                 Found Property
@@ -89,9 +89,10 @@ export const FoundItems = () => {
                 Directory
               </span>
             </div>
+            {/* Mobile Report Button (hidden on xl) */}
             <Link
               to="/dashboard/report-found"
-              className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap h-10"
+              className="xl:hidden inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap h-10"
             >
               <FiPlusCircle className="text-base" />
               <span className="hidden sm:inline">Report Found</span>
@@ -99,7 +100,7 @@ export const FoundItems = () => {
             </Link>
           </div>
 
-          <div className="w-full">
+          <div className="flex-1 w-full xl:w-auto xl:max-w-none">
             <SearchFilter
               search={search}
               onSearchChange={(val) => { setSearch(val); setPage(1); }}
@@ -116,6 +117,15 @@ export const FoundItems = () => {
               onClear={handleClearFilters}
             />
           </div>
+
+          {/* Desktop Report Button */}
+          <Link
+            to="/dashboard/report-found"
+            className="hidden xl:inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap h-10 shrink-0"
+          >
+            <FiPlusCircle className="text-base" />
+            <span>Report Found</span>
+          </Link>
         </div>
 
         {/* Listings Grid */}
