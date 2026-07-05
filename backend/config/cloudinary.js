@@ -10,7 +10,9 @@ import { v2 as cloudinary } from 'cloudinary';
  * Returns `true` if configured, `false` otherwise.
  */
 const configureCloudinary = () => {
-  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
+  const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_NAME;
+  const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_KEY;
+  const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_SECRET;
 
   // Check if all required credentials are present
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {

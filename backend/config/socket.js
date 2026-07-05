@@ -65,7 +65,7 @@ const initSocket = (httpServer) => {
       }
       
       if (token) {
-        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET);
         userRole = decoded.role;
         authUserId = decoded.id;
       }

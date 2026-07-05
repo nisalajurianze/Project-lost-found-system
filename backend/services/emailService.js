@@ -13,7 +13,11 @@ let isEmailConfigured = false;
  * Initialise the email transporter.
  */
 const initEmailService = () => {
-  const { RESEND_API_KEY, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+  const { RESEND_API_KEY } = process.env;
+  const SMTP_HOST = process.env.SMTP_HOST || process.env.EMAIL_HOST;
+  const SMTP_PORT = process.env.SMTP_PORT || process.env.EMAIL_PORT;
+  const SMTP_USER = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const SMTP_PASS = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
 
   if (RESEND_API_KEY && RESEND_API_KEY !== 'your_resend_api_key') {
     isEmailConfigured = true;
@@ -378,7 +382,7 @@ const sendEmail = async ({ to, template, data = {} }) => {
 
   const { RESEND_API_KEY, EMAIL_FROM, EMAIL_FROM_NAME } = process.env;
   const fromName = EMAIL_FROM_NAME || 'Smart Lost & Found';
-  const fromEmail = EMAIL_FROM || (RESEND_API_KEY ? 'onboarding@resend.dev' : process.env.SMTP_USER);
+  const fromEmail = EMAIL_FROM || (RESEND_API_KEY ? 'onboarding@resend.dev' : (process.env.SMTP_USER || process.env.EMAIL_USER));
 
   // 1. Try sending via Resend API
   if (RESEND_API_KEY && RESEND_API_KEY !== 'your_resend_api_key') {

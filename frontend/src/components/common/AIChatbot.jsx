@@ -65,8 +65,7 @@ const AIChatbot = () => {
     try {
       const payload = { 
         message: userMessage, 
-        history: historyToSend,
-        userData: user ? { _id: user._id, fullName: user.fullName } : null 
+        history: historyToSend
       };
       const res = await api.post('/ai/chat', payload);
       const reply = res.data?.data?.text || "Sorry, I couldn't understand that.";

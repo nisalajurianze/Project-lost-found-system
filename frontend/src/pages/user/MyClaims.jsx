@@ -100,7 +100,7 @@ export const MyClaims = () => {
   };
 
   const handleResolveItem = async (targetItemId, itemType, canReview) => {
-    let confirmMsg = '';
+    let confirmMsg;
     if (itemType === 'Found Item') {
       confirmMsg = canReview 
         ? 'Have you verified the owner and physically handed over the item?' 

@@ -9,21 +9,24 @@ import { parseJSONResponse } from '../services/imageAnalysisService.js';
  * User asks a question, AI translates to a search, we query DB, AI formats answer.
  */
 export const handleAIChat = asyncHandler(async (req, res) => {
-  const { message, history = [], userData } = req.body;
+  const { message, history = [] } = req.body;
   if (!message) return ApiResponse.ok({ text: "Please say something!" }).send(res);
+  if (typeof message !== 'string' || message.length > 500) {
+    return ApiResponse.ok({ text: "Please keep your message under 500 characters." }).send(res);
+  }
 
   let userContextText = "";
-  if (userData && userData._id) {
+  if (req.user?._id) {
     try {
       // Fetch user's recently reported items to provide context to the AI
-      const lostItems = await LostItem.find({ user: userData._id }).sort({ createdAt: -1 }).limit(2).lean();
-      const foundItems = await FoundItem.find({ reporter: userData._id }).sort({ createdAt: -1 }).limit(2).lean();
+      const lostItems = await LostItem.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(2).lean();
+      const foundItems = await FoundItem.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(2).lean();
       
       const pastItems = [];
       lostItems.forEach(item => pastItems.push(`Lost: ${item.itemName} (${item.status})`));
       foundItems.forEach(item => pastItems.push(`Found: ${item.itemName} (${item.status})`));
       
-      userContextText = `User Context:\nYou are talking to: ${userData.fullName}\n`;
+      userContextText = `User Context:\nYou are talking to: ${req.user.fullName}\n`;
       if (pastItems.length > 0) {
         userContextText += `CRITICAL USER CONTEXT: They recently reported these items to the system: ${pastItems.join(', ')}.\nIf they say "my item" or "my lap", strongly assume they are talking about one of these items. Address them by name occasionally to feel friendly.\n\n`;
       } else {
@@ -42,8 +45,9 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   }
 
   // Format history for the prompt
-  const historyText = history.length > 0 
-    ? "Conversation History:\n" + history.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`).join('\n') + "\n\n"
+  const safeHistory = Array.isArray(history) ? history.slice(-8) : [];
+  const historyText = safeHistory.length > 0
+    ? "Conversation History:\n" + safeHistory.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${String(m.content || '').slice(0, 500)}`).join('\n') + "\n\n"
     : "";
 
   // Helper to safely parse JSON and ignore <think> tags from DeepSeek R1 reasoning models

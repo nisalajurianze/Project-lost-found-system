@@ -12,7 +12,9 @@ let cachedUser = null;
 try {
   const stored = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
   if (stored) cachedUser = JSON.parse(stored);
-} catch (e) {}
+} catch {
+  cachedUser = null;
+}
 
 const initialState = {
   user: cachedUser,

@@ -224,23 +224,23 @@ PORT=5000
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 
-MONGODB_URI=mongodb://localhost:27017/smart-lost-found
+MONGO_URI=mongodb://localhost:27017/smart-lost-found
 REDIS_URL=redis://localhost:6379
 
-JWT_SECRET=your_super_secure_32_character_jwt_secret_key
-JWT_EXPIRES_IN=15m
+JWT_ACCESS_SECRET=your_super_secure_32_character_access_secret_key
+JWT_ACCESS_EXPIRE=15m
 JWT_REFRESH_SECRET=your_super_secure_32_character_refresh_key
-JWT_REFRESH_EXPIRES_IN=7d
+JWT_REFRESH_EXPIRE=7d
 
 # Third Party Integrations (Optional)
-CLOUDINARY_NAME=your_cloudinary_name
-CLOUDINARY_KEY=your_cloudinary_api_key
-CLOUDINARY_SECRET=your_cloudinary_api_secret
+CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_specific_password
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_specific_password
 EMAIL_FROM=Smart Lost & Found <noreply@smartlostfound.com>
 ```
 

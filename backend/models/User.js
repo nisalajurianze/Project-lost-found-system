@@ -162,14 +162,19 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
  * @returns {string}
  */
 userSchema.methods.generateAccessToken = function () {
+  const accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+  if (!accessSecret) {
+    throw new Error('JWT access secret is not configured');
+  }
+
   return jwt.sign(
     {
       id: this._id,
       email: this.email,
       role: this.role,
     },
-    process.env.JWT_ACCESS_SECRET,
-    { expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m' }
+    accessSecret,
+    { expiresIn: process.env.JWT_ACCESS_EXPIRE || process.env.JWT_EXPIRES_IN || '15m' }
   );
 };
 
@@ -178,10 +183,15 @@ userSchema.methods.generateAccessToken = function () {
  * @returns {string}
  */
 userSchema.methods.generateRefreshToken = function () {
+  const refreshSecret = process.env.JWT_REFRESH_SECRET;
+  if (!refreshSecret) {
+    throw new Error('JWT refresh secret is not configured');
+  }
+
   return jwt.sign(
     { id: this._id },
-    process.env.JWT_REFRESH_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    refreshSecret,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRE || process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
   );
 };
 

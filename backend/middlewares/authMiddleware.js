@@ -8,6 +8,8 @@ import User from '../models/User.js';
 import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
+const getAccessSecret = () => process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+
 /**
  * Protect routes – verifies JWT access token.
  * Token sources (checked in order):
@@ -33,7 +35,7 @@ const protect = asyncHandler(async (req, res, next) => {
 
   try {
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const decoded = jwt.verify(token, getAccessSecret());
 
     // Fetch user (exclude password but include isActive check)
     const user = await User.findById(decoded.id).select('-password -refreshToken');
@@ -74,7 +76,7 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+      const decoded = jwt.verify(token, getAccessSecret());
       const user = await User.findById(decoded.id).select('-password -refreshToken');
       if (user && user.isActive) {
         req.user = user;
