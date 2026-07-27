@@ -17,7 +17,7 @@ import AISuggestionReview from './AISuggestionReview';
 import ItemAttributeFields from './ItemAttributeFields';
 import LocationAssistant from './LocationAssistant';
 import ImagePrivacyReview from './ImagePrivacyReview';
-import { createPrivacySafeImage, imageFileKey, normalizeRedactionRegions } from '../../utils/imageRedaction';
+import { createPrivacySafeImage, IMAGE_REDACTION_ERROR_CODES, imageFileKey, normalizeRedactionRegions } from '../../utils/imageRedaction';
 import ConfirmDialog from './ConfirmDialog';
 import ProfileCompletionModal from '../modals/ProfileCompletionModal';
 import { useLanguage } from '../../i18n/LanguageContext';

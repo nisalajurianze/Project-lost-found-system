@@ -3,9 +3,12 @@ import js from '@eslint/js';
 const browserGlobals = {
   AudioContext: 'readonly',
   Blob: 'readonly',
+  CustomEvent: 'readonly',
   Event: 'readonly',
   File: 'readonly',
   FormData: 'readonly',
+  Image: 'readonly',
+  MutationObserver: 'readonly',
   Notification: 'readonly',
   SpeechRecognition: 'readonly',
   URL: 'readonly',
@@ -24,8 +27,11 @@ const browserGlobals = {
   importScripts: 'readonly',
   localStorage: 'readonly',
   navigator: 'readonly',
+  performance: 'readonly',
   requestAnimationFrame: 'readonly',
+  createImageBitmap: 'readonly',
   self: 'readonly',
+  sessionStorage: 'readonly',
   setInterval: 'readonly',
   setTimeout: 'readonly',
   window: 'readonly',
@@ -37,7 +43,7 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{js,jsx,mjs}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -48,6 +54,12 @@ export default [
     },
     rules: {
       'no-unused-vars': 'off',
+    },
+  },
+  {
+    files: ['src/i18n/translations.js'],
+    rules: {
+      'no-useless-escape': 'off',
     },
   },
 ];
