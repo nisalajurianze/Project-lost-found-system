@@ -4,7 +4,7 @@
 
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { suggestItemDetails } from '../controllers/aiController.js';
+import { assessReportDraft, resolveLocationSuggestion, suggestItemDetails } from '../controllers/aiController.js';
 import { optionalAuth, protect } from '../middlewares/authMiddleware.js';
 import { uploadSingle } from '../middlewares/uploadMiddleware.js';
 
@@ -21,6 +21,8 @@ const aiChatLimiter = rateLimit({
 
 // Route for AI Image Suggestion
 router.post('/suggest-details', protect, uploadSingle, suggestItemDetails);
+router.post('/location/resolve', protect, resolveLocationSuggestion);
+router.post('/report/assess', protect, assessReportDraft);
 
 // Route for AI Chat Assistant (Publicly accessible)
 router.post('/chat', aiChatLimiter, optionalAuth, handleAIChat);

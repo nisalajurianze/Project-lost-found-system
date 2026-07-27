@@ -7,9 +7,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiX, FiCheckCircle, FiAlertCircle, FiAward, FiInbox, FiBell } from 'react-icons/fi';
 import { formatRelativeTime } from '../../utils/formatDate';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const NotificationCard = ({ notification, onRead, onDelete }) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const getIcon = (type) => {
     switch (type) {
@@ -50,6 +52,10 @@ export const NotificationCard = ({ notification, onRead, onDelete }) => {
   return (
     <div
       onClick={handleCardClick}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); handleCardClick(); } }}
+      role="button"
+      tabIndex={0}
+      aria-label={t('notificationCard.open', { title: notification.title })}
       className={`relative p-4 rounded-xl border transition-all cursor-pointer flex gap-4 ${
         notification.isRead
           ? 'bg-white/40 dark:bg-surface-800/10 border-surface-200/50 dark:border-surface-800/50 hover:bg-white/80 dark:hover:bg-surface-800/20'
@@ -82,19 +88,20 @@ export const NotificationCard = ({ notification, onRead, onDelete }) => {
       </div>
 
       {/* Delete Button */}
-      <button
+      <button type="button"
         onClick={(e) => {
           e.stopPropagation(); // Avoid triggering card click redirection
           onDelete(notification._id);
         }}
+        aria-label={t('notificationCard.delete', { title: notification.title })}
         className="absolute top-4 right-4 p-1 rounded-lg text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:text-surface-500 dark:hover:bg-surface-700 dark:hover:text-white transition-colors"
       >
-        <FiX className="text-sm" />
+        <FiX className="text-sm" aria-hidden="true" />
       </button>
     </div>
   );
 };
 
 export default NotificationCard;
-// 
+//
 

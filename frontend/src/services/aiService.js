@@ -13,6 +13,16 @@ const aiService = {
     return response.data;
   },
 
+  resolveLocation: async (query) => {
+    const response = await api.post('/ai/location/resolve', { query });
+    return response.data.data;
+  },
+
+  assessReportDraft: async (payload) => {
+    const response = await api.post('/ai/report/assess', payload);
+    return response.data.data;
+  },
+
   autoCreateCategory: async (name) => {
     const response = await api.post('/categories/auto-create', { name });
     return response.data;

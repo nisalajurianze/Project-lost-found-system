@@ -17,7 +17,7 @@ const configureCloudinary = () => {
   // Check if all required credentials are present
   if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
     console.warn(
-      '⚠️  Cloudinary credentials not configured. Image uploads will use local fallback.'
+      '⚠️  Cloudinary credentials not configured. Image upload endpoints will return 503.'
     );
     return false;
   }

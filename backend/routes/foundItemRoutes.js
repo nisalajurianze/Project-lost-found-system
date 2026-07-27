@@ -13,29 +13,29 @@ import {
   resolveFoundItem,
   cancelConnectionFoundItem
 } from '../controllers/foundItemController.js';
-import { protect } from '../middlewares/authMiddleware.js';
+import { protect, optionalAuth } from '../middlewares/authMiddleware.js';
 import { uploadMultiple } from '../middlewares/uploadMiddleware.js';
 import validate from '../middlewares/validateMiddleware.js';
 import {
   createFoundItemValidator,
   updateFoundItemValidator,
   mongoIdParam,
-  paginationQuery
+  paginationQuery,
+  handoverCancellationValidator
 } from '../utils/validators.js';
 
-import { cacheResponse } from '../middlewares/cacheMiddleware.js';
 
 const router = express.Router();
 
 // Publicly viewable found items
-router.get('/', paginationQuery, validate, cacheResponse(60), getFoundItems);
-router.get('/:id', mongoIdParam, validate, cacheResponse(60), getFoundItemById);
+router.get('/', optionalAuth, paginationQuery, validate, getFoundItems);
+router.get('/:id', optionalAuth, mongoIdParam, validate, getFoundItemById);
 
 // Protected report/management
 router.post('/', protect, uploadMultiple, createFoundItemValidator, validate, createFoundItem);
 router.put('/:id', protect, uploadMultiple, mongoIdParam, updateFoundItemValidator, validate, updateFoundItem);
 router.delete('/:id', protect, mongoIdParam, validate, deleteFoundItem);
 router.post('/:id/resolve', protect, mongoIdParam, validate, resolveFoundItem);
-router.post('/:id/cancel-connection', protect, mongoIdParam, validate, cancelConnectionFoundItem);
+router.post('/:id/cancel-connection', protect, mongoIdParam, handoverCancellationValidator, validate, cancelConnectionFoundItem);
 
 export default router;

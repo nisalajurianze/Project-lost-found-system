@@ -1,96 +1,74 @@
-self.addEventListener('push', function(event) {
-  if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body,
-      icon: data.icon || '/favicon.ico',
-      badge: '/favicon.ico',
-      vibrate: [100, 50, 100],
-      data: data.data || {}
-    };
+const CACHE_NAME = 'smart-lf-static-v7';
+const STATIC_ASSETS = ['/', '/index.html', '/manifest.json'];
 
-    event.waitUntil(
-      self.registration.showNotification(data.title, options)
-    );
+const sameOriginPath = (value, fallback = '/') => {
+  try {
+    const target = new URL(String(value || fallback), self.location.origin);
+    if (target.origin !== self.location.origin) return fallback;
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return fallback;
   }
-});
-
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-
-  const urlToOpen = event.notification.data.url || '/';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
-  );
-});
-const CACHE_NAME = 'smart-lf-cache-v6';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico'
-];
+};
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then((names) => Promise.all(names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))))
+      .then(() => self.clients.claim()),
+  );
+});
+
+self.addEventListener('push', (event) => {
+  const data = (() => {
+    try { return event.data?.json?.() || {}; }
+    catch { return { body: event.data?.text?.() || '' }; }
+  })();
+  const options = {
+    body: String(data.body || '').slice(0, 300),
+    icon: '/logo.png',
+    badge: '/logo.png',
+    data: { url: sameOriginPath(data?.data?.url, '/dashboard/notifications') },
+  };
+  event.waitUntil(self.registration.showNotification(String(data.title || 'Smart Lost & Found').slice(0, 120), options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = sameOriginPath(event.notification?.data?.url, '/dashboard/notifications');
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
+      for (const client of clientList) {
+        const clientUrl = new URL(client.url);
+        if (clientUrl.origin === self.location.origin && clientUrl.pathname === new URL(urlToOpen, self.location.origin).pathname && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow ? self.clients.openWindow(urlToOpen) : undefined;
+    }),
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only intercept GET requests
-  if (event.request.method !== 'GET') return;
-  // Ignore API requests and external Cloudinary images (let them go to network)
-  if (event.request.url.includes('/api/') || event.request.url.includes('res.cloudinary.com')) return;
-  
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) return;
+
+  const destination = request.destination;
+  const cacheable = ['script', 'style', 'font', 'image', 'manifest'].includes(destination);
+  if (!cacheable) return;
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Return cached asset if found
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      
-      // Otherwise fetch from network
-      return fetch(event.request).then((networkResponse) => {
-        // Cache valid responses for images, fonts, JS, CSS
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-        
-        // Clone the response because it's a stream
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-        
-        return networkResponse;
-      }).catch(() => {
-        // Fallback for offline (optional)
-      });
-    })
+    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+      if (!response.ok || response.type !== 'basic') return response;
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
+      return response;
+    })),
   );
 });
-

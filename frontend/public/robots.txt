@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
 Disallow: /dashboard/
-
-Sitemap: https://smart-lost-found-frontend.vercel.app/sitemap.xml
+Disallow: /admin/
+Disallow: /api/

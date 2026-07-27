@@ -8,7 +8,7 @@ import { getStatusBadgeClass, capitalize } from '../../utils/helpers';
 
 export const StatusBadge = ({ status, className = '' }) => {
   const badgeClass = getStatusBadgeClass(status);
-  
+
   return (
     <span className={`badge ${badgeClass} ${className}`}>
       {capitalize(status)}

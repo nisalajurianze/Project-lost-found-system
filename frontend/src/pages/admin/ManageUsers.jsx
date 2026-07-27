@@ -1,19 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  Search, 
-  UserCheck, 
-  UserX, 
-  Trash2, 
-  Mail, 
-  Phone, 
-  User, 
-  SlidersHorizontal,
-  Shield,
-  ShieldOff
-} from 'lucide-react';
+import { Mail, Phone, Search, Shield, ShieldOff, Trash2, User, UserCheck, UserX } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { fetchUsersList, toggleUserActivation, updateUserRole, deleteUserAccount } from '../../redux/slices/adminSlice';
+import { deleteUserAccount, fetchUsersList, toggleUserActivation, updateUserRole } from '../../redux/slices/adminSlice';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Select from '../../components/common/Select';
@@ -22,49 +11,42 @@ import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { getInitials, optimizeImageUrl } from '../../utils/helpers';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 const ManageUsers = () => {
   const dispatch = useDispatch();
+  const { t, language } = useLanguage();
   const { users, usersPagination, isLoading, error } = useSelector((state) => state.admin);
   const currentUser = useSelector((state) => state.auth.user);
-
-  // Filters & State
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [page, setPage] = useState(1);
-  const [toggleUser, setToggleUser] = useState(null); // { id, isActive, name } for confirm modal
-  const [roleToggleUser, setRoleToggleUser] = useState(null); // { id, name, currentRole } for role change modal
-  const [deleteUser, setDeleteUser] = useState(null); // { id, name } for delete modal
+  const [toggleUser, setToggleUser] = useState(null);
+  const [roleToggleUser, setRoleToggleUser] = useState(null);
+  const [deleteUser, setDeleteUser] = useState(null);
+  const locale = language === 'si' ? 'si-LK' : language === 'ta' ? 'ta-LK' : 'en-LK';
 
   useEffect(() => {
     dispatch(fetchUsersList({ search, role, page, limit: 10 }));
   }, [dispatch, search, role, page]);
 
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setPage(1); // Reset page to 1
-  };
-
-  const handleRoleChange = (e) => {
-    setRole(e.target.value);
-    setPage(1); // Reset page to 1
-  };
-
-  const handlePageChange = (newPage) => {
-    setPage(newPage);
+  const localizeError = (errorValue, fallbackKey) => {
+    const message = String(errorValue || '');
+    if (/last active administrator/i.test(message)) return t('users.lastAdminError');
+    return message || t(fallbackKey);
   };
 
   const handleToggleStatus = async () => {
     if (!toggleUser) return;
+    const nextActive = !toggleUser.isActive;
     try {
-      const result = await dispatch(toggleUserActivation({ 
-        id: toggleUser.id, 
-        isActive: !toggleUser.isActive 
-      })).unwrap();
-      
-      toast.success(`User "${toggleUser.name}" account ${!toggleUser.isActive ? 'activated' : 'deactivated'}.`);
+      await dispatch(toggleUserActivation({ id: toggleUser.id, isActive: nextActive })).unwrap();
+      toast.success(t('users.statusSuccess', {
+        name: toggleUser.name,
+        status: nextActive ? t('users.statusActive') : t('users.statusInactive'),
+      }));
     } catch (err) {
-      toast.error(err || 'Failed to update user status.');
+      toast.error(localizeError(err, 'users.statusError'));
     } finally {
       setToggleUser(null);
     }
@@ -72,16 +54,15 @@ const ManageUsers = () => {
 
   const handleRoleToggle = async () => {
     if (!roleToggleUser) return;
-    const newRole = roleToggleUser.currentRole === 'admin' ? 'user' : 'admin';
+    const nextRole = roleToggleUser.currentRole === 'admin' ? 'user' : 'admin';
     try {
-      await dispatch(updateUserRole({ 
-        id: roleToggleUser.id, 
-        role: newRole 
-      })).unwrap();
-      
-      toast.success(`User "${roleToggleUser.name}" is now ${newRole === 'admin' ? 'an Administrator' : 'a regular User'}.`);
+      await dispatch(updateUserRole({ id: roleToggleUser.id, role: nextRole })).unwrap();
+      toast.success(t('users.roleSuccess', {
+        name: roleToggleUser.name,
+        role: nextRole === 'admin' ? t('users.roleAdmin') : t('users.roleUser'),
+      }));
     } catch (err) {
-      toast.error(err || 'Failed to update user role.');
+      toast.error(localizeError(err, 'users.roleError'));
     } finally {
       setRoleToggleUser(null);
     }
@@ -91,200 +72,107 @@ const ManageUsers = () => {
     if (!deleteUser) return;
     try {
       await dispatch(deleteUserAccount(deleteUser.id)).unwrap();
-      toast.success(`User "${deleteUser.name}" has been permanently deleted.`);
+      toast.success(t('users.anonymizeSuccess', { name: deleteUser.name }));
     } catch (err) {
-      toast.error(err || 'Failed to delete user.');
+      toast.error(localizeError(err, 'users.anonymizeError'));
     } finally {
       setDeleteUser(null);
     }
   };
 
+  const roleOptions = [
+    { value: 'user', label: t('users.roleUser') },
+    { value: 'admin', label: t('users.roleAdmin') },
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in pb-24">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-          <User className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-          Manage Users
+      <header>
+        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <User aria-hidden="true" className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+          {t('users.adminTitle')}
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          View all registered students and staff members. Activate or deactivate access permissions.
-        </p>
-      </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('users.adminSubtitle')}</p>
+      </header>
 
-      {/* Filter Bar */}
-      <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4">
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
-            <Input 
-              icon={<Search className="h-5 w-5 text-slate-400" />}
-              placeholder="Search by name, email, student/staff ID..."
+      <section className="card border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/60">
+        <div className="flex flex-col items-end gap-4 md:flex-row">
+          <div className="w-full flex-1">
+            <Input
+              icon={<Search aria-hidden="true" className="h-5 w-5 text-slate-400" />}
+              placeholder={t('users.searchPlaceholder')}
               value={search}
-              onChange={handleSearchChange}
+              onChange={(event) => { setSearch(event.target.value); setPage(1); }}
             />
           </div>
-          <div className="w-full md:w-48">
-            <Select 
-              label="Filter by Role"
+          <div className="w-full md:w-56">
+            <Select
+              label={t('users.filterRole')}
               value={role}
-              onChange={handleRoleChange}
-              options={[
-                { value: 'user', label: 'Student/Staff (User)' },
-                { value: 'admin', label: 'Administrator' }
-              ]}
-              placeholder="All Roles"
+              onChange={(event) => { setRole(event.target.value); setPage(1); }}
+              options={roleOptions}
+              placeholder={t('users.allRoles')}
             />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Users Table */}
-      {isLoading ? (
-        <Loader />
-      ) : error ? (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm">
-          Failed to fetch users: {error}
+      {isLoading ? <Loader /> : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {t('users.loadError', { error })}
         </div>
       ) : users.length === 0 ? (
-        <EmptyState 
-          title="No Users Found" 
-          message="We couldn't find any users matching your query parameters." 
-        />
+        <EmptyState title={t('users.emptyTitle')} message={t('users.emptyMessage')} />
       ) : (
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 dark:backdrop-blur-md">
-            <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
+            <table className="w-full whitespace-nowrap text-left text-sm text-slate-500 dark:text-slate-400">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
                 <tr>
-                  <th scope="col" className="px-4 py-3">User</th>
-                  <th scope="col" className="px-4 py-3">ID Number</th>
-                  <th scope="col" className="px-4 py-3">Contact Info</th>
-                  <th scope="col" className="px-4 py-3">Role</th>
-                  <th scope="col" className="px-4 py-3">Status</th>
-                  <th scope="col" className="px-4 py-3 text-right">Actions</th>
+                  <th scope="col" className="px-4 py-3">{t('users.columnUser')}</th>
+                  <th scope="col" className="px-4 py-3">{t('users.columnId')}</th>
+                  <th scope="col" className="px-4 py-3">{t('users.columnContact')}</th>
+                  <th scope="col" className="px-4 py-3">{t('users.columnRole')}</th>
+                  <th scope="col" className="px-4 py-3">{t('users.columnStatus')}</th>
+                  <th scope="col" className="px-4 py-3 text-right">{t('users.columnActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                 {users.map((user) => {
                   const isSelf = currentUser?._id === user._id;
+                  const actionTitle = isSelf ? t('users.selfActionDisabled') : undefined;
                   return (
-                    <tr 
-                      key={user._id} 
-                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
-                    >
-                      {/* Name / Profile */}
+                    <tr key={user._id} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold flex items-center justify-center border border-indigo-200 dark:border-indigo-800 overflow-hidden">
-                            {user.profileImage?.url ? (
-                              <img src={optimizeImageUrl(user.profileImage.url, 150)} alt={user.fullName} className="h-full w-full object-cover" />
-                            ) : (
-                              getInitials(user.fullName)
-                            )}
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-indigo-200 bg-indigo-100 font-bold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                            {user.profileImage?.url ? <img src={optimizeImageUrl(user.profileImage.url, 150)} alt={user.fullName} className="h-full w-full object-cover" /> : getInitials(user.fullName)}
                           </div>
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">
-                              {user.fullName} {isSelf && <span className="ml-1 text-xs bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-full">You</span>}
+                              {user.fullName} {isSelf && <span className="ml-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400">{t('users.you')}</span>}
                             </p>
-                            <p className="text-xs text-slate-400">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
+                            <p className="text-xs text-slate-400">{t('users.joined', { date: new Date(user.createdAt).toLocaleDateString(locale) })}</p>
                           </div>
                         </div>
                       </td>
-
-                      {/* ID Number */}
-                      <td className="px-4 py-3 font-mono font-medium text-slate-700 dark:text-slate-300">
-                        {user.studentId}
+                      <td className="px-4 py-3 font-mono font-medium text-slate-700 dark:text-slate-300">{user.studentId || '—'}</td>
+                      <td className="space-y-1 px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-xs"><Mail aria-hidden="true" className="h-3.5 w-3.5" />{user.email}</div>
+                        <div className="flex items-center gap-1.5 text-xs"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{user.phone || t('users.noPhone')}</div>
                       </td>
-
-                      {/* Contact Info */}
-                      <td className="px-4 py-3 space-y-1">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                          <Mail className="h-3.5 w-3.5" />
-                          <span>{user.email}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                          <Phone className="h-3.5 w-3.5" />
-                          <span>{user.phone || 'N/A'}</span>
-                        </div>
-                      </td>
-
-                      {/* Role */}
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold ${
-                          user.role === 'admin' 
-                            ? 'bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/30' 
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.isActive 
-                            ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-400' 
-                            : 'bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                          {user.isActive ? 'Active' : 'Deactivated'}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
+                      <td className="px-4 py-3"><span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold dark:bg-slate-800">{user.role === 'admin' ? t('users.roleAdmin') : t('users.roleUser')}</span></td>
+                      <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${user.isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-amber-500'}`} />{user.isActive ? t('users.statusActive') : t('users.statusInactive')}</span></td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant={user.isActive ? 'danger' : 'success'}
-                            size="sm"
-                            disabled={isSelf}
-                            onClick={() => setToggleUser({ 
-                              id: user._id, 
-                              isActive: user.isActive, 
-                              name: user.fullName 
-                            })}
-                            className="w-9 xl:w-auto px-0 xl:px-3 flex items-center justify-center"
-                            title={user.isActive ? 'Suspend' : 'Activate'}
-                          >
-                            <span className="hidden xl:flex items-center gap-1">
-                              {user.isActive ? <><UserX className="h-4 w-4" /> Suspend</> : <><UserCheck className="h-4 w-4" /> Activate</>}
-                            </span>
-                            <span className="xl:hidden">
-                              {user.isActive ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
-                            </span>
+                          <Button variant={user.isActive ? 'danger' : 'success'} size="sm" disabled={isSelf} title={actionTitle || (user.isActive ? t('users.suspend') : t('users.activate'))} onClick={() => setToggleUser({ id: user._id, isActive: user.isActive, name: user.fullName })}>
+                            {user.isActive ? <UserX aria-hidden="true" className="h-4 w-4" /> : <UserCheck aria-hidden="true" className="h-4 w-4" />}<span className="hidden xl:inline">{user.isActive ? t('users.suspend') : t('users.activate')}</span>
                           </Button>
-                          <Button 
-                            variant="secondary"
-                            size="sm"
-                            disabled={isSelf}
-                            onClick={() => setRoleToggleUser({ 
-                              id: user._id, 
-                              name: user.fullName,
-                              currentRole: user.role
-                            })}
-                            className="w-9 xl:w-[110px] px-0 xl:px-3 flex items-center justify-center"
-                            title={user.role === 'admin' ? 'Demote Admin' : 'Make Admin'}
-                          >
-                            <span className="hidden xl:flex items-center justify-center gap-1 w-full">
-                              {user.role === 'admin' ? (
-                                <><ShieldOff className="h-4 w-4 text-amber-600 dark:text-amber-400" /> <span className="text-amber-600 dark:text-amber-400">Demote</span></>
-                              ) : (
-                                <><Shield className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> <span className="text-indigo-600 dark:text-indigo-400">Make Admin</span></>
-                              )}
-                            </span>
-                            <span className="xl:hidden">
-                              {user.role === 'admin' ? <ShieldOff className="h-4 w-4 text-amber-600 dark:text-amber-400" /> : <Shield className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />}
-                            </span>
+                          <Button variant="secondary" size="sm" disabled={isSelf} title={actionTitle || (user.role === 'admin' ? t('users.demoteAdmin') : t('users.makeAdmin'))} onClick={() => setRoleToggleUser({ id: user._id, name: user.fullName, currentRole: user.role })}>
+                            {user.role === 'admin' ? <ShieldOff aria-hidden="true" className="h-4 w-4 text-amber-600" /> : <Shield aria-hidden="true" className="h-4 w-4 text-indigo-600" />}<span className="hidden xl:inline">{user.role === 'admin' ? t('users.demoteAdmin') : t('users.makeAdmin')}</span>
                           </Button>
-                          <Button 
-                            variant="danger"
-                            size="sm"
-                            disabled={isSelf || user.role === 'admin'}
-                            onClick={() => setDeleteUser({ id: user._id, name: user.fullName })}
-                            className="w-9 px-0 flex items-center justify-center"
-                            title={user.role === 'admin' ? "Cannot delete admin" : "Delete User"}
-                          >
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="danger" size="sm" disabled={isSelf} title={actionTitle || t('users.anonymize')} onClick={() => setDeleteUser({ id: user._id, name: user.fullName })}>
+                            <Trash2 aria-hidden="true" className="h-4 w-4" />
                           </Button>
                         </div>
                       </td>
@@ -294,65 +182,15 @@ const ManageUsers = () => {
               </tbody>
             </table>
           </div>
-
-          {usersPagination.totalPages > 1 && (
-            <Pagination 
-              page={page} 
-              totalPages={usersPagination.totalPages} 
-              onPageChange={handlePageChange} 
-            />
-          )}
+          {usersPagination.totalPages > 1 && <Pagination page={page} totalPages={usersPagination.totalPages} onPageChange={setPage} />}
         </div>
       )}
 
-      {/* Confirm Deactivation/Activation Modal */}
-      {toggleUser && (
-        <ConfirmDialog 
-          isOpen={!!toggleUser}
-          onClose={() => setToggleUser(null)}
-          onConfirm={handleToggleStatus}
-          title={toggleUser.isActive ? 'Suspend User Account?' : 'Activate User Account?'}
-          message={`Are you sure you want to ${toggleUser.isActive ? 'suspend' : 'activate'} the account of "${toggleUser.name}"? ${
-            toggleUser.isActive ? 'Suspended users will lose access to the system immediately.' : 'Active users will be able to log in and report items.'
-          }`}
-          confirmText={toggleUser.isActive ? 'Suspend' : 'Activate'}
-          variant={toggleUser.isActive ? 'danger' : 'success'}
-        />
-      )}
-
-      {/* Confirm Role Change Modal */}
-      {roleToggleUser && (
-        <ConfirmDialog 
-          isOpen={!!roleToggleUser}
-          onClose={() => setRoleToggleUser(null)}
-          onConfirm={handleRoleToggle}
-          title={roleToggleUser.currentRole === 'admin' ? 'Demote Administrator?' : 'Promote to Administrator?'}
-          message={`Are you sure you want to make "${roleToggleUser.name}" ${roleToggleUser.currentRole === 'admin' ? 'a regular user' : 'an administrator'}? ${
-            roleToggleUser.currentRole === 'admin' 
-              ? 'They will lose access to the system admin panel immediately.' 
-              : 'They will have full access to manage users, items, and settings.'
-          }`}
-          confirmText={roleToggleUser.currentRole === 'admin' ? 'Demote Admin' : 'Make Admin'}
-          variant={roleToggleUser.currentRole === 'admin' ? 'danger' : 'primary'}
-        />
-      )}
-
-      {/* Confirm Delete Modal */}
-      {deleteUser && (
-        <ConfirmDialog 
-          isOpen={!!deleteUser}
-          onClose={() => setDeleteUser(null)}
-          onConfirm={handleDeleteUser}
-          title="Delete User Permanently?"
-          message={`Are you sure you want to permanently delete "${deleteUser.name}"? This action cannot be undone and will remove all their personal data. (Their reported items will remain but show as deleted user)`}
-          confirmText="Delete User"
-          variant="danger"
-        />
-      )}
+      {toggleUser && <ConfirmDialog isOpen onClose={() => setToggleUser(null)} onConfirm={handleToggleStatus} title={toggleUser.isActive ? t('users.suspendTitle') : t('users.activateTitle')} message={t(toggleUser.isActive ? 'users.suspendMessage' : 'users.activateMessage', { name: toggleUser.name })} confirmText={toggleUser.isActive ? t('users.suspend') : t('users.activate')} variant={toggleUser.isActive ? 'danger' : 'success'} />}
+      {roleToggleUser && <ConfirmDialog isOpen onClose={() => setRoleToggleUser(null)} onConfirm={handleRoleToggle} title={roleToggleUser.currentRole === 'admin' ? t('users.demoteTitle') : t('users.promoteTitle')} message={t(roleToggleUser.currentRole === 'admin' ? 'users.demoteMessage' : 'users.promoteMessage', { name: roleToggleUser.name })} confirmText={roleToggleUser.currentRole === 'admin' ? t('users.demoteAdmin') : t('users.makeAdmin')} variant={roleToggleUser.currentRole === 'admin' ? 'danger' : 'primary'} />}
+      {deleteUser && <ConfirmDialog isOpen onClose={() => setDeleteUser(null)} onConfirm={handleDeleteUser} title={t('users.anonymizeTitle')} message={t('users.anonymizeMessage', { name: deleteUser.name })} confirmText={t('users.anonymize')} variant="danger" />}
     </div>
   );
 };
 
 export default ManageUsers;
-
-

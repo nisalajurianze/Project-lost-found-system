@@ -24,7 +24,7 @@ ChartJS.register(
   Legend
 );
 
-export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => {
+export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [], lostLabel = 'Lost Reports', foundLabel = 'Found Listings', emptyText = 'No monthly analytics data available.' }) => {
   // Merge month labels from both arrays uniquely
   const monthsSet = new Set([
     ...monthlyLost.map(d => d.month),
@@ -46,7 +46,7 @@ export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => 
     labels: sortedMonths,
     datasets: [
       {
-        label: 'Lost Reports',
+        label: lostLabel,
         data: sortedMonths.map(m => getLostCount(m)),
         backgroundColor: 'rgba(99, 102, 241, 0.85)', // Indigo-500
         hoverBackgroundColor: 'rgba(99, 102, 241, 1)',
@@ -56,7 +56,7 @@ export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => 
         categoryPercentage: 0.8
       },
       {
-        label: 'Found Listings',
+        label: foundLabel,
         data: sortedMonths.map(m => getFoundCount(m)),
         backgroundColor: 'rgba(16, 185, 129, 0.85)', // Emerald-500
         hoverBackgroundColor: 'rgba(16, 185, 129, 1)',
@@ -114,7 +114,7 @@ export const MonthlyReportsChart = ({ monthlyLost = [], monthlyFound = [] }) => 
       {sortedMonths.length > 0 ? (
         <Bar data={chartData} options={options} />
       ) : (
-        <p className="text-sm text-surface-400">No monthly analytics logs available.</p>
+        <p className="text-sm text-surface-400">{emptyText}</p>
       )}
     </div>
   );

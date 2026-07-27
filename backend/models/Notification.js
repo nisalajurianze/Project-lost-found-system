@@ -36,6 +36,7 @@ const notificationSchema = new mongoose.Schema(
           'item_update',
           'system',
           'welcome',
+          'contact_shared',
         ],
         message: 'Invalid notification type',
       },
@@ -53,6 +54,11 @@ const notificationSchema = new mongoose.Schema(
         default: null,
       },
     },
+    dedupeKey: {
+      type: String,
+      trim: true,
+      default: undefined,
+    },
     isRead: {
       type: Boolean,
       default: false,
@@ -68,6 +74,10 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ userId: 1, isRead: 1 });
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ createdAt: -1 });
+notificationSchema.index(
+  { userId: 1, dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: 'string' } } },
+);
 
 const Notification = mongoose.model('Notification', notificationSchema);
 export default Notification;

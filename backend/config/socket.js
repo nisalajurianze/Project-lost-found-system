@@ -1,123 +1,46 @@
-// ============================================
-// Socket.IO Configuration
-// Real-time notifications & live updates
-// ============================================
-
 import { Server } from 'socket.io';
-
-let io = null;
-
+import { createAdapter } from '@socket.io/redis-adapter';
 import cookie from 'cookie';
 import jwt from 'jsonwebtoken';
-import { createAdapter } from '@socket.io/redis-adapter';
-import { getRedisClient } from './redis.js';
+import User from '../models/User.js';
+import { getRedisClient, isRedisConnected } from './redis.js';
+import { clientOrigins, accessSecret } from './security.js';
 
-/**
- * Initialise Socket.IO on the HTTP server.
- * @param {import('http').Server} httpServer - Node HTTP server instance
- * @returns {import('socket.io').Server} Socket.IO server
- */
-const initSocket = (httpServer) => {
-  const allowedOrigin = process.env.CLIENT_URL
-    ? [process.env.CLIENT_URL, process.env.CLIENT_URL.replace(/\/$/, '')]
-    : ['http://localhost:5173', 'http://localhost:3000'];
+let io;
+let subClient;
 
-  io = new Server(httpServer, {
-    cors: {
-      origin: allowedOrigin,
-      methods: ['GET', 'POST'],
-      credentials: true,
-    },
-    pingTimeout: 60000,
-    pingInterval: 25000,
-  });
-
-  // ARCH-001: Horizontal Scaling with Redis Adapter
-  try {
+const initSocket = async (httpServer) => {
+  io = new Server(httpServer, { cors: { origin: clientOrigins, credentials: true }, transports: ['websocket', 'polling'] });
+  if (isRedisConnected()) {
     const pubClient = getRedisClient();
-    if (pubClient) {
-      const subClient = pubClient.duplicate();
-      // Since lazyConnect is true, duplicated client needs explicit connection
-      subClient.connect().then(() => {
-        io.adapter(createAdapter(pubClient, subClient));
-        console.log('✅ Socket.IO Redis Adapter configured for horizontal scaling.');
-      }).catch((err) => {
-        console.warn('⚠️ Could not connect duplicated Redis subClient:', err.message);
-      });
+    subClient = pubClient?.duplicate();
+    if (subClient) {
+      await subClient.connect();
+      io.adapter(createAdapter(pubClient, subClient));
     }
-  } catch (err) {
-    console.warn('⚠️ Could not configure Redis adapter for Socket.io:', err.message);
   }
-
-  // Connection handler
-  io.on('connection', (socket) => {
-    console.log(`🔌 Socket connected: ${socket.id}`);
-
-    // Parse token from socket handshake auth or cookies
-    let userRole = 'user';
-    let authUserId = null;
+  io.use(async (socket, next) => {
     try {
-      let token = socket.handshake.auth?.token;
-      
-      if (!token && socket.request.headers.cookie) {
-        const cookies = cookie.parse(socket.request.headers.cookie);
-        token = cookies.accessToken;
-      }
-      
-      if (token) {
-        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET);
-        userRole = decoded.role;
-        authUserId = decoded.id;
-      }
-    } catch (e) {
-      // Ignore errors, default to 'user'
-      console.warn(`Socket auth error: ${e.message}`);
-    }
-
-    // Join user-specific room for targeted notifications
-    socket.on('join', (userId) => {
-      if (userId && authUserId === userId) {
-        socket.join(`user_${userId}`);
-        console.log(`👤 User ${userId} joined room user_${userId}`);
-      } else {
-        console.warn(`⚠️ Unauthorised attempt to join user_${userId} from socket ${socket.id}`);
-      }
-    });
-
-    // Join admin room for admin-specific events
-    socket.on('joinAdmin', () => {
-      if (userRole === 'admin') {
-        socket.join('admin_room');
-        console.log(`🛡️  Socket ${socket.id} joined admin_room`);
-      } else {
-        console.warn(`⚠️  Unauthorised attempt to join admin_room from socket ${socket.id}`);
-      }
-    });
-
-    // Handle disconnection
-    socket.on('disconnect', (reason) => {
-      console.log(`🔌 Socket disconnected: ${socket.id} (${reason})`);
-    });
-
-    // Error handler
-    socket.on('error', (error) => {
-      console.error(`❌ Socket error [${socket.id}]: ${error.message}`);
-    });
+      const cookies = cookie.parse(socket.request.headers.cookie || '');
+      if (!cookies.accessToken) return next(new Error('Authentication required'));
+      const payload = jwt.verify(cookies.accessToken, accessSecret, { algorithms: ['HS256'], issuer: 'smart-lf' });
+      const user = await User.findById(payload.sub).select('_id role isActive deletedAt');
+      if (!user || !user.isActive || user.deletedAt) return next(new Error('Account unavailable'));
+      socket.user = { id: user._id.toString(), role: user.role };
+      return next();
+    } catch { return next(new Error('Invalid session')); }
   });
-
-  console.log('✅ Socket.IO initialised successfully.');
+  io.on('connection', (socket) => {
+    socket.join(`user:${socket.user.id}`);
+    if (socket.user.role === 'admin') socket.join('admins');
+  });
   return io;
 };
 
-/**
- * Get the current Socket.IO instance.
- * @returns {import('socket.io').Server|null}
- */
-const getIO = () => {
-  if (!io) {
-    console.warn('⚠️  Socket.IO not initialised yet.');
-  }
-  return io;
+const getIO = () => io;
+const closeSocket = async () => {
+  if (subClient) await subClient.quit().catch(() => subClient.disconnect());
+  if (io) await new Promise((resolve) => io.close(resolve));
 };
 
-export { initSocket, getIO };
+export { initSocket, getIO, closeSocket };

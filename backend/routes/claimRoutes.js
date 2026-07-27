@@ -6,6 +6,7 @@
 import express from 'express';
 import {
   createClaimRequest,
+  getClaimQuestions,
   getClaimRequests,
   getClaimRequestById,
   reviewClaimRequest,
@@ -13,13 +14,15 @@ import {
   checkClaimExists
 } from '../controllers/claimController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import authorize from '../middlewares/roleMiddleware.js';
 import { uploadProofImages } from '../middlewares/uploadMiddleware.js';
 import validate from '../middlewares/validateMiddleware.js';
 import {
   createClaimValidator,
   reviewClaimValidator,
-  mongoIdParam
+  mongoIdParam,
+  itemIdParam,
+  claimQueryValidator,
+  claimQuestionParams
 } from '../utils/validators.js';
 
 const router = express.Router();
@@ -28,8 +31,9 @@ const router = express.Router();
 router.use(protect);
 
 router.post('/', uploadProofImages, createClaimValidator, validate, createClaimRequest);
-router.get('/', getClaimRequests);
-router.get('/check/:itemId', validate, checkClaimExists);
+router.get('/', claimQueryValidator, validate, getClaimRequests);
+router.get('/questions/:itemType/:itemId', claimQuestionParams, validate, getClaimQuestions);
+router.get('/check/:itemId', itemIdParam, validate, checkClaimExists);
 router.get('/:id', mongoIdParam, validate, getClaimRequestById);
 
 // Claim verification reviews (Admin and Founder)

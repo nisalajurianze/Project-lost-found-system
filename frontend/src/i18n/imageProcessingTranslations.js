@@ -1,0 +1,32 @@
+export const imageProcessingTranslations = {
+  en: {
+    'report.uploadOpenFailed': 'The selected image could not be opened. Choose another image file.',
+    'report.uploadCanvasUnavailable': 'Image editing is unavailable in this browser. Continue with the original image or use another browser.',
+    'report.uploadCreateFailed': 'The edited image could not be created. Try another image format.',
+    'report.privacyFileRequired': 'A newly selected browser image is required for privacy redaction.',
+    'report.privacyDecodeFailed': 'The selected image could not be decoded for privacy review.',
+    'report.privacyInvalidDimensions': 'The selected image has invalid dimensions and cannot be redacted safely.',
+    'report.privacyCanvasUnavailable': 'Privacy-safe image processing is unavailable in this browser.',
+    'report.privacyCreateFailed': 'The privacy-safe image copy could not be created. Remove the image or use another browser.',
+  },
+  si: {
+    'report.uploadOpenFailed': 'තෝරාගත් රූපය විවෘත කළ නොහැක. වෙනත් රූප ගොනුවක් තෝරන්න.',
+    'report.uploadCanvasUnavailable': 'මෙම browser එකේ රූප සංස්කරණය ලබාගත නොහැක. මුල් රූපය භාවිත කරන්න හෝ වෙනත් browser එකක් භාවිත කරන්න.',
+    'report.uploadCreateFailed': 'සංස්කරණය කළ රූපය සෑදිය නොහැක. වෙනත් රූප format එකක් උත්සාහ කරන්න.',
+    'report.privacyFileRequired': 'Privacy redaction සඳහා අලුතින් තෝරාගත් browser රූපයක් අවශ්‍යයි.',
+    'report.privacyDecodeFailed': 'Privacy review සඳහා තෝරාගත් රූපය decode කළ නොහැක.',
+    'report.privacyInvalidDimensions': 'තෝරාගත් රූපයේ dimensions වලංගු නැති නිසා ආරක්ෂිතව redact කළ නොහැක.',
+    'report.privacyCanvasUnavailable': 'මෙම browser එකේ privacy-safe රූප සැකසීම ලබාගත නොහැක.',
+    'report.privacyCreateFailed': 'Privacy-safe රූප පිටපත සෑදිය නොහැක. රූපය ඉවත් කරන්න හෝ වෙනත් browser එකක් භාවිත කරන්න.',
+  },
+  ta: {
+    'report.uploadOpenFailed': 'தேர்ந்தெடுத்த படத்தைத் திறக்க முடியவில்லை. வேறு படக் கோப்பைத் தேர்வு செய்யவும்.',
+    'report.uploadCanvasUnavailable': 'இந்த browser-ல் படத் திருத்தம் கிடைக்கவில்லை. அசல் படத்துடன் தொடரவும் அல்லது வேறு browser பயன்படுத்தவும்.',
+    'report.uploadCreateFailed': 'திருத்தப்பட்ட படத்தை உருவாக்க முடியவில்லை. வேறு பட format-ஐ முயற்சிக்கவும்.',
+    'report.privacyFileRequired': 'Privacy redaction-க்கு புதிதாகத் தேர்ந்தெடுத்த browser படம் தேவை.',
+    'report.privacyDecodeFailed': 'Privacy review-க்கு தேர்ந்தெடுத்த படத்தை decode செய்ய முடியவில்லை.',
+    'report.privacyInvalidDimensions': 'தேர்ந்தெடுத்த படத்தின் dimensions செல்லுபடியாகாததால் பாதுகாப்பாக redact செய்ய முடியாது.',
+    'report.privacyCanvasUnavailable': 'இந்த browser-ல் privacy-safe பட processing கிடைக்கவில்லை.',
+    'report.privacyCreateFailed': 'Privacy-safe பட நகலை உருவாக்க முடியவில்லை. படத்தை அகற்றவும் அல்லது வேறு browser பயன்படுத்தவும்.',
+  },
+};

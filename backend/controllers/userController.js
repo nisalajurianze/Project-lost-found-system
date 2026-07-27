@@ -1,115 +1,107 @@
-// ============================================
-// User Controller
-// Handles user profile updates, password changes, and user statistics
-// ============================================
-
 import User from '../models/User.js';
 import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
 import ClaimRequest from '../models/ClaimRequest.js';
+import Match from '../models/Match.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { uploadImage, deleteImage } from '../services/cloudinaryService.js';
+import { revokeAllUserSessions } from '../services/sessionService.js';
+import { anonymizeAccount } from '../services/accountService.js';
+import { clearAuthCookies } from '../utils/cookies.js';
 
-/**
- * Update user profile details (fullName, phone, studentId, and profileImage).
- */
 const updateProfile = asyncHandler(async (req, res) => {
   const { fullName, phone, studentId } = req.body;
   const user = await User.findById(req.user._id);
+  if (!user) throw ApiError.notFound('User not found.');
 
-  if (!user) {
-    throw ApiError.notFound('User not found.');
-  }
-
-  // Check unique constraints if studentId is changed
   if (studentId && studentId !== user.studentId) {
-    const existing = await User.findOne({ studentId });
-    if (existing) {
-      throw ApiError.conflict('Student ID is already taken.');
-    }
+    const existing = await User.exists({ studentId: studentId.toUpperCase(), _id: { $ne: user._id } });
+    if (existing) throw ApiError.conflict('Student ID is already taken.');
     user.studentId = studentId;
   }
+  if (fullName !== undefined) user.fullName = String(fullName).trim();
+  if (phone !== undefined) user.phone = String(phone).trim();
 
-  // Update text fields
-  if (fullName) user.fullName = fullName;
-  if (phone !== undefined) user.phone = phone;
-
-  // Handle profile image upload if provided
-  if (req.file) {
-    // Delete old image if it exists in Cloudinary
-    if (user.profileImage && user.profileImage.publicId) {
-      await deleteImage(user.profileImage.publicId);
+  let newImage = null;
+  const oldImage = user.profileImage?.publicId ? { ...user.profileImage } : null;
+  try {
+    if (req.file) {
+      newImage = await uploadImage(req.file.buffer, 'profile-images');
+      user.profileImage = { url: newImage.url, publicId: newImage.publicId };
     }
-
-    // Upload new image
-    const uploadResult = await uploadImage(req.file.buffer, 'profile-images', {
-      transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }]
-    });
-
-    user.profileImage = {
-      url: uploadResult.url,
-      publicId: uploadResult.publicId
-    };
+    await user.save();
+  } catch (error) {
+    if (newImage?.publicId) await deleteImage(newImage);
+    throw error;
   }
+  if (newImage && oldImage?.publicId) await deleteImage(oldImage);
 
-  await user.save();
-
-  ApiResponse.ok(user, 'Profile updated successfully.').send(res);
+  return ApiResponse.ok(user, 'Profile updated successfully.').send(res);
 });
 
-/**
- * Change account password.
- */
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  
-  // Fetch user with password
   const user = await User.findById(req.user._id).select('+password');
-  if (!user) {
-    throw ApiError.notFound('User not found.');
-  }
-
-  // Verify current password
-  const isMatch = await user.comparePassword(currentPassword);
-  if (!isMatch) {
-    throw ApiError.unauthorized('Incorrect current password.');
-  }
-
-  // Save new password (pre-save hook hashes it)
+  if (!user) throw ApiError.notFound('User not found.');
+  if (!await user.comparePassword(currentPassword)) throw ApiError.unauthorized('Incorrect current password.');
   user.password = newPassword;
-  user.refreshToken = undefined; // Invalidate refresh token to force re-login
   await user.save();
-
-  ApiResponse.ok(null, 'Password changed successfully. Please login again.').send(res);
+  await revokeAllUserSessions(user._id);
+  clearAuthCookies(res);
+  return ApiResponse.ok(null, 'Password changed successfully. Sign in again on all devices.').send(res);
 });
 
-/**
- * Get aggregated statistics for the logged-in user.
- */
 const getUserStats = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-
-  const [lostCount, foundCount, claimsCount, resolvedClaims] = await Promise.all([
-    LostItem.countDocuments({ userId, isDeleted: { $ne: true } }),
-    FoundItem.countDocuments({ userId, isDeleted: { $ne: true } }),
-    ClaimRequest.countDocuments({ claimantId: userId }),
-    ClaimRequest.countDocuments({ claimantId: userId, status: 'approved' })
+  const [lostItems, foundItems] = await Promise.all([
+    LostItem.find({ userId, isDeleted: { $ne: true } }).select('_id status').lean(),
+    FoundItem.find({ userId, isDeleted: { $ne: true } }).select('_id status').lean(),
   ]);
+  const lostIds = lostItems.map((item) => item._id);
+  const foundIds = foundItems.map((item) => item._id);
+  const [claimsCount, pendingClaims, claimsAwaitingReview, suggestedMatches] = await Promise.all([
+    ClaimRequest.countDocuments({ claimantId: userId }),
+    ClaimRequest.countDocuments({ claimantId: userId, status: 'pending' }),
+    ClaimRequest.countDocuments({ status: 'pending', $or: [{ lostItemId: { $in: lostIds } }, { foundItemId: { $in: foundIds } }] }),
+    Match.countDocuments({ status: 'suggested', $or: [{ lostUserId: userId }, { foundUserId: userId }] }),
+  ]);
+  const totalLostItems = lostItems.length;
+  const totalFoundItems = foundItems.length;
+  const successfulRecoveries = lostItems.filter((item) => item.status === 'claimed').length;
+  const activeReports = lostItems.filter((item) => ['pending', 'matched', 'in_progress'].includes(item.status)).length
+    + foundItems.filter((item) => ['available', 'matched', 'in_progress'].includes(item.status)).length;
+  const handoverPending = lostItems.filter((item) => item.status === 'in_progress').length
+    + foundItems.filter((item) => item.status === 'in_progress').length;
 
-  const stats = {
-    totalLostItems: lostCount,
-    totalFoundItems: foundCount,
+  return ApiResponse.ok({
+    totalLostItems,
+    totalFoundItems,
     totalClaims: claimsCount,
-    successfulRecoveries: resolvedClaims
-  };
-
-  ApiResponse.ok(stats, 'User statistics retrieved successfully.').send(res);
+    successfulRecoveries,
+    attention: {
+      suggestedMatches,
+      pendingClaims,
+      claimsAwaitingReview,
+      handoverPending,
+      activeReports,
+      total: suggestedMatches + pendingClaims + claimsAwaitingReview + handoverPending,
+    },
+  }, 'User statistics retrieved successfully.').send(res);
 });
 
-export {
-  updateProfile,
-  changePassword,
-  getUserStats
-};
+const deleteMyAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+password');
+  if (!user) throw ApiError.notFound('User not found.');
+  if (user.password) {
+    if (!req.body.password || !await user.comparePassword(req.body.password)) {
+      throw ApiError.unauthorized('Your current password is required to delete the account.');
+    }
+  }
+  await anonymizeAccount({ userId: user._id, reason: 'Self-service account deletion' });
+  clearAuthCookies(res);
+  return ApiResponse.ok(null, 'Account deleted and personal data anonymized.').send(res);
+});
+
+export { updateProfile, changePassword, getUserStats, deleteMyAccount };

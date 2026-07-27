@@ -40,8 +40,10 @@ const claimRequestSchema = new mongoose.Schema(
     proofImages: {
       type: [
         {
-          url: { type: String, required: true },
-          publicId: { type: String, default: '' },
+          url: { type: String, default: '' },
+          publicId: { type: String, required: true },
+          format: { type: String, default: '' },
+          deliveryType: { type: String, enum: ['upload', 'authenticated'], default: 'authenticated' },
         },
       ],
       validate: {
@@ -49,6 +51,38 @@ const claimRequestSchema = new mongoose.Schema(
         message: 'Maximum 3 proof images allowed',
       },
       default: [],
+    },
+    verificationAnswers: {
+      type: [
+        {
+          question: { type: String, required: true, trim: true, maxlength: 300 },
+          answer: { type: String, required: true, trim: true, maxlength: 1000 },
+        },
+      ],
+      validate: {
+        validator: (arr) => arr.length <= 5,
+        message: 'Maximum 5 verification answers allowed',
+      },
+      default: [],
+    },
+    evidenceAssessment: {
+      score: { type: Number, min: 0, max: 100, default: 0 },
+      level: { type: String, enum: ['weak', 'fair', 'strong'], default: 'weak' },
+      warnings: { type: [String], default: [] },
+      assessedAt: { type: Date, default: null },
+    },
+    riskAssessment: {
+      score: { type: Number, min: 0, max: 100, default: 0 },
+      level: { type: String, enum: ['low', 'medium', 'high'], default: 'low', index: true },
+      reasons: { type: [String], default: [] },
+      requiresHumanReview: { type: Boolean, default: false, index: true },
+      assessedAt: { type: Date, default: null },
+      policy: { type: String, enum: ['advisory-only'], default: 'advisory-only' },
+      signals: {
+        rejectedClaims90d: { type: Number, min: 0, default: 0 },
+        rejectedClaimReviewThreshold: { type: Number, min: 1, max: 50, default: 3 },
+        rejectedClaimReviewThresholdReached: { type: Boolean, default: false },
+      },
     },
     status: {
       type: String,
@@ -96,8 +130,10 @@ claimRequestSchema.pre('validate', function(next) {
 });
 
 // ── Indexes ─────────────────────────────────────────────────────────────
-claimRequestSchema.index({ claimantId: 1, foundItemId: 1 });
+claimRequestSchema.index({ claimantId: 1, foundItemId: 1 }, { unique: true, partialFilterExpression: { foundItemId: { $type: 'objectId' }, status: 'pending' } });
+claimRequestSchema.index({ claimantId: 1, lostItemId: 1 }, { unique: true, partialFilterExpression: { lostItemId: { $type: 'objectId' }, status: 'pending' } });
 claimRequestSchema.index({ status: 1, createdAt: -1 });
+claimRequestSchema.index({ 'riskAssessment.requiresHumanReview': 1, 'riskAssessment.level': 1, createdAt: -1 });
 claimRequestSchema.index({ createdAt: -1 });
 
 const ClaimRequest = mongoose.model('ClaimRequest', claimRequestSchema);

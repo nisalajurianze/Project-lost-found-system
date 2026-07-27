@@ -6,13 +6,30 @@ const SpaceBackground = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     let animationFrameId;
     let stars = [];
-    
+    let lastFrameAt = 0;
+    let isDocumentVisible = !document.hidden;
+
+    const root = document.documentElement;
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reducedDataQuery = window.matchMedia('(prefers-reduced-data: reduce)');
+    const coarsePointerQuery = window.matchMedia('(pointer: coarse)');
+
+    const readPerformanceMode = () => ({
+      reducedMotion: reducedMotionQuery.matches || root.classList.contains('a11y-reduce-motion'),
+      lowEffects: reducedDataQuery.matches || root.classList.contains('a11y-low-effects'),
+      mobile: window.innerWidth < 768 || coarsePointerQuery.matches,
+    });
+
+    let performanceMode = readPerformanceMode();
+
     // Mouse tracking
-    let mouse = { x: -1000, y: -1000 }; 
+    let mouse = { x: -1000, y: -1000 };
     let accretionHeat = 0; // 0 = purple/cool, 1 = orange/hot
 
     // Resize handler
@@ -26,23 +43,29 @@ const SpaceBackground = () => {
     // Initialize stars with Z-depth (3D) and Galaxies
     const initStars = () => {
       stars = [];
-      const isMobile = window.innerWidth < 768;
-      const numStars = isMobile ? 600 : 1500; 
-      
+      performanceMode = readPerformanceMode();
+      const numStars = performanceMode.reducedMotion
+        ? 120
+        : performanceMode.lowEffects
+          ? (performanceMode.mobile ? 180 : 320)
+          : (performanceMode.mobile ? 360 : 900);
+
       for (let i = 0; i < numStars; i++) {
-        const z = Math.random() * 2 + 1; 
-        const isGalaxy = Math.random() > 0.99; // 1% chance to be a large galaxy/nebula
+        const z = Math.random() * 2 + 1;
+        const isGalaxy = !performanceMode.lowEffects
+          && !performanceMode.reducedMotion
+          && Math.random() > 0.992;
         const isMedium = !isGalaxy && Math.random() > 0.95; // 5% chance to be a medium star
-        
+
         let size;
         if (isGalaxy) size = Math.random() * 15 + 10; // 10 to 25 pixels for galaxies
         else if (isMedium) size = Math.random() * 3 + 1.5;
-        else size = (Math.random() * 2.0 + 0.8) / z; 
-        
+        else size = (Math.random() * 2.0 + 0.8) / z;
+
         const speedMultiplier = 0.1 / z;
         const baseVx = (Math.random() - 0.5) * speedMultiplier;
         const baseVy = (Math.random() - 0.5) * speedMultiplier;
-        
+
         // Random base colors
         let r, g, b;
         const rand = Math.random();
@@ -75,11 +98,22 @@ const SpaceBackground = () => {
     };
 
     // Animation Loop
-    const animate = () => {
+    const animate = (timestamp = performance.now()) => {
+      if (!isDocumentVisible) return;
+
+      const targetFps = performanceMode.reducedMotion
+        ? 0
+        : (performanceMode.lowEffects || performanceMode.mobile ? 30 : 60);
+      if (targetFps > 0 && timestamp - lastFrameAt < (1000 / targetFps)) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+      lastFrameAt = timestamp;
+
       ctx.fillStyle = 'rgba(15, 23, 42, 0.3)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.clearRect(0, 0, canvas.width, canvas.height); 
-      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
       const maxDistance = 120; // Increased gravity pull radius slightly
       const time = Date.now() * 0.002;
 
@@ -104,28 +138,28 @@ const SpaceBackground = () => {
           // Introduce turbulence/spiral effect so it's not a perfect circle
           const wobble = Math.sin(time + star.wobbleOffset) * 5;
           // Give each star a slightly different permanent orbit so they don't form a single thin line
-          const targetOrbit = 12 + wobble + (star.z * 2) + (star.wobbleOffset * 1.5); 
-          
-          const spinAngle = angle + (Math.PI / 2) + (Math.sin(time) * 0.1); 
-          
+          const targetOrbit = 12 + wobble + (star.z * 2) + (star.wobbleOffset * 1.5);
+
+          const spinAngle = angle + (Math.PI / 2) + (Math.sin(time) * 0.1);
+
           const radialDist = distance - targetOrbit;
-          
-          const gravityStrength = radialDist * 0.04; 
+
+          const gravityStrength = radialDist * 0.04;
           star.vx += Math.cos(angle) * gravityStrength;
           star.vy += Math.sin(angle) * gravityStrength;
-          
+
           const spinStrength = 1.0 + (accretionHeat * 0.8); // Less aggressive spin
           star.vx += Math.cos(spinAngle) * spinStrength;
           star.vy += Math.sin(spinAngle) * spinStrength;
 
           const heat = Math.max(0, 1 - (distance / maxDistance));
-          
+
           // The spinning stars should turn blinding white/orange when heated up
           // Cool: Bright White (255, 255, 255)
           // Hot: Blinding Warm White (255, 240, 220)
           const targetR = 255;
-          const targetG = 255 - (15 * accretionHeat); 
-          const targetB = 255 - (35 * accretionHeat); 
+          const targetG = 255 - (15 * accretionHeat);
+          const targetB = 255 - (35 * accretionHeat);
 
           star.r = star.baseR + (targetR - star.baseR) * heat;
           star.g = star.baseG + (targetG - star.baseG) * heat;
@@ -145,9 +179,9 @@ const SpaceBackground = () => {
           // Slowly return to base slow drift
           star.vx += (star.baseVx - star.vx) * 0.01;
           star.vy += (star.baseVy - star.vy) * 0.01;
-          
+
           // Varied friction to break up clumps naturally
-          const friction = 0.95 + ((star.wobbleOffset % 1) * 0.03); 
+          const friction = 0.95 + ((star.wobbleOffset % 1) * 0.03);
           star.vx *= friction;
           star.vy *= friction;
         }
@@ -167,10 +201,10 @@ const SpaceBackground = () => {
         // Draw star
         const speed = Math.sqrt(star.vx * star.vx + star.vy * star.vy);
         const glowAlpha = Math.min(star.alpha + (speed * 0.03), 1);
-        
+
         ctx.beginPath();
         const colorStr = `rgba(${Math.floor(star.r)}, ${Math.floor(star.g)}, ${Math.floor(star.b)}, ${glowAlpha})`;
-        
+
         if (star.isGalaxy) {
           // Milky Way style large nebulas - using soft radial gradients and transforms
           ctx.save();
@@ -188,12 +222,12 @@ const SpaceBackground = () => {
           gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${glowAlpha * 0.8})`);
           gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${glowAlpha * 0.4})`);
           gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-          
+
           ctx.fillStyle = gradient;
           ctx.beginPath();
           ctx.arc(0, 0, star.radius, 0, Math.PI * 2);
           ctx.fill();
-          
+
           ctx.restore();
         } else {
           // Normal stars - High performance rendering
@@ -217,7 +251,7 @@ const SpaceBackground = () => {
       ctx.shadowBlur = 0;
 
       // Draw Accretion Disk / Black Hole
-      if (mouse.x > -100 && mouse.y > -100) {
+      if (!performanceMode.reducedMotion && mouse.x > -100 && mouse.y > -100) {
         // Calculate dynamic colors based on accretionHeat
         // Cool: Purple (168, 85, 247), Hot: Blinding White-Orange (255, 240, 200)
         const innerR = 168 + (255 - 168) * accretionHeat;
@@ -230,24 +264,24 @@ const SpaceBackground = () => {
         const midB = 246 + (0 - 246) * accretionHeat;
 
         const bhRadius = 8;
-        
+
         // 1. Accretion Disk Glow (Ring-shaped intensity)
-        const diskRadius = 40 + (accretionHeat * 15); 
+        const diskRadius = 40 + (accretionHeat * 15);
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, diskRadius, 0, Math.PI * 2);
         const gradient = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, diskRadius);
-        
+
         // Dark space immediately around the black hole
         gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        gradient.addColorStop(0.2, `rgba(${midR}, ${midG}, ${midB}, 0.05)`); 
-        
+        gradient.addColorStop(0.2, `rgba(${midR}, ${midG}, ${midB}, 0.05)`);
+
         // Intense blinding peak exactly where the stars form the ring
-        gradient.addColorStop(0.4, `rgba(${innerR}, ${innerG}, ${innerB}, 0.95)`); 
-        
+        gradient.addColorStop(0.4, `rgba(${innerR}, ${innerG}, ${innerB}, 0.95)`);
+
         // Fading out into deep space
-        gradient.addColorStop(0.65, `rgba(${midR}, ${midG}, ${midB}, 0.4)`); 
+        gradient.addColorStop(0.65, `rgba(${midR}, ${midG}, ${midB}, 0.4)`);
         gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
+
         ctx.fillStyle = gradient;
         ctx.fill();
 
@@ -256,7 +290,7 @@ const SpaceBackground = () => {
         ctx.arc(mouse.x, mouse.y, bhRadius, 0, Math.PI * 2); // Pitch black center
         ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         ctx.fill();
-        
+
         // 4. Photon Sphere (Sharp bright edge that makes it "pop" out in 3D)
         ctx.beginPath();
         ctx.arc(mouse.x, mouse.y, bhRadius + 0.5, 0, Math.PI * 2);
@@ -265,18 +299,57 @@ const SpaceBackground = () => {
         ctx.stroke();
       }
 
+      if (!performanceMode.reducedMotion) {
+        animationFrameId = requestAnimationFrame(animate);
+      }
+    };
+
+    const stopAnimation = () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      animationFrameId = undefined;
+    };
+
+    const startAnimation = () => {
+      stopAnimation();
+      if (!isDocumentVisible) return;
+      lastFrameAt = 0;
       animationFrameId = requestAnimationFrame(animate);
     };
 
+    const refreshPerformanceMode = () => {
+      const nextMode = readPerformanceMode();
+      const changed = Object.keys(nextMode).some((key) => nextMode[key] !== performanceMode[key]);
+      if (!changed) return;
+      performanceMode = nextMode;
+      if (performanceMode.reducedMotion) {
+        mouse = { x: -1000, y: -1000 };
+        accretionHeat = 0;
+      }
+      resizeCanvas();
+      startAnimation();
+    };
+
+    const handleResize = () => {
+      resizeCanvas();
+      if (performanceMode.reducedMotion) startAnimation();
+    };
+
+    const handleVisibilityChange = () => {
+      isDocumentVisible = !document.hidden;
+      if (isDocumentVisible) startAnimation();
+      else stopAnimation();
+    };
+
     // Event Listeners
-    window.addEventListener('resize', resizeCanvas);
-    
+    window.addEventListener('resize', handleResize);
+
     const handleMouseMove = (e) => {
+      if (performanceMode.reducedMotion) return;
       const rect = canvas.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
     };
-    
+
     const handleMouseLeave = () => {
       mouse.x = -1000;
       mouse.y = -1000;
@@ -288,17 +361,29 @@ const SpaceBackground = () => {
       parentSection.addEventListener('mouseleave', handleMouseLeave);
     }
 
+    const preferenceObserver = new MutationObserver(refreshPerformanceMode);
+    preferenceObserver.observe(root, { attributes: true, attributeFilter: ['class'] });
+    reducedMotionQuery.addEventListener?.('change', refreshPerformanceMode);
+    reducedDataQuery.addEventListener?.('change', refreshPerformanceMode);
+    coarsePointerQuery.addEventListener?.('change', refreshPerformanceMode);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Init
     resizeCanvas();
-    animate();
+    startAnimation();
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      reducedMotionQuery.removeEventListener?.('change', refreshPerformanceMode);
+      reducedDataQuery.removeEventListener?.('change', refreshPerformanceMode);
+      coarsePointerQuery.removeEventListener?.('change', refreshPerformanceMode);
+      preferenceObserver.disconnect();
       if (parentSection) {
         parentSection.removeEventListener('mousemove', handleMouseMove);
         parentSection.removeEventListener('mouseleave', handleMouseLeave);
       }
-      cancelAnimationFrame(animationFrameId);
+      stopAnimation();
     };
   }, []);
 
@@ -307,6 +392,8 @@ const SpaceBackground = () => {
       ref={canvasRef}
       className="absolute inset-0 pointer-events-none z-0"
       style={{ opacity: 0.9 }}
+      aria-hidden="true"
+      role="presentation"
     />
   );
 };

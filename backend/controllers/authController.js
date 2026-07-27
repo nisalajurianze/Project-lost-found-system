@@ -1,458 +1,255 @@
-// ============================================
-// Auth Controller
-// Handles user authentication, token refresh, and password flows
-// ============================================
-
-import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import SystemSetting from '../models/SystemSetting.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import generateTokens from '../utils/generateTokens.js';
-import { OAuth2Client } from 'google-auth-library';
 import { sendEmail } from '../services/emailService.js';
 import { createNotification } from '../services/notificationService.js';
+import { randomToken, hashToken } from '../utils/security.js';
+import { clearAuthCookies } from '../utils/cookies.js';
+import { createSession, rotateSession, revokeSession, revokeAllUserSessions } from '../services/sessionService.js';
+import { clientOrigins } from '../config/security.js';
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || undefined);
+const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const clientUrl = () => clientOrigins[0] || 'http://localhost:5173';
 
-/**
- * Register a new user.
- * Sends email verification token.
- */
-const register = asyncHandler(async (req, res) => {
-  const { fullName, email, phone, studentId, password } = req.body;
+const runSideEffects = async (...operations) => {
+  const results = await Promise.allSettled(operations.filter(Boolean));
+  return results.every((result) => result.status === 'fulfilled' && result.value !== false);
+};
 
-  // Check if user already exists
-  const existingUser = await User.findOne({ $or: [{ email }, { studentId }] });
-  if (existingUser) {
-    if (existingUser.email.toLowerCase() === email.toLowerCase()) {
-      throw ApiError.conflict('Email is already registered.');
-    }
-    throw ApiError.conflict('Student ID is already registered.');
+const createUserOrConflict = async (payload) => {
+  try {
+    return await User.create(payload);
+  } catch (error) {
+    if (error?.code === 11000) throw ApiError.conflict('Email or student ID is already registered.');
+    throw error;
   }
+};
 
-  // Check system setting for email verification requirement
-  const emailVerifSetting = await SystemSetting.findOne({ key: 'require_email_verification' });
-  const requireEmailVerification = emailVerifSetting ? emailVerifSetting.value : true;
+const register = asyncHandler(async (req, res) => {
+  const registrationSetting = await SystemSetting.findOne({ key: 'allow_registration' }).lean();
+  if (registrationSetting?.value === false) throw ApiError.forbidden('New registrations are temporarily disabled.');
+  const email = normalizeEmail(req.body.email);
+  const studentId = String(req.body.studentId || '').trim().toUpperCase();
+  const duplicateFilters = [{ email }];
+  if (studentId) duplicateFilters.push({ studentId });
+  const existingUser = await User.findOne({ $or: duplicateFilters });
+  if (existingUser) throw ApiError.conflict('Email or student ID is already registered.');
 
-  // Create verification token (only if required)
-  const token = requireEmailVerification ? crypto.randomBytes(32).toString('hex') : undefined;
-  const tokenExpire = requireEmailVerification ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined;
-
-  // Create user
-  const user = await User.create({
-    fullName,
+  const setting = await SystemSetting.findOne({ key: 'require_email_verification' }).lean();
+  const requireVerification = setting ? setting.value !== false : true;
+  const verificationToken = requireVerification ? randomToken(32) : null;
+  const user = await createUserOrConflict({
+    fullName: req.body.fullName,
     email,
-    phone,
-    studentId,
-    password,
-    isVerified: !requireEmailVerification,
-    verificationToken: token,
-    verificationTokenExpire: tokenExpire
+    phone: req.body.phone || '',
+    studentId: studentId || undefined,
+    password: req.body.password,
+    isVerified: !requireVerification,
+    verificationTokenHash: verificationToken ? hashToken(verificationToken) : undefined,
+    verificationTokenExpire: verificationToken ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined,
   });
 
-  if (requireEmailVerification) {
-    // Send verification email
-    const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
-    await sendEmail({
+  if (requireVerification) {
+    const delivered = await runSideEffects(sendEmail({
       to: user.email,
       template: 'verification',
-      data: {
-        name: user.fullName,
-        verificationUrl
-      }
-    });
-
-    // Create system notification
-    await createNotification({
+      data: { name: user.fullName, url: `${clientUrl()}/verify-email#token=${encodeURIComponent(verificationToken)}` },
+      idempotencyKey: `registration-verification-${user._id}`,
+    }));
+    await runSideEffects(createNotification({
       userId: user._id,
       title: 'Welcome to Smart Lost & Found!',
-      message: 'Please verify your email address to unlock all features.',
-      type: 'welcome'
-    });
-
-    // Response without password/refresh token
-    const userData = user.toObject();
-    delete userData.password;
-    delete userData.verificationToken;
-    delete userData.verificationTokenExpire;
-
-    return ApiResponse.created(userData, 'Registration successful. Please check your email to verify your account.').send(res);
-  } else {
-    // Verification is disabled, instantly log them in
-    const { accessToken, refreshToken } = await generateTokens(user, res, false);
-    
-    // Setup refresh token cookie is already handled by generateTokens
-    
-    await createNotification({
-      userId: user._id,
-      title: 'Welcome to Smart Lost & Found!',
-      message: 'Your account has been created successfully.',
-      type: 'welcome'
-    });
-    
-    const userData = user.toObject();
-    delete userData.password;
-    delete userData.verificationToken;
-    delete userData.verificationTokenExpire;
-    
-    return ApiResponse.created({ token: accessToken, data: userData }, 'Registration successful.').send(res);
-  }
-});
-
-/**
- * Verify user email via token.
- */
-const verifyEmail = asyncHandler(async (req, res) => {
-  const { token } = req.query;
-
-  if (!token) {
-    throw ApiError.badRequest('Verification token is required.');
+      message: 'Verify your email to activate all features.',
+      type: 'welcome',
+      dedupeKey: `registration-welcome-${user._id}`,
+    }));
+    return ApiResponse.created(
+      { user, emailDeliveryPending: !delivered },
+      delivered
+        ? 'Registration successful. Check your email for the verification link.'
+        : 'Registration successful. Email delivery is pending; request a new verification email later.',
+    ).send(res);
   }
 
-  // Find user by token and verify it hasn't expired
-  const user = await User.findOne({
-    verificationToken: token,
-    verificationTokenExpire: { $gt: new Date() }
-  }).select('+verificationToken +verificationTokenExpire');
-
-  if (!user) {
-    throw ApiError.badRequest('Invalid or expired verification token.');
-  }
-
-  // Update verification status
-  user.isVerified = true;
-  user.verificationToken = undefined;
-  user.verificationTokenExpire = undefined;
-  await user.save();
-
-  // Send welcome email
-  await sendEmail({
-    to: user.email,
-    template: 'welcome',
-    data: {
-      name: user.fullName
-    }
-  });
-
-  // Notify user
-  await createNotification({
+  await createSession(user, req, res, { rememberMe: false });
+  await runSideEffects(createNotification({
     userId: user._id,
-    title: 'Account Verified!',
-    message: 'Your email has been verified successfully. Welcome aboard!',
-    type: 'system'
-  });
-
-  ApiResponse.ok(null, 'Email verified successfully.').send(res);
+    title: 'Welcome to Smart Lost & Found!',
+    message: 'Your account has been created.',
+    type: 'welcome',
+    dedupeKey: `registration-welcome-${user._id}`,
+  }));
+  return ApiResponse.created({ user }, 'Registration successful.').send(res);
 });
 
-/**
- * User login.
- */
+const verifyEmail = asyncHandler(async (req, res) => {
+  const token = String(req.body.token || '');
+  if (!token) throw ApiError.badRequest('Verification token is required.');
+  const user = await User.findOne({
+    verificationTokenHash: hashToken(token),
+    verificationTokenExpire: { $gt: new Date() },
+  }).select('+verificationTokenHash +verificationTokenExpire');
+  if (!user) throw ApiError.badRequest('Verification link is invalid or expired.');
+  user.isVerified = true;
+  user.verificationTokenHash = undefined;
+  user.verificationTokenExpire = undefined;
+  await user.save({ validateBeforeSave: false });
+  await runSideEffects(
+    sendEmail({
+      to: user.email,
+      template: 'welcome',
+      data: { name: user.fullName },
+      idempotencyKey: `verified-welcome-${user._id}`,
+    }),
+    createNotification({
+      userId: user._id,
+      title: 'Account verified',
+      message: 'Your email was verified successfully.',
+      type: 'system',
+      dedupeKey: `account-verified-${user._id}`,
+    }),
+  );
+  return ApiResponse.ok(null, 'Email verified successfully.').send(res);
+});
+
 const login = asyncHandler(async (req, res) => {
-  const { email, password, rememberMe } = req.body;
-
-  // Fetch user with password
+  const email = normalizeEmail(req.body.email);
+  const password = String(req.body.password || '');
   const user = await User.findOne({ email }).select('+password +loginAttempts +lockUntil');
-  
-  // SEC-006: Timing-safe login check
   if (!user) {
-    // Hash a dummy password to mitigate timing attacks
-    await bcrypt.compare(password, '$2a$12$dummyhashdummyhashdummyhashdummyhashdummyhashdummyhash');
+    await bcrypt.compare(password, '$2b$12$qDgQZx3e5MtWz/rF7Y1ZouMv/5PtxR9g6NqxZ2rt6Tq6Z.2wGr4oG');
     throw ApiError.unauthorized('Invalid email or password.');
   }
-
-  // SEC-011: Account Lockout Check
-  if (user.isLocked) {
-    throw ApiError.forbidden('Account is temporarily locked due to multiple failed login attempts. Please try again later.');
-  }
-
-  // Verify password
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    user.loginAttempts = (user.loginAttempts || 0) + 1;
-    if (user.loginAttempts >= 5) {
-      user.lockUntil = Date.now() + 15 * 60 * 1000; // 15 mins
-    }
-    await user.save({ validateBeforeSave: false });
+  if (user.isLocked) throw ApiError.tooManyRequests('Account is temporarily locked. Try again later.');
+  if (!(await user.comparePassword(password))) {
+    const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+    await User.updateOne(
+      { _id: user._id },
+      [
+        { $set: { loginAttempts: { $add: [{ $ifNull: ['$loginAttempts', 0] }, 1] } } },
+        { $set: { lockUntil: { $cond: [{ $gte: ['$loginAttempts', 5] }, lockUntil, '$lockUntil'] } } },
+      ],
+    );
     throw ApiError.unauthorized('Invalid email or password.');
   }
-
-  // Check if account active
-  if (!user.isActive) {
-    throw ApiError.forbidden('Your account has been deactivated. Please contact an admin.');
-  }
-
-  // SEC-012: Enforce email verification on login
-  const emailVerifSetting = await SystemSetting.findOne({ key: 'require_email_verification' });
-  const requireEmailVerification = emailVerifSetting ? emailVerifSetting.value : true;
-  
-  if (requireEmailVerification && !user.isVerified) {
-    throw ApiError.forbidden('Please verify your email address before logging in.');
-  }
-
-  // Reset login attempts on success
+  if (!user.isActive || user.deletedAt) throw ApiError.forbidden('Account is unavailable.');
+  const setting = await SystemSetting.findOne({ key: 'require_email_verification' }).lean();
+  if ((setting ? setting.value !== false : true) && !user.isVerified) throw ApiError.forbidden('Verify your email before logging in.');
   user.loginAttempts = 0;
   user.lockUntil = undefined;
-  user.lastLogin = Date.now();
-  await user.save({ validateBeforeSave: false });
-
-  // Generate tokens and set cookies
-  const tokens = await generateTokens(user, res, rememberMe);
-
-  const userData = user.toObject();
-  delete userData.password;
-
-  ApiResponse.ok({ user: userData, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }, 'Login successful.').send(res);
+  user.lastLogin = new Date();
+  await User.updateOne(
+    { _id: user._id },
+    { $set: { loginAttempts: 0, lastLogin: user.lastLogin }, $unset: { lockUntil: 1 } },
+  );
+  await createSession(user, req, res, { rememberMe: Boolean(req.body.rememberMe) });
+  return ApiResponse.ok({ user }, 'Login successful.').send(res);
 });
 
-/**
- * Google Sign-In or Sign-Up.
- */
 const googleLogin = asyncHandler(async (req, res) => {
-  const { idToken } = req.body;
-
-  if (!idToken) {
-    throw ApiError.badRequest('Google ID Token is required.');
-  }
-
-  let ticket;
-  try {
-    ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-  } catch (error) {
-    throw ApiError.unauthorized('Invalid Google Token.');
-  }
-
-  const payload = ticket.getPayload();
-  let { sub: googleId, email, name, picture } = payload;
-  email = email.toLowerCase(); // Ensure lowercase matching
-
-  // 1. Try to find by googleId first (most reliable identifier for Google Auth)
-  let user = await User.findOne({ googleId }).select('+lockUntil +loginAttempts');
-
-  // 2. If not found by googleId, try finding by email
+  if (!process.env.GOOGLE_CLIENT_ID) throw new ApiError(503, 'Google sign-in is not configured.');
+  const ticket = await googleClient.verifyIdToken({ idToken: req.body.idToken, audience: process.env.GOOGLE_CLIENT_ID }).catch(() => null);
+  const payload = ticket?.getPayload();
+  if (!payload?.sub || !payload.email || payload.email_verified !== true) throw ApiError.unauthorized('Google identity could not be verified.');
+  const email = normalizeEmail(payload.email);
+  let user = await User.findOne({ $or: [{ googleId: payload.sub }, { email }] }).select('+googleId +password');
   if (!user) {
-    user = await User.findOne({ email }).select('+lockUntil +loginAttempts');
+    try {
+      user = await User.create({
+        fullName: payload.name || email.split('@')[0], email, googleId: payload.sub,
+        authProvider: 'google', isVerified: true, profileImage: { url: payload.picture || '', publicId: '' },
+      });
+    } catch (error) {
+      if (error?.code !== 11000) throw error;
+      user = await User.findOne({ email }).select('+googleId +password');
+      if (!user) throw ApiError.conflict('Google account could not be linked.');
+    }
   }
-
-  if (user) {
-    // If user exists but is locked
-    if (user.isLocked) {
-      throw ApiError.forbidden('Account is temporarily locked.');
-    }
-    if (!user.isActive) {
-      throw ApiError.forbidden('Your account has been deactivated. Please contact an admin.');
-    }
-
-    let isModified = false;
-
-    // Link googleId if they signed up with local before, or update if missing
-    if (!user.googleId) {
-      user.googleId = googleId;
-      user.authProvider = 'google';
-      // Consider them verified since Google verified their email
-      user.isVerified = true;
-      isModified = true;
-    }
-
-    // If email changed in Google, update it in our DB
-    if (user.email !== email) {
-      user.email = email;
-      isModified = true;
-    }
-
-    if (isModified) {
-      await user.save({ validateBeforeSave: false });
-    }
-  } else {
-    // Register new user
-    user = await User.create({
-      fullName: name,
-      email,
-      googleId,
-      authProvider: 'google',
-      isVerified: true, // Google verifies emails
-      profileImage: { url: picture, publicId: '' },
-    });
-    
-    // Notify user
-    await createNotification({
-      userId: user._id,
-      title: 'Welcome to Smart Lost & Found!',
-      message: 'You have successfully signed up with Google.',
-      type: 'welcome'
-    });
+  if (!user.isActive || user.deletedAt) throw ApiError.forbidden('Account is unavailable.');
+  if (user.googleId && user.googleId !== payload.sub) {
+    throw ApiError.conflict('This email is linked to another Google identity.');
   }
-
-  // Generate tokens
-  const tokens = await generateTokens(user, res, true);
-  
-  const userData = user.toObject();
-  delete userData.password;
-
-  ApiResponse.ok({ user: userData, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }, 'Google Login successful.').send(res);
+  if (user.googleId !== payload.sub || user.authProvider !== (user.password ? 'both' : 'google') || !user.isVerified) {
+    user.googleId = payload.sub;
+    user.authProvider = user.password ? 'both' : 'google';
+    user.isVerified = true;
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+  }
+  await createSession(user, req, res, { rememberMe: true });
+  return ApiResponse.ok({ user }, 'Google login successful.').send(res);
 });
 
-/**
- * Refresh JWT tokens.
- */
 const refreshToken = asyncHandler(async (req, res) => {
-  // Extract refresh token from cookie, body, or Authorization header (fallback for cross-site cookie blocking)
-  let rToken = req.cookies?.refreshToken 
-    || req.body?.refreshToken 
-    || req.query?.refreshToken;
-
-  if (!rToken) {
-    throw ApiError.unauthorized('No refresh token provided.');
-  }
-
-  // Verify token
-  let decoded;
-  try {
-    decoded = jwt.verify(rToken, process.env.JWT_REFRESH_SECRET);
-  } catch (error) {
-    throw ApiError.unauthorized('Invalid or expired refresh token.');
-  }
-
-  // Find user and match token
-  const user = await User.findById(decoded.id).select('+refreshToken');
-  if (!user || user.refreshToken !== rToken) {
-    throw ApiError.unauthorized('Invalid refresh token.');
-  }
-
-  if (!user.isActive) {
-    throw ApiError.forbidden('User account deactivated.');
-  }
-
-  // Generate new tokens
-  const tokens = await generateTokens(user, res);
-
-  ApiResponse.ok({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }, 'Token refreshed successfully.').send(res);
+  const user = await rotateSession(req.cookies?.refreshToken, req, res);
+  return ApiResponse.ok({ user }, 'Session refreshed successfully.').send(res);
 });
 
-/**
- * User logout.
- */
 const logout = asyncHandler(async (req, res) => {
-  // Clear cookies
-  res.clearCookie('accessToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  });
-
-  res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path: '/api/auth/refresh-token'
-  });
-
-  // Nullify refresh token in database if user is logged in
-  if (req.user) {
-    const user = await User.findById(req.user._id);
-    if (user) {
-      user.refreshToken = undefined;
-      await user.save({ validateBeforeSave: false });
-    }
-  }
-
-  ApiResponse.ok(null, 'Logged out successfully.').send(res);
+  await revokeSession(req.cookies?.refreshToken);
+  clearAuthCookies(res);
+  return ApiResponse.ok(null, 'Logged out successfully.').send(res);
 });
 
-/**
- * Request password reset token.
- */
 const forgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user) {
-    // Return success message even if user not found to prevent user enumeration
-    return ApiResponse.ok(null, 'If your email is registered, you will receive a password reset link.').send(res);
+  const user = await User.findOne({ email: normalizeEmail(req.body.email), isActive: true });
+  if (user) {
+    const rawToken = randomToken(32);
+    user.resetPasswordTokenHash = hashToken(rawToken);
+    user.resetPasswordExpire = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    await runSideEffects(sendEmail({
+      to: user.email,
+      template: 'passwordReset',
+      data: { name: user.fullName, url: `${clientUrl()}/reset-password#token=${encodeURIComponent(rawToken)}` },
+      idempotencyKey: `password-reset-${user._id}-${user.resetPasswordExpire.getTime()}`,
+    }));
   }
-
-  // Generate crypto token
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  const tokenExpire = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpire = tokenExpire;
-  await user.save({ validateBeforeSave: false });
-
-  // Send email
-  const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
-  await sendEmail({
-    to: user.email,
-    template: 'passwordReset',
-    data: {
-      name: user.fullName,
-      resetUrl
-    }
-  });
-
-  ApiResponse.ok(null, 'Password reset link sent to email.').send(res);
+  return ApiResponse.ok(null, 'If the email exists, a password reset link will be sent.').send(res);
 });
 
-/**
- * Reset password using reset token.
- */
 const resetPassword = asyncHandler(async (req, res) => {
-  const { token } = req.query;
-  const { password } = req.body;
-
-  if (!token) {
-    throw ApiError.badRequest('Reset token is required.');
-  }
-
-  // Hash token to match saved version
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-  // Find user by valid reset token
+  const token = String(req.body.token || '');
+  if (!token) throw ApiError.badRequest('Reset token is required.');
   const user = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpire: { $gt: new Date() }
-  }).select('+resetPasswordToken +resetPasswordExpire');
-
-  if (!user) {
-    throw ApiError.badRequest('Invalid or expired password reset token.');
-  }
-
-  // Update password and clear reset fields
-  user.password = password;
-  user.resetPasswordToken = undefined;
+    resetPasswordTokenHash: hashToken(token),
+    resetPasswordExpire: { $gt: new Date() },
+  }).select('+resetPasswordTokenHash +resetPasswordExpire +googleId');
+  if (!user) throw ApiError.badRequest('Reset link is invalid or expired.');
+  user.password = req.body.password;
+  user.authProvider = user.googleId ? 'both' : 'local';
+  user.resetPasswordTokenHash = undefined;
   user.resetPasswordExpire = undefined;
-  user.refreshToken = undefined; // Invalidate current logins
   await user.save();
-
-  ApiResponse.ok(null, 'Password reset successful. Please login with your new password.').send(res);
+  await revokeAllUserSessions(user._id);
+  clearAuthCookies(res);
+  return ApiResponse.ok(null, 'Password reset successful. Sign in again.').send(res);
 });
 
-/**
- * Get current user details.
- */
-const getMe = asyncHandler(async (req, res) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Not authenticated.');
+
+const resendVerification = asyncHandler(async (req, res) => {
+  const email = normalizeEmail(req.body.email);
+  const user = await User.findOne({ email, isActive: true, deletedAt: null }).select('+verificationTokenHash +verificationTokenExpire');
+  if (user && !user.isVerified) {
+    const rawToken = randomToken(32);
+    user.verificationTokenHash = hashToken(rawToken);
+    user.verificationTokenExpire = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save({ validateBeforeSave: false });
+    await runSideEffects(sendEmail({
+      to: user.email,
+      template: 'verification',
+      data: { name: user.fullName, url: `${clientUrl()}/verify-email#token=${encodeURIComponent(rawToken)}` },
+      idempotencyKey: `verification-resend-${user._id}-${user.verificationTokenExpire.getTime()}`,
+    }));
   }
-  ApiResponse.ok(req.user, 'Current user retrieved successfully.').send(res);
+  return ApiResponse.ok(null, 'If an unverified account exists, a new verification email will be sent.').send(res);
 });
 
-export {
-  register,
-  verifyEmail,
-  login,
-  googleLogin,
-  refreshToken,
-  logout,
-  forgotPassword,
-  resetPassword,
-  getMe
-};
+const getMe = asyncHandler(async (req, res) => ApiResponse.ok(req.user, 'Current user retrieved successfully.').send(res));
+
+export { register, verifyEmail, resendVerification, login, googleLogin, refreshToken, logout, forgotPassword, resetPassword, getMe };

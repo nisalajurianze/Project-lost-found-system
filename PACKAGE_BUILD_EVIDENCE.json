@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c0e8340163382d952461db29bb95f9a66132e9e1",
+  "sourceBranch": "agent/deep-chatbot-search-ui",
+  "sourceCommitTimestamp": "2026-07-26T19:56:49Z",
+  "classification": "hardened release candidate - target environment and institutional certification pending",
+  "excluded": [
+    ".git",
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    ".env and environment-specific secret files"
+  ]
+}

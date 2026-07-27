@@ -5,7 +5,6 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import notificationService from '../../services/notificationService';
-import toast from 'react-hot-toast';
 
 export const fetchUserNotifications = createAsyncThunk(
   'notifications/fetchAll',
@@ -67,13 +66,7 @@ const notificationSlice = createSlice({
       // Append real-time notifications to the top of the array
       state.notifications.unshift(action.payload);
       state.unreadCount += 1;
-      
-      // Trigger user-facing hot-toast popup
-      toast.success(action.payload.title, {
-        description: action.payload.message,
-        duration: 5000,
-        position: 'top-right'
-      });
+
     },
     resetUnreadCount: (state) => {
       state.unreadCount = 0;
@@ -90,10 +83,10 @@ const notificationSlice = createSlice({
         state.isLoading = false;
         state.notifications = action.payload.notifications;
         state.pagination = action.payload.pagination;
-        
+
         // Calculate unread count
-        state.unreadCount = action.payload.unreadCount !== undefined 
-          ? action.payload.unreadCount 
+        state.unreadCount = action.payload.unreadCount !== undefined
+          ? action.payload.unreadCount
           : action.payload.notifications.filter(n => !n.isRead).length;
       })
       .addCase(fetchUserNotifications.rejected, (state, action) => {

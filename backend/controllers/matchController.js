@@ -1,160 +1,137 @@
-// ============================================
-// Match Controller
-// Handles querying and updating suggested matches
-// ============================================
-
+import mongoose from 'mongoose';
 import Match from '../models/Match.js';
+import AIDecisionFeedback from '../models/AIDecisionFeedback.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate } from '../utils/pagination.js';
 import { createNotification } from '../services/notificationService.js';
 
-/**
- * Get matches for the logged-in user or general matches (admin).
- * Filters: status (suggested, confirmed, rejected).
- */
+const id = (value) => value?._id?.toString?.() || value?.toString?.() || '';
+const publicUser = (user) => user ? { _id: user._id, fullName: user.fullName, profileImage: user.profileImage } : null;
+const privateMatchItem = (item) => {
+  if (!item) return null;
+  const output = structuredClone(item);
+  output.userId = publicUser(output.userId);
+  delete output.connectedUserId;
+  delete output.connectedAt;
+  delete output.contactPreference;
+  delete output.contactVisibility;
+  delete output.__v;
+  return output;
+};
+const matchView = (match) => ({
+  ...match,
+  lostItemId: privateMatchItem(match.lostItemId),
+  foundItemId: privateMatchItem(match.foundItemId),
+});
+
+const populateMatch = (query) => query
+  .populate({ path: 'lostItemId', populate: { path: 'userId', select: 'fullName profileImage' } })
+  .populate({ path: 'foundItemId', populate: { path: 'userId', select: 'fullName profileImage' } });
+
 const getMatches = asyncHandler(async (req, res) => {
   const { status } = req.query;
   const userId = req.user._id;
   const isAdmin = req.user.role === 'admin';
-
   const filter = {};
 
-  // If user is not admin, they can only see matches where they are either the lost reporter or found reporter
-  if (!isAdmin) {
-    filter.$or = [{ lostUserId: userId }, { foundUserId: userId }];
-  } else if (req.query.userId) {
-    filter.$or = [{ lostUserId: req.query.userId }, { foundUserId: req.query.userId }];
-  }
+  if (!isAdmin) filter.$or = [{ lostUserId: userId }, { foundUserId: userId }];
+  else if (req.query.userId) filter.$or = [{ lostUserId: req.query.userId }, { foundUserId: req.query.userId }];
 
-  if (status) {
-    filter.status = status;
-  } else {
-    // Default: don't show rejected matches to standard users
-    filter.status = { $ne: 'rejected' };
-  }
+  if (status) filter.status = status;
+  else if (!isAdmin) filter.status = { $ne: 'rejected' };
 
   const totalDocs = await Match.countDocuments(filter);
   const pagination = paginate(req.query, totalDocs);
-
-  const matches = await Match.find(filter)
-    .populate({
-      path: 'lostItemId',
-      populate: { path: 'userId', select: 'fullName email phone profileImage' }
-    })
-    .populate({
-      path: 'foundItemId',
-      populate: { path: 'userId', select: 'fullName email phone profileImage' }
-    })
+  const matches = await populateMatch(Match.find(filter))
     .sort({ similarityScore: -1, createdAt: -1 })
     .skip(pagination.skip)
     .limit(pagination.limit)
     .lean();
 
-  ApiResponse.ok({ matches, pagination }, 'Matches retrieved successfully.').send(res);
+  return ApiResponse.ok({ matches: matches.map(matchView), pagination }, 'Matches retrieved successfully.').send(res);
 });
 
-/**
- * Get match by ID.
- */
 const getMatchById = asyncHandler(async (req, res) => {
-  const match = await Match.findById(req.params.id)
-    .populate({
-      path: 'lostItemId',
-      populate: { path: 'userId', select: 'fullName email phone profileImage' }
-    })
-    .populate({
-      path: 'foundItemId',
-      populate: { path: 'userId', select: 'fullName email phone profileImage' }
-    })
-    .lean();
+  const match = await populateMatch(Match.findById(req.params.id)).lean();
+  if (!match) throw ApiError.notFound('Match not found.');
 
-  if (!match) {
-    throw ApiError.notFound('Match not found.');
-  }
+  const authorised = req.user.role === 'admin'
+    || id(match.lostUserId) === id(req.user)
+    || id(match.foundUserId) === id(req.user);
+  if (!authorised) throw ApiError.forbidden('You are not authorised to view this match.');
 
-  // Authorisation check: user must be admin, lost reporter, or found reporter
-  const isLostOwner = match.lostUserId.toString() === req.user._id.toString();
-  const isFoundOwner = match.foundUserId.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === 'admin';
-
-  if (!isLostOwner && !isFoundOwner && !isAdmin) {
-    throw ApiError.forbidden('You are not authorised to view this match.');
-  }
-
-  ApiResponse.ok(match, 'Match details retrieved successfully.').send(res);
+  return ApiResponse.ok(matchView(match), 'Match details retrieved successfully.').send(res);
 });
 
-/**
- * Update match status (confirm or reject a suggestion).
- */
 const updateMatchStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body; // 'confirmed' or 'rejected'
-  const match = await Match.findById(req.params.id)
-    .populate('lostItemId')
-    .populate('foundItemId');
+  const { status } = req.body;
+  if (!['confirmed', 'rejected'].includes(status)) throw ApiError.badRequest('Status must be confirmed or rejected.');
 
-  if (!match) {
-    throw ApiError.notFound('Match not found.');
+  const session = await mongoose.startSession();
+  let notification;
+  let result;
+  try {
+    await session.withTransaction(async () => {
+      const match = await Match.findById(req.params.id)
+        .populate('lostItemId')
+        .populate('foundItemId')
+        .session(session);
+      if (!match) throw ApiError.notFound('Match not found.');
+
+      const isLostOwner = id(match.lostUserId) === id(req.user);
+      const isFoundOwner = id(match.foundUserId) === id(req.user);
+      const isAdmin = req.user.role === 'admin';
+      if (!isLostOwner && !isFoundOwner && !isAdmin) throw ApiError.forbidden('You are not authorised to update this match.');
+      if (match.status !== 'suggested' && match.status !== status) {
+        throw ApiError.conflict('This match decision has already been finalized.');
+      }
+
+      const isNewDecision = match.status === 'suggested';
+      match.status = status;
+      await match.save({ session });
+      if (isNewDecision) await AIDecisionFeedback.create([{
+        targetType: 'Match',
+        targetId: match._id,
+        submittedBy: req.user._id,
+        decision: status === 'confirmed' ? 'confirmed' : 'not-same',
+        source: 'user-action',
+        status: 'pending',
+        algorithmVersion: match.algorithmVersion || '',
+      }], { session });
+
+      if (status === 'confirmed') {
+        notification = {
+          userId: isLostOwner ? match.foundUserId : match.lostUserId,
+          title: 'Match confirmed',
+          message: `A participant confirmed the potential match for “${match.lostItemId.itemName}”. Continue through the secure claim workflow.`,
+          type: 'item_update',
+          relatedItem: { itemType: 'Match', itemId: match._id },
+          dedupeKey: `match-confirmed:${match._id}`,
+        };
+      } else {
+        const [otherLostMatches, otherFoundMatches] = await Promise.all([
+          Match.countDocuments({ lostItemId: match.lostItemId._id, status: { $in: ['suggested', 'confirmed'] }, _id: { $ne: match._id } }).session(session),
+          Match.countDocuments({ foundItemId: match.foundItemId._id, status: { $in: ['suggested', 'confirmed'] }, _id: { $ne: match._id } }).session(session),
+        ]);
+        if (otherLostMatches === 0 && match.lostItemId.status === 'matched') {
+          match.lostItemId.status = 'pending';
+          await match.lostItemId.save({ session });
+        }
+        if (otherFoundMatches === 0 && match.foundItemId.status === 'matched') {
+          match.foundItemId.status = 'available';
+          await match.foundItemId.save({ session });
+        }
+      }
+      result = match.toObject();
+    });
+  } finally {
+    await session.endSession();
   }
 
-  const isLostOwner = match.lostUserId.toString() === req.user._id.toString();
-  const isFoundOwner = match.foundUserId.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === 'admin';
-
-  if (!isLostOwner && !isFoundOwner && !isAdmin) {
-    throw ApiError.forbidden('You are not authorised to update this match.');
-  }
-
-  // Update status
-  match.status = status;
-  await match.save();
-
-  // Trigger notifications based on status change
-  if (status === 'confirmed') {
-    // Notify the opposite user
-    const recipientId = isLostOwner ? match.foundUserId : match.lostUserId;
-    const itemOwned = isLostOwner ? match.lostItemId.itemName : match.foundItemId.itemName;
-    const actionTaken = isLostOwner ? 'lost owner' : 'found reporter';
-
-    await createNotification({
-      userId: recipientId,
-      title: '🤝 Match Confirmed!',
-      message: `The ${actionTaken} has confirmed the match for "${itemOwned}". You can now connect or proceed with claim.`,
-      type: 'item_update',
-      relatedItem: { itemType: 'Match', itemId: match._id }
-    });
-  } else if (status === 'rejected') {
-    // Revert items' status to original if there are no other suggested/confirmed matches
-    // Fetch if there are other matches for lost item
-    const lostItemMatches = await Match.countDocuments({
-      lostItemId: match.lostItemId._id,
-      status: { $in: ['suggested', 'confirmed'] },
-      _id: { $ne: match._id }
-    });
-    if (lostItemMatches === 0 && match.lostItemId.status === 'matched') {
-      match.lostItemId.status = 'pending';
-      await match.lostItemId.save();
-    }
-
-    // Fetch other matches for found item
-    const foundItemMatches = await Match.countDocuments({
-      foundItemId: match.foundItemId._id,
-      status: { $in: ['suggested', 'confirmed'] },
-      _id: { $ne: match._id }
-    });
-    if (foundItemMatches === 0 && match.foundItemId.status === 'matched') {
-      match.foundItemId.status = 'available';
-      await match.foundItemId.save();
-    }
-  }
-
-  ApiResponse.ok(match, `Match status updated to ${status} successfully.`).send(res);
+  if (notification) await createNotification(notification);
+  return ApiResponse.ok(result, `Match status updated to ${status} successfully.`).send(res);
 });
 
-export {
-  getMatches,
-  getMatchById,
-  updateMatchStatus
-};
+export { getMatches, getMatchById, updateMatchStatus };

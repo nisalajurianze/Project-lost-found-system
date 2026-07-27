@@ -26,7 +26,7 @@ const router = express.Router();
 router.get('/', getCategories);
 
 // Protected: any user can auto-create categories via AI
-router.post('/auto-create', protect, autoCreateCategory);
+router.post('/auto-create', protect, authorize('admin'), autoCreateCategory);
 
 // Admin-only management endpoints
 router.post('/', protect, authorize('admin'), createCategoryValidator, validate, createCategory);

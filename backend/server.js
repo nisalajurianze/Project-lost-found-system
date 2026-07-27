@@ -1,11 +1,7 @@
-// ============================================
-// Smart Lost & Found - Main Server Entry Point
-// Connects DBs, sets up Socket.IO, loads middlewares & routes
-// ============================================
-
+import 'dotenv/config';
 import express from 'express';
-import http from 'http';
-import dotenv from 'dotenv';
+import http from 'node:http';
+import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -13,22 +9,19 @@ import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import compression from 'compression';
 import RedisStore from 'rate-limit-redis';
-
-// Config & database imports
-import connectDB from './config/db.js';
-import { initRedis, isRedisConnected } from './config/redis.js';
-import { initSocket } from './config/socket.js';
+import connectDB, { assertTransactionSupport, closeDB } from './config/db.js';
+import { initRedis, isRedisConnected, closeRedis, getRedisClient } from './config/redis.js';
+import { initSocket, closeSocket } from './config/socket.js';
+import { clientOrigins, jobsEnabled, requireRedis, requireEmail, requireCloudinary, requireTransactions, validateSecurityEnvironment } from './config/security.js';
 import { initCloudinary } from './services/cloudinaryService.js';
-import { initEmailService } from './services/emailService.js';
+import { initEmailService, isEmailConfigured } from './services/emailService.js';
 import { initCleanupJob } from './jobs/cleanupJob.js';
 import { initReminderJob } from './jobs/reminderJob.js';
-import { initCronJobs } from './cron/autoCleanCron.js';
-
-// Middlewares
+import { startOutboxWorker, stopOutboxWorker } from './services/outboxService.js';
+import { csrfProtection } from './middlewares/csrfMiddleware.js';
 import sanitize from './middlewares/sanitizeMiddleware.js';
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js';
-
-// Route files
+import ApiError from './utils/apiError.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import lostItemRoutes from './routes/lostItemRoutes.js';
@@ -39,188 +32,78 @@ import feedbackRoutes from './routes/feedbackRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import aiFeedbackRoutes from './routes/aiFeedbackRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
 import systemSettingRoutes from './routes/systemSettingRoutes.js';
 import claimRoutes from './routes/claimRoutes.js';
+import locationKnowledgeRoutes from './routes/locationKnowledgeRoutes.js';
+import { refreshApprovedLocations } from './services/locationKnowledgeBootstrapService.js';
 
-// Load environment variables
-dotenv.config();
-
-// Initialize databases & configuration
 const startServer = async () => {
-  // Connect MongoDB
+  validateSecurityEnvironment();
   await connectDB();
-
-  // Ensure main admin account is active and has admin role
-  try {
-    const User = (await import('./models/User.js')).default;
-    await User.updateOne(
-      { email: 'smartlostandfound.seusl@gmail.com' },
-      { $set: { isActive: true, role: 'admin' } }
-    );
-    console.log('✅ Main admin account verified and active.');
-  } catch (err) {
-    console.error('⚠️ Could not verify main admin account:', err.message);
-  }
-
-  // Connect Redis (gracefully falls back if unavailable)
+  await refreshApprovedLocations();
+  const replicaSet = requireTransactions ? await assertTransactionSupport() : null;
   await initRedis();
-
-  // Initialize Cloudinary SDK
-  initCloudinary();
-
-  // Initialize Email/SMTP Service
-  initEmailService();
-
-  // Initialize automated cleanup job
-  initCleanupJob();
-
-  // Initialize reminder job
-  initReminderJob();
-
-  // Initialize auto-delete and daily push reminder cron jobs
-  initCronJobs();
+  const cloudinaryReady = initCloudinary();
+  const emailReady = initEmailService();
+  if (requireRedis && !isRedisConnected()) throw new Error('Redis is required but unavailable.');
+  if (requireCloudinary && !cloudinaryReady) throw new Error('Cloudinary is required but unavailable.');
+  if (requireEmail && !emailReady) throw new Error('Email delivery is required but unavailable.');
 
   const app = express();
-  
-  // Trust proxy for rate limiting behind Railway's load balancer
   app.set('trust proxy', 1);
-
+  app.disable('x-powered-by');
   const server = http.createServer(app);
 
-  // Initialize WebSockets (Socket.IO)
-  initSocket(server);
-
-  // ============================================
-  // Global Middlewares
-  // ============================================
-
-  // HTTP security headers (including HSTS max-age)
   app.use(helmet({
-    hsts: {
-      maxAge: 31536000, // 1 year in seconds
-      includeSubDomains: true,
-      preload: true
-    },
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://images.unsplash.com", "https://*.unsplash.com"],
-        fontSrc: ["'self'", "https:", "data:"],
-        connectSrc: ["'self'", "https:", "wss:", "ws:", "https://project-lost-found-system-production.up.railway.app"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      }
-    } : false,
+    hsts: { maxAge: 31_536_000, includeSubDomains: true, preload: true },
+    contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] } },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
   }));
-
-  // CORS configuration
-  const allowedOrigin = process.env.CLIENT_URL
-    ? [process.env.CLIENT_URL, process.env.CLIENT_URL.replace(/\/$/, '')]
-    : ['http://localhost:5173', 'http://localhost:3000'];
-
   app.use(cors({
-    origin: allowedOrigin,
+    origin(origin, callback) {
+      if (!origin || clientOrigins.includes(origin.replace(/\/$/, ''))) return callback(null, true);
+      return callback(ApiError.forbidden('Origin is not allowed.'));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'X-CSRF-Token', 'X-Requested-With'],
   }));
+  app.use(compression({ level: 6 }));
+  app.use(cookieParser());
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+  app.use(sanitize);
+  app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 
-  // Global rate limiter (SEC-005) with Redis distributed caching
-  const limiterOptions = {
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // Increased limit: allow 1000 requests per 15 mins to prevent false positives
-    message: 'Too many requests from this IP, please try again after 15 minutes.',
-    standardHeaders: true,
-    legacyHeaders: false,
-  };
-
+  const limiterOptions = { windowMs: 15 * 60 * 1000, limit: 1000, standardHeaders: 'draft-8', legacyHeaders: false };
   if (isRedisConnected()) {
-    limiterOptions.store = new RedisStore({
-      prefix: 'rl-v2:', // Change prefix to invalidate any currently blocked IPs
-      // We pass the ioredis instance from initRedis
-      // Note: we fetch it lazily or use the global connection pool if available
-      sendCommand: async (...args) => {
-        const client = (await import('./config/redis.js')).getRedisClient();
-        if (client) return client.call(...args);
-        throw new Error('Redis not available');
+    limiterOptions.store = new RedisStore({ prefix: 'rl-v3:', sendCommand: (...args) => getRedisClient().call(...args) });
+  }
+  app.use('/api', rateLimit(limiterOptions));
+  app.use('/api', csrfProtection);
+
+  app.get('/health', (_req, res) => res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() }));
+  app.get('/api/health', (_req, res) => res.json({ success: true, status: 'UP', timestamp: new Date().toISOString() }));
+  app.get('/api/health/ready', (_req, res) => {
+    const mongoReady = mongoose.connection.readyState === 1;
+    const redisReady = isRedisConnected();
+    const emailConfigured = isEmailConfigured();
+    const ready = mongoReady && (!requireRedis || redisReady) && (!requireCloudinary || cloudinaryReady) && (!requireEmail || emailConfigured);
+    res.status(ready ? 200 : 503).json({
+      success: ready,
+      status: ready ? 'READY' : 'NOT_READY',
+      dependencies: {
+        mongodb: mongoReady,
+        transactions: requireTransactions ? (replicaSet ? `replica-set:${replicaSet}` : 'required-unavailable') : 'optional',
+        redis: redisReady ? 'connected' : (requireRedis ? 'required-unavailable' : 'optional-unavailable'),
+        cloudinary: cloudinaryReady ? 'configured' : (requireCloudinary ? 'required-unavailable' : 'optional-unavailable'),
+        email: emailConfigured ? 'configured' : (requireEmail ? 'required-unavailable' : 'optional-unavailable'),
       },
     });
-  }
-
-  const limiter = rateLimit(limiterOptions);
-  app.use('/api', limiter);
-
-  // CSRF Protection Middleware (SEC-003)
-  app.use('/api', (req, res, next) => {
-    // Only apply to state-changing methods
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
-      // 1. Check custom header
-      const requestedWith = req.headers['x-requested-with'];
-      if (!requestedWith || requestedWith !== 'XMLHttpRequest') {
-        return res.status(403).json({ message: 'Potential CSRF attempt blocked. Missing X-Requested-With header.' });
-      }
-
-      // 2. Strict Origin/Referer Validation
-      const origin = req.headers.origin;
-      const referer = req.headers.referer;
-
-      // Helper to check if origin is allowed
-      const isAllowedOrigin = (url) => {
-        if (allowedOrigin.includes(url)) return true;
-        // Allow any vercel.app preview domains for Vercel deployments
-        if (url.endsWith('.vercel.app') || url.startsWith('http://localhost:')) return true;
-        return false;
-      };
-
-      // If Origin is provided, it must match
-      if (origin && !isAllowedOrigin(origin)) {
-        return res.status(403).json({ message: `CSRF blocked: Invalid Origin header (${origin}).` });
-      }
-
-      // If no Origin but Referer exists, check Referer
-      if (!origin && referer) {
-        try {
-          const refererUrl = new URL(referer);
-          if (!isAllowedOrigin(refererUrl.origin)) {
-            return res.status(403).json({ message: 'CSRF blocked: Invalid Referer header.' });
-          }
-        } catch (err) {
-          return res.status(403).json({ message: 'CSRF blocked: Malformed Referer header.' });
-        }
-      }
-    }
-    next();
   });
 
-  // HTTP Request logger
-  if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-  } else {
-    // In production, log standard combined format for auditing
-    app.use(morgan('combined'));
-  }
-
-  // Body parsers
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-  // Compression middleware (Level 6 for balanced CPU/compression ratio)
-  app.use(compression({ level: 6 }));
-
-  // Cookie parser (needed for JWT in HTTP-only cookies)
-  app.use(cookieParser());
-
-  // Prevent NoSQL query injection
-  app.use(sanitize);
-
-  // ============================================
-  // API Routes Mapping
-  // ============================================
-  
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/lost-items', lostItemRoutes);
@@ -231,81 +114,42 @@ const startServer = async () => {
   app.use('/api/categories', categoryRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/ai-feedback', aiFeedbackRoutes);
   app.use('/api/stats', statsRoutes);
   app.use('/api/settings', systemSettingRoutes);
   app.use('/api/claims', claimRoutes);
-
-
-
-  // Health check endpoint (for Dockerfile and external checkers)
-  app.get('/health', (req, res) => {
-    res.status(200).json({
-      success: true,
-      status: 'UP',
-      timestamp: new Date()
-    });
-  });
-
-  app.get('/api/health', (req, res) => {
-    res.status(200).json({
-      success: true,
-      status: 'UP',
-      timestamp: new Date()
-    });
-  });
-
-  // Root endpoint
-  app.get('/', (req, res) => {
-    res.status(200).json({
-      message: 'Smart Lost & Found API Server is running.',
-      version: '1.0.0',
-      status: 'healthy'
-    });
-  });
-
-  // ============================================
-  // Centralized Error Handling
-  // ============================================
-  
+  app.use('/api/locations', locationKnowledgeRoutes);
+  app.get('/', (_req, res) => res.json({ message: 'Smart Lost & Found API', version: '2.0.0' }));
   app.use(notFound);
   app.use(errorHandler);
 
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => {
-    console.log(`🚀 Smart L&F Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  });
+  await initSocket(server);
+  if (jobsEnabled) {
+    startOutboxWorker();
+    initCleanupJob();
+    initReminderJob();
+  }
 
-  // ARCH-002: Graceful Shutdown
-  const gracefulShutdown = async () => {
-    console.log('🔄 Received shutdown signal, closing server gracefully...');
-    server.close(() => {
-      console.log('✅ HTTP server closed.');
-      process.exit(0);
-    });
-    
-    // Force close after 10s
-    setTimeout(() => {
-      console.error('💀 Could not close connections in time, forcefully shutting down');
-      process.exit(1);
-    }, 10000);
+  const port = Number(process.env.PORT || 5000);
+  server.listen(port, () => console.log(`Smart L&F API listening on ${port}`));
+
+  let shuttingDown = false;
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}; shutting down.`);
+    const forceTimer = setTimeout(() => process.exit(1), 15_000);
+    forceTimer.unref();
+    await new Promise((resolve) => server.close(resolve));
+    stopOutboxWorker();
+    await Promise.allSettled([closeSocket(), closeRedis(), closeDB()]);
+    clearTimeout(forceTimer);
+    process.exit(0);
   };
-
-  process.on('SIGTERM', gracefulShutdown);
-  process.on('SIGINT', gracefulShutdown);
-
-  // BUG-004: Handle unhandled promise rejections properly
-  process.on('unhandledRejection', (reason, promise) => {
-    console.error('💀 Unhandled Rejection at:', promise, 'reason:', reason);
-    gracefulShutdown();
-  });
-
-  process.on('uncaughtException', (error) => {
-    console.error('💀 Uncaught Exception:', error);
-    gracefulShutdown();
-  });
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('unhandledRejection', (error) => { console.error('Unhandled rejection', error); shutdown('unhandledRejection'); });
+  process.on('uncaughtException', (error) => { console.error('Uncaught exception', error); shutdown('uncaughtException'); });
 };
 
-startServer().catch((error) => {
-  console.error('💀 Failed to start server:', error);
-  process.exit(1);
-});
+startServer().catch((error) => { console.error('Failed to start server:', error); process.exit(1); });

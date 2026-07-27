@@ -32,6 +32,19 @@ const foundItemSchema = new mongoose.Schema(
       minlength: [10, 'Description must be at least 10 characters'],
       maxlength: [2000, 'Description cannot exceed 2000 characters'],
     },
+    brand: { type: String, trim: true, maxlength: [100, 'Brand cannot exceed 100 characters'], default: '' },
+    model: { type: String, trim: true, maxlength: [120, 'Model cannot exceed 120 characters'], default: '' },
+    colors: {
+      type: [String],
+      default: [],
+      validate: { validator: (values) => values.length <= 6, message: 'Maximum 6 colours allowed' },
+    },
+    material: { type: String, trim: true, maxlength: [100, 'Material cannot exceed 100 characters'], default: '' },
+    uniqueFeatures: {
+      type: [String],
+      default: [],
+      validate: { validator: (values) => values.length <= 12, message: 'Maximum 12 unique features allowed' },
+    },
     images: {
       type: [
         {
@@ -51,13 +64,22 @@ const foundItemSchema = new mongoose.Schema(
       trim: true,
       maxlength: [300, 'Location cannot exceed 300 characters'],
     },
+    locationIntelligence: {
+      canonicalId: { type: String, default: '', maxlength: 80 },
+      canonicalName: { type: String, default: '', maxlength: 200 },
+      area: { type: String, default: '', maxlength: 120 },
+      verificationStatus: { type: String, default: '', maxlength: 50 },
+      sensitivity: { type: String, default: '', maxlength: 30 },
+      confidence: { type: Number, min: 0, max: 100, default: 0 },
+      needsReview: { type: Boolean, default: true },
+    },
     foundDate: {
       type: Date,
       required: [true, 'Found date is required'],
       validate: {
         validator: function (value) {
           // Allow up to +24 hours to account for timezone differences
-          return value <= new Date(Date.now() + 24 * 60 * 60 * 1000);
+          return value <= new Date();
         },
         message: 'Found date cannot be in the future',
       },
@@ -103,6 +125,23 @@ const foundItemSchema = new mongoose.Schema(
       default: [],
       index: true
     },
+    reportQuality: {
+      score: { type: Number, min: 0, max: 100, default: 0 },
+      level: { type: String, enum: ['weak', 'fair', 'good', 'excellent'], default: 'weak' },
+      missingFields: { type: [String], default: [] },
+      suggestions: { type: [String], default: [] },
+      assessedAt: { type: Date, default: null },
+      policy: { type: String, default: 'advisory-only' },
+    },
+    duplicateCandidates: {
+      type: [{
+        itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
+        itemType: { type: String, enum: ['LostItem', 'FoundItem'], required: true },
+        score: { type: Number, min: 0, max: 100, required: true },
+        reasons: { type: [String], default: [] },
+      }],
+      default: [],
+    },
     contactPreference: {
       type: String,
       enum: ['email', 'phone', 'both'],
@@ -133,9 +172,9 @@ const foundItemSchema = new mongoose.Schema(
 
 // ── Indexes ─────────────────────────────────────────────────────────────
 foundItemSchema.index(
-  { itemName: 'text', description: 'text', foundLocation: 'text' },
+  { itemName: 'text', description: 'text', brand: 'text', model: 'text', uniqueFeatures: 'text', foundLocation: 'text' },
   {
-    weights: { itemName: 10, description: 5, foundLocation: 3 },
+    weights: { itemName: 10, brand: 8, model: 8, uniqueFeatures: 6, description: 5, foundLocation: 3 },
     name: 'found_items_text_search',
   }
 );
@@ -144,6 +183,7 @@ foundItemSchema.index({ category: 1, status: 1 });
 foundItemSchema.index({ status: 1, isDeleted: 1 });
 foundItemSchema.index({ foundDate: -1 });
 foundItemSchema.index({ createdAt: -1 });
+foundItemSchema.index({ category: 1, status: 1, isDeleted: 1, isArchived: 1, foundDate: -1 });
 
 // ── Pre-find middleware: auto-exclude soft-deleted docs ──────────────────
 const autoExcludeDeleted = function (next) {

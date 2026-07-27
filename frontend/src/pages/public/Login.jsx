@@ -1,6 +1,6 @@
 // ============================================
 // Login Page Component
-// Input validations, session token storage, and error indicators
+// Input validations, cookie-oriented session handling, and error indicators
 // ============================================
 
 import React, { useState, useEffect } from 'react';
@@ -11,12 +11,14 @@ import { loginUser, googleLoginUser, clearAuthError } from '../../redux/slices/a
 import { validateEmail } from '../../utils/validators';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
+import { useLanguage } from '../../i18n/LanguageContext';
 import toast from 'react-hot-toast';
 
 export const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const { t } = useLanguage();
 
   const { isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
 
@@ -25,65 +27,43 @@ export const Login = () => {
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('rememberedEmail'));
   const [fieldErrors, setFieldErrors] = useState({});
 
-  // Redirect path from location state
   const from = location.state?.from?.pathname || '/dashboard';
 
-  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true });
-    }
+    if (isAuthenticated) navigate(from, { replace: true });
   }, [isAuthenticated, navigate, from]);
 
-  // Clear auth errors on unmount
-  useEffect(() => {
-    return () => {
-      dispatch(clearAuthError());
-    };
-  }, [dispatch]);
+  useEffect(() => () => dispatch(clearAuthError()), [dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFieldErrors({});
-
-    // Validate inputs
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     const errors = {};
-    if (!email) errors.email = 'Email is required';
-    else if (!validateEmail(email)) errors.email = 'Invalid email syntax';
-    if (!password) errors.password = 'Password is required';
 
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
+    if (!email) errors.email = t('auth.emailRequired');
+    else if (!validateEmail(email)) errors.email = t('auth.invalidEmail');
+    if (!password) errors.password = t('auth.passwordRequired');
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     try {
-      if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-      } else {
-        localStorage.removeItem('rememberedEmail');
-      }
+      if (rememberMe) localStorage.setItem('rememberedEmail', email);
+      else localStorage.removeItem('rememberedEmail');
 
       await dispatch(loginUser({ email, password, rememberMe })).unwrap();
-      toast.success('Welcome back!');
+      toast.success(t('auth.welcomeBack'));
     } catch (err) {
-      const msg = err?.message || (typeof err === 'string' ? err : 'Failed to authenticate.');
-      toast.error(msg);
+      toast.error(t('auth.authFailed'));
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       await dispatch(googleLoginUser(credentialResponse.credential)).unwrap();
-      toast.success('Welcome back!');
+      toast.success(t('auth.welcomeBack'));
     } catch (err) {
-      const msg = err?.message || (typeof err === 'string' ? err : 'Google login failed.');
-      toast.error(msg);
+      toast.error(t('auth.googleLoginFailed'));
     }
-  };
-
-  const handleGoogleError = () => {
-    toast.error('Google Sign-In was unsuccessful. Try again later.');
   };
 
   return (
@@ -91,32 +71,32 @@ export const Login = () => {
       <div className="max-w-md w-full glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center justify-center gap-1.5 text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
-            <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 object-contain translate-y-0.5" />
+            <img src="/logo.png" alt={t('auth.logoAlt')} className="h-8 w-8 object-contain translate-y-0.5" />
             Smart L&F
           </Link>
-          <h2 className="text-xl font-bold font-display text-surface-900 dark:text-white mt-4">
-            Sign In to Your Account
-          </h2>
-          <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-            Access your student or administrator dashboard
+          <h1 className="text-xl font-bold font-display text-surface-900 dark:text-white mt-4">
+            {t('auth.loginTitle')}
+          </h1>
+          <p className="text-sm text-surface-500 dark:text-surface-400 mt-1">
+            {t('auth.loginSubtitle')}
           </p>
         </div>
 
-        {/* Global Error Banner */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-500 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400 rounded-lg mb-6">
+          <div role="alert" className="p-3 bg-red-50 border border-red-200 text-sm text-red-600 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400 rounded-lg mb-6">
             ⚠️ {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <Input
-            label="Email Address"
+            label={t('auth.email')}
             name="email"
             type="email"
-            placeholder="e.g. student@student.com"
+            autoComplete="email"
+            placeholder={t('auth.emailPlaceholder')}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
             error={fieldErrors.email}
             required
           />
@@ -124,22 +104,22 @@ export const Login = () => {
           <div>
             <div className="flex justify-between items-center mb-1">
               <label htmlFor="password" className="input-label mb-0">
-                Password
+                {t('auth.password')}
               </label>
-              <Link
-                to="/forgot-password"
-                className="text-xs font-semibold text-primary-500 hover:text-primary-600 dark:text-primary-400"
-              >
-                Forgot Password?
+              <Link to="/forgot-password" className="text-sm font-semibold text-primary-500 hover:text-primary-600 dark:text-primary-400">
+                {t('auth.forgotPassword')}
               </Link>
             </div>
             <Input
               name="password"
               type="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               error={fieldErrors.password}
+              showPasswordLabel={t('profile.showPassword')}
+              hidePasswordLabel={t('profile.hidePassword')}
               required
             />
           </div>
@@ -150,48 +130,42 @@ export const Login = () => {
               name="remember-me"
               type="checkbox"
               checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
+              onChange={(event) => setRememberMe(event.target.checked)}
               className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500 dark:border-surface-600 dark:bg-surface-800 dark:ring-offset-surface-900 cursor-pointer"
             />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-surface-700 dark:text-surface-300 cursor-pointer select-none">
-              Remember me
+              {t('auth.rememberMe')}
             </label>
           </div>
 
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full mt-4"
-            isLoading={isLoading}
-          >
-            Sign In
+          <Button type="submit" variant="primary" className="w-full mt-4" isLoading={isLoading}>
+            {t('auth.signIn')}
           </Button>
         </form>
 
-        <div className="mt-6 flex items-center justify-center space-x-2">
-          <span className="h-px w-full bg-surface-200 dark:bg-surface-800"></span>
-          <span className="text-xs text-surface-500 uppercase tracking-widest font-semibold">Or</span>
-          <span className="h-px w-full bg-surface-200 dark:bg-surface-800"></span>
+        <div className="mt-6 flex items-center justify-center space-x-2" aria-label={t('auth.or')}>
+          <span className="h-px w-full bg-surface-200 dark:bg-surface-800" />
+          <span className="text-sm text-surface-500 uppercase tracking-widest font-semibold">{t('auth.or')}</span>
+          <span className="h-px w-full bg-surface-200 dark:bg-surface-800" />
         </div>
 
         <div className="mt-6 flex justify-center w-full">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
-            theme="outline"
-            size="large"
-            text="signin_with"
-            shape="rectangular"
-          />
+          {String(import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim() && (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error(t('auth.googleSignInFailed'))}
+              theme="outline"
+              size="large"
+              text="signin_with"
+              shape="rectangular"
+            />
+          )}
         </div>
 
-        <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 dark:text-surface-400">
-          New to the platform?{' '}
-          <Link
-            to="/register"
-            className="font-bold text-primary-500 hover:text-primary-600 dark:text-primary-400"
-          >
-            Create an Account
+        <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500 dark:text-surface-400">
+          {t('auth.newPlatform')}{' '}
+          <Link to="/register" className="font-bold text-primary-500 hover:text-primary-600 dark:text-primary-400">
+            {t('auth.createAccount')}
           </Link>
         </div>
       </div>
@@ -200,4 +174,3 @@ export const Login = () => {
 };
 
 export default Login;
-

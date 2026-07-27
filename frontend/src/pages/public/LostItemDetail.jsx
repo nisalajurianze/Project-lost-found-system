@@ -18,11 +18,15 @@ import useAuth from '../../hooks/useAuth';
 import lostItemService from '../../services/lostItemService';
 import toast from 'react-hot-toast';
 import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
+import WorkflowTimeline from '../../components/common/WorkflowTimeline';
+import ItemEvidenceSummary from '../../components/common/ItemEvidenceSummary';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const LostItemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
   const { currentItem, isLoading, error } = useSelector((state) => state.lostItems);
   const [activeImage, setActiveImage] = useState('');
@@ -71,13 +75,13 @@ export const LostItemDetail = () => {
         <div className="max-w-md mx-auto text-center px-4">
           <div className="text-6xl text-primary-500 mb-4">🔍</div>
           <h2 className="text-2xl font-extrabold font-display text-surface-900 dark:text-white mb-2">
-            Lost Report Not Found
+            {t('detail.lostNotFound')}
           </h2>
           <p className="text-surface-500 dark:text-surface-400 mb-6">
-            The item report you are looking for may have been claimed, closed, or deleted.
+            {t('detail.lostNotFoundDesc')}
           </p>
           <Button onClick={() => navigate('/lost-items')} variant="primary" className="w-full">
-            Back to Directory
+            {t('detail.backDirectory')}
           </Button>
         </div>
       </div>
@@ -89,7 +93,7 @@ export const LostItemDetail = () => {
   const isConnectedUser = currentItem.connectedUserId?.toString() === loggedInUserId?.toString();
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
-  
+
   // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved, or if contact was explicitly shared
   const canSeeContact = currentItem.contactVisibility === 'public' || isOwner || isConnectedUser || currentItem.status === 'claimed' || isContactShared;
 
@@ -97,11 +101,11 @@ export const LostItemDetail = () => {
     <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back navigation */}
-        <button
+        <button type="button"
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-sm font-semibold text-surface-500 dark:text-surface-400 hover:text-primary-500 dark:hover:text-primary-400 mb-6 transition-colors"
         >
-          <FiArrowLeft /> Back
+          <FiArrowLeft aria-hidden="true" /> {t('detail.back')}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -118,11 +122,11 @@ export const LostItemDetail = () => {
                 <div className="w-full h-full flex flex-col items-center justify-center text-6xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
                   {getCategoryIcon(currentItem.category)}
                   <span className="text-xs font-semibold uppercase tracking-wider text-surface-400 mt-3">
-                    No Image Provided
+                    {t('detail.noImage')}
                   </span>
                 </div>
               )}
-              
+
               <div className="absolute top-4 right-4">
                 <StatusBadge status={currentItem.status} />
               </div>
@@ -132,7 +136,7 @@ export const LostItemDetail = () => {
             {hasImages && currentItem.images.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-surface-300 dark:scrollbar-thumb-surface-600">
                 {currentItem.images.map((img, index) => (
-                  <button
+                  <button type="button"
                     key={index}
                     onClick={() => setActiveImage(img.url)}
                     className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all p-1 bg-surface-100 dark:bg-surface-800 ${
@@ -161,17 +165,19 @@ export const LostItemDetail = () => {
               <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-sm text-surface-500 dark:text-surface-400 pt-1">
                 <span className="flex items-center gap-1.5">
                   <FiClock className="flex-shrink-0" />
-                  Reported {formatRelativeTime(currentItem.createdAt)}
+                  {t('detail.reported', { time: formatRelativeTime(currentItem.createdAt) })}
                 </span>
                 <span>•</span>
-                <span>Lost Date: {formatAbsoluteDate(currentItem.lostDate)}</span>
+                <span>{t('detail.lostDate', { date: formatAbsoluteDate(currentItem.lostDate) })}</span>
               </div>
             </div>
+
+            <WorkflowTimeline type="item" status={currentItem.status} />
 
             {/* Description Card */}
             <div className="glass-card p-6 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900/50 shadow-sm rounded-xl">
               <h3 className="text-sm font-bold uppercase tracking-wider text-surface-400 mb-2">
-                Description
+                {t('detail.description')}
               </h3>
               <p className="text-surface-700 dark:text-surface-300 text-sm leading-relaxed whitespace-pre-line">
                 {currentItem.description}
@@ -179,56 +185,56 @@ export const LostItemDetail = () => {
             </div>
 
             {/* Resolution Actions */}
-            <div className="p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="mobile-sticky-claim p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <p className="text-sm font-extrabold text-surface-900 dark:text-white">
-                  {isHandoverInProgress ? 'Item Handover in Progress' : 'Do you have this item?'}
+                  {isHandoverInProgress ? t('detail.handoverProgress') : t('detail.haveItem')}
                 </p>
                 <p className="text-xs text-surface-500 dark:text-surface-400">
-                  {isHandoverInProgress 
-                    ? ((isOwner || isConnectedUser) ? 'Contact the other party to arrange a handover.' : 'This item is currently being handed over to its owner.') 
-                    : 'Connect with the reporter to return their item.'}
+                  {isHandoverInProgress
+                    ? ((isOwner || isConnectedUser) ? t('detail.arrangeHandover') : t('detail.handoverToOwner'))
+                    : t('detail.connectReporter')}
                 </p>
               </div>
               <div>
                 {currentItem.status === 'claimed' ? (
                   <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                    Item Resolved
+                    {t('detail.itemResolved')}
                   </span>
                 ) : hasClaimedSession || hasExistingClaim ? (
                   <Button disabled variant="outline">
-                    Claim Pending Review
+                    {t('detail.claimPending')}
                   </Button>
                 ) : isHandoverInProgress && (isOwner || isConnectedUser) ? (
-                  <Button 
+                  <Button
                     onClick={async () => {
-                      const confirmMsg = isOwner 
-                        ? 'Have you physically received your item back from the finder?' 
-                        : 'Have you verified the owner and physically handed over the item?';
+                      const confirmMsg = isOwner
+                        ? t('detail.confirmReceivedBackQuestion')
+                        : t('detail.confirmHandoverQuestion');
                       if (window.confirm(confirmMsg)) {
                         try {
                           await lostItemService.resolveLostItem(currentItem._id);
                           dispatch(fetchLostItemById(id));
-                          toast.success('Item successfully marked as resolved!');
+                          toast.success(t('detail.resolvedSuccess'));
                         } catch (err) {
-                          toast.error(err?.message || 'Failed to resolve item.');
+                          toast.error(t('detail.resolveError'));
                         }
                       }
-                    }} 
+                    }}
                     variant="primary"
                   >
-                    {isOwner ? 'Confirm Item Received' : 'Confirm Handover & Close'}
+                    {isOwner ? t('detail.confirmReceived') : t('detail.confirmHandover')}
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (
                     <>
-                      <Button 
+                      <Button
                         onClick={() => setIsClaimModalOpen(true)}
                         variant="primary"
                       >
-                        I have this
+                        {t('detail.iHaveThis')}
                       </Button>
-                      <ClaimModal 
+                      <ClaimModal
                         isOpen={isClaimModalOpen}
                         onClose={(isSuccess) => {
                           setIsClaimModalOpen(false);
@@ -237,16 +243,19 @@ export const LostItemDetail = () => {
                         targetItemId={currentItem._id}
                         itemType="LostItem"
                         itemName={currentItem.itemName}
+                        itemCategory={typeof currentItem.category === 'string' ? currentItem.category : currentItem.category?.name}
                       />
                     </>
                   ) : (
                     <Link to="/login">
-                      <Button variant="primary">Log In to Connect</Button>
+                      <Button variant="primary">{t('detail.loginConnect')}</Button>
                     </Link>
                   )
                 ) : null}
               </div>
             </div>
+
+            <ItemEvidenceSummary item={currentItem} />
 
             {/* Location & Tags details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -257,7 +266,7 @@ export const LostItemDetail = () => {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-surface-400">
-                    Last Seen Location
+                    {t('detail.lastSeen')}
                   </h4>
                   <p className="text-surface-800 dark:text-surface-200 text-sm font-medium mt-1 leading-snug">
                     {currentItem.lostLocation}
@@ -269,7 +278,7 @@ export const LostItemDetail = () => {
               {currentItem.tags && currentItem.tags.length > 0 && (
                 <div className="glass-card p-5 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900/50 shadow-sm rounded-xl">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-surface-400 mb-2.5">
-                    Keywords / Tags
+                    {t('detail.keywords')}
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {currentItem.tags.map((tag, idx) => (
@@ -288,21 +297,18 @@ export const LostItemDetail = () => {
             {/* Contact Details (Security protected) */}
             <div className="glass-card p-6 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900/50 shadow-sm rounded-xl">
               <h3 className="text-sm font-bold uppercase tracking-wider text-surface-400 mb-4">
-                Contact Information
+                {t('detail.contactInfo')}
               </h3>
 
               {canSeeContact ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                     {currentItem.userId?.profileImage?.url ? (
-                      <img 
-                        src={currentItem.userId.profileImage.url} 
-                        alt={currentItem.userId.fullName || 'Owner'} 
+                      <img
+                        src={currentItem.userId.profileImage.url}
+                        alt={currentItem.userId.fullName || t('detail.owner')}
                         className="w-10 h-10 rounded-full object-cover border border-surface-200 dark:border-surface-700 flex-shrink-0"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentItem.userId.fullName || 'Owner')}&background=random`;
-                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center flex-shrink-0 border border-surface-200 dark:border-surface-700">
@@ -310,9 +316,9 @@ export const LostItemDetail = () => {
                       </div>
                     )}
                     <div>
-                      <p className="text-xs text-surface-400 font-medium">Reported By</p>
+                      <p className="text-xs text-surface-400 font-medium">{t('detail.reportedBy')}</p>
                       <p className="font-semibold text-surface-800 dark:text-surface-200">
-                        {currentItem.userId?.fullName || 'Anonymous User'}
+                        {currentItem.userId?.fullName || t('detail.anonymousUser')}
                       </p>
                     </div>
                   </div>
@@ -322,7 +328,7 @@ export const LostItemDetail = () => {
                     <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                       <FiMail className="text-surface-400 text-lg flex-shrink-0" />
                       <div>
-                        <p className="text-xs text-surface-400 font-medium">Email Address</p>
+                        <p className="text-xs text-surface-400 font-medium">{t('detail.email')}</p>
                         <a
                           href={`mailto:${currentItem.userId.email}`}
                           className="font-semibold text-primary-500 hover:underline"
@@ -338,7 +344,7 @@ export const LostItemDetail = () => {
                     <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                       <FiPhone className="text-surface-400 text-lg flex-shrink-0" />
                       <div>
-                        <p className="text-xs text-surface-400 font-medium">Phone Number</p>
+                        <p className="text-xs text-surface-400 font-medium">{t('detail.phone')}</p>
                         <a
                           href={`tel:${currentItem.userId.phone}`}
                           className="font-semibold text-primary-500 hover:underline"
@@ -348,10 +354,10 @@ export const LostItemDetail = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {isOwner && (
                     <div className="mt-4 p-3 bg-primary-500/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 rounded-lg text-xs font-semibold text-center">
-                      🌟 You created this report. You can manage it from your dashboard.
+                      🌟 {t('detail.ownerNotice')}
                     </div>
                   )}
                 </div>
@@ -362,21 +368,21 @@ export const LostItemDetail = () => {
                   </div>
                   <div className="max-w-xs mx-auto">
                     <p className="text-sm font-semibold text-surface-800 dark:text-surface-200">
-                      Contact details are protected
+                      {t('detail.contactProtected')}
                     </p>
                     <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-                      {isAuthenticated 
-                        ? (hasClaimedSession || hasExistingClaim 
-                            ? "You have submitted a claim. Please check 'My Claims' in your dashboard to view shared contacts or status updates." 
-                            : "You must click 'I have this' to exchange contact details.") 
-                        : "Please log in to connect and view contact details."}
+                      {isAuthenticated
+                        ? (hasClaimedSession || hasExistingClaim
+                            ? t('detail.claimSubmitted')
+                            : t('detail.clickHave'))
+                        : t('detail.loginProtected')}
                     </p>
                   </div>
                   <div className="pt-2">
                     {!isAuthenticated && (
                       <Link to="/login">
                         <Button variant="primary" size="sm" className="px-6">
-                          Log In to Contact
+                          {t('detail.loginContact')}
                         </Button>
                       </Link>
                     )}

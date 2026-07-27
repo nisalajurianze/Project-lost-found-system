@@ -46,7 +46,7 @@ const themeSlice = createSlice({
       if (state.mode === 'light') nextMode = 'dark';
       else if (state.mode === 'dark') nextMode = 'system';
       else if (state.mode === 'system') nextMode = 'light';
-      
+
       state.mode = nextMode;
       localStorage.setItem(LOCAL_STORAGE_THEME_KEY, nextMode);
       applyThemeToDOM(nextMode);

@@ -1,11 +1,10 @@
 // ============================================
-// Select Form Component
-// Label, option arrays, and styling states
-// Includes native select for mobile and custom tailwind dropdown for desktop
+// Accessible native select component
 // ============================================
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useId } from 'react';
 import { FiChevronDown } from 'react-icons/fi';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const Select = React.forwardRef(({
   label,
@@ -18,49 +17,35 @@ export const Select = React.forwardRef(({
   placeholder = 'Select an option',
   value,
   onChange,
+  id,
   ...props
 }, ref) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const selectedOption = options.find(opt => opt.value === value);
-
-  const handleSelect = (optValue) => {
-    if (onChange) {
-      // Simulate native event structure for compatibility
-      onChange({ target: { name, value: optValue } });
-    }
-    setIsOpen(false);
-  };
+  const { t } = useLanguage();
+  const generatedId = useId();
+  const controlId = id || name || `select-${generatedId}`;
+  const errorId = error ? `${controlId}-error` : undefined;
+  const helperId = !error && helperText ? `${controlId}-help` : undefined;
 
   return (
-    <div className={`w-full ${className}`} ref={containerRef}>
+    <div className={`w-full ${className}`}>
       {label && (
-        <label htmlFor={name} className="input-label">
-          {label} {required && <span className="text-red-500">*</span>}
+        <label htmlFor={controlId} className="input-label">
+          {label} {required && <span className="text-red-500" aria-hidden="true">*</span>}
+          {required && <span className="sr-only"> ({t('common.required')})</span>}
         </label>
       )}
-      
-      {/* Mobile Native Select (hidden on md and up) */}
-      <div className="md:hidden">
+
+      <div className="relative">
         <select
           ref={ref}
-          id={name}
+          id={controlId}
           name={name}
-          value={value}
+          value={value ?? ''}
           onChange={onChange}
-          className={`input-base appearance-none ${error ? 'input-error' : ''}`}
+          className={`input-base appearance-none pr-11 ${error ? 'input-error' : ''}`}
           required={required}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={errorId || helperId}
           {...props}
         >
           {placeholder && (
@@ -68,62 +53,23 @@ export const Select = React.forwardRef(({
               {placeholder}
             </option>
           )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>
+        <FiChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-surface-400"
+        />
       </div>
 
-      {/* Desktop Custom Select (hidden on sm and down) */}
-      <div className="hidden md:block relative select-none">
-        <div 
-          onClick={() => setIsOpen(!isOpen)}
-          className={`input-base flex items-center justify-between cursor-pointer ${error ? 'input-error' : ''} ${isOpen ? 'ring-2 ring-primary-500/50 border-primary-500' : ''}`}
-        >
-          <span className={`block truncate ${selectedOption ? "text-surface-900 dark:text-white" : "text-surface-400 dark:text-surface-500"}`}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
-          <FiChevronDown className={`transition-transform duration-200 shrink-0 ml-2 ${isOpen ? 'rotate-180 text-primary-500' : 'text-surface-400'}`} />
-        </div>
-
-        {isOpen && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700/80 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-            {placeholder && !required && (
-              <div 
-                className="px-4 py-2.5 text-sm cursor-pointer text-surface-500 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
-                onClick={() => handleSelect('')}
-              >
-                {placeholder}
-              </div>
-            )}
-            {options.map((opt) => {
-              const isSelected = value === opt.value;
-              return (
-                <div 
-                  key={opt.value}
-                  className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center ${
-                    isSelected 
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 font-semibold' 
-                      : 'text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 hover:text-surface-900 dark:hover:text-white'
-                  }`}
-                  onClick={() => handleSelect(opt.value)}
-                >
-                  {opt.label}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {error && <p className="input-error-text mt-1">{error}</p>}
-      {!error && helperText && <p className="input-helper mt-1">{helperText}</p>}
+      {error && <p id={errorId} className="input-error-text mt-1" role="alert">{error}</p>}
+      {!error && helperText && <p id={helperId} className="input-helper mt-1">{helperText}</p>}
     </div>
   );
 });
 
 Select.displayName = 'Select';
 export default Select;
-

@@ -30,9 +30,10 @@ export const fetchFoundItemById = createAsyncThunk(
 
 export const createNewFoundReport = createAsyncThunk(
   'foundItems/create',
-  async (formData, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      return await foundItemService.createFoundItem(formData);
+      const formData = payload?.formData || payload;
+      return await foundItemService.createFoundItem(formData, payload?.onUploadProgress);
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -41,9 +42,9 @@ export const createNewFoundReport = createAsyncThunk(
 
 export const updateFoundReport = createAsyncThunk(
   'foundItems/update',
-  async ({ id, formData }, { rejectWithValue }) => {
+  async ({ id, formData, onUploadProgress }, { rejectWithValue }) => {
     try {
-      return await foundItemService.updateFoundItem(id, formData);
+      return await foundItemService.updateFoundItem(id, formData, onUploadProgress);
     } catch (error) {
       return rejectWithValue(error.message);
     }

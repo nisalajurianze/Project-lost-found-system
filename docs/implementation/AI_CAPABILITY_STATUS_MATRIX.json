@@ -1,0 +1,391 @@
+{
+  "generated": "2026-07-26",
+  "capabilities": [
+    {
+      "id": 1,
+      "capability": "Advanced image recognition",
+      "status": "provider-dependent",
+      "source": [
+        "backend/services/imageAnalysisService.js",
+        "frontend/src/components/common/AISuggestionReview.jsx"
+      ],
+      "evidence": [
+        "backend/tests/ai-provider.test.js"
+      ]
+    },
+    {
+      "id": 2,
+      "capability": "OCR and safe identifier masking",
+      "status": "implemented",
+      "source": [
+        "backend/services/imagePrivacyService.js",
+        "backend/models/ImageAnalysis.js"
+      ],
+      "evidence": [
+        "backend/tests/ai-matching.test.js"
+      ]
+    },
+    {
+      "id": 3,
+      "capability": "Image-to-image similarity",
+      "status": "provider-dependent",
+      "source": [
+        "backend/services/imageComparisonService.js",
+        "backend/services/aiMatchingService.js",
+        "backend/services/matchScoringService.js"
+      ],
+      "evidence": [
+        "backend/tests/image-comparison.test.js",
+        "backend/tests/ai-matching.test.js",
+        "Live vision-provider acceptance remains required"
+      ]
+    },
+    {
+      "id": 4,
+      "capability": "Semantic multilingual matching",
+      "status": "implemented",
+      "source": [
+        "backend/services/chatSearchService.js",
+        "backend/services/matchScoringService.js"
+      ],
+      "evidence": [
+        "backend/tests/chat-search.test.js",
+        "backend/tests/ai-matching.test.js"
+      ]
+    },
+    {
+      "id": 5,
+      "capability": "Location intelligence",
+      "status": "field-data-dependent",
+      "source": [
+        "backend/services/locationIntelligenceService.js",
+        "backend/models/LocationKnowledge.js"
+      ],
+      "evidence": [
+        "backend/tests/location-governance.test.js"
+      ]
+    },
+    {
+      "id": 6,
+      "capability": "Date/time reasoning",
+      "status": "implemented",
+      "source": [
+        "backend/services/matchScoringService.js"
+      ],
+      "evidence": [
+        "backend/tests/ai-matching.test.js"
+      ]
+    },
+    {
+      "id": 7,
+      "capability": "Duplicate-report detection",
+      "status": "implemented",
+      "source": [
+        "backend/services/reportIntelligenceService.js"
+      ],
+      "evidence": [
+        "backend/tests/report-intelligence.test.js"
+      ]
+    },
+    {
+      "id": 8,
+      "capability": "Conversational report creation",
+      "status": "implemented",
+      "source": [
+        "backend/services/conversationalReportService.js",
+        "backend/controllers/aiChatController.js",
+        "frontend/src/components/common/AIChatbot.jsx",
+        "frontend/src/components/common/ReportItemWizard.jsx"
+      ],
+      "evidence": [
+        "backend/tests/conversational-report.test.js",
+        "frontend/tests/ai-chat.test.mjs"
+      ]
+    },
+    {
+      "id": 9,
+      "capability": "Voice input",
+      "status": "provider-dependent",
+      "source": [
+        "frontend/src/components/common/AIChatbot.jsx"
+      ],
+      "evidence": [
+        "Browser speech-recognition UAT"
+      ]
+    },
+    {
+      "id": 10,
+      "capability": "Natural-language search",
+      "status": "implemented",
+      "source": [
+        "backend/services/chatSearchService.js",
+        "frontend/src/pages/public/SearchItems.jsx"
+      ],
+      "evidence": [
+        "backend/tests/chat-search.test.js",
+        "frontend/tests/search-ui.test.mjs"
+      ]
+    },
+    {
+      "id": 11,
+      "capability": "Explainable matching",
+      "status": "implemented",
+      "source": [
+        "backend/services/matchScoringService.js",
+        "frontend/src/components/common/MatchExplanation.jsx"
+      ],
+      "evidence": [
+        "backend/tests/ai-matching.test.js"
+      ]
+    },
+    {
+      "id": 12,
+      "capability": "Confidence calibration",
+      "status": "implemented",
+      "source": [
+        "backend/services/matchScoringService.js"
+      ],
+      "evidence": [
+        "backend/tests/ai-matching.test.js"
+      ]
+    },
+    {
+      "id": 13,
+      "capability": "Smart ownership questions",
+      "status": "implemented",
+      "source": [
+        "backend/services/claimVerificationService.js"
+      ],
+      "evidence": [
+        "backend/tests/claim-verification.test.js"
+      ]
+    },
+    {
+      "id": 14,
+      "capability": "Evidence-quality checks",
+      "status": "implemented",
+      "source": [
+        "backend/services/claimVerificationService.js"
+      ],
+      "evidence": [
+        "backend/tests/claim-verification.test.js"
+      ]
+    },
+    {
+      "id": 15,
+      "capability": "Fraud/abuse review flags",
+      "status": "implemented",
+      "source": [
+        "backend/services/claimRiskService.js"
+      ],
+      "evidence": [
+        "backend/tests/claim-risk.test.js"
+      ]
+    },
+    {
+      "id": 16,
+      "capability": "Image moderation",
+      "status": "provider-dependent",
+      "source": [
+        "backend/services/imageAnalysisService.js"
+      ],
+      "evidence": [
+        "Live provider moderation tests pending"
+      ]
+    },
+    {
+      "id": 17,
+      "capability": "Privacy redaction",
+      "status": "implemented",
+      "source": [
+        "backend/services/imagePrivacyService.js",
+        "frontend/src/utils/imageRedaction.js",
+        "frontend/src/components/common/ImagePrivacyReview.jsx",
+        "frontend/src/components/common/ReportItemWizard.jsx"
+      ],
+      "evidence": [
+        "frontend/tests/image-redaction.test.mjs",
+        "backend/tests/ai-matching.test.js",
+        "Live vision-provider and storage-provider acceptance tests remain target-environment gates"
+      ]
+    },
+    {
+      "id": 18,
+      "capability": "Category/icon intelligence",
+      "status": "provider-dependent",
+      "source": [
+        "backend/services/imageAnalysisService.js",
+        "category auto-create workflow"
+      ],
+      "evidence": [
+        "Provider and admin workflow UAT"
+      ]
+    },
+    {
+      "id": 19,
+      "capability": "Report-quality scoring",
+      "status": "implemented",
+      "source": [
+        "backend/services/reportQualityService.js",
+        "frontend/src/components/common/ReportItemWizard.jsx"
+      ],
+      "evidence": [
+        "backend/tests/report-intelligence.test.js",
+        "frontend/tests/ai-governance.test.mjs"
+      ]
+    },
+    {
+      "id": 20,
+      "capability": "Missing-information assistance",
+      "status": "implemented",
+      "source": [
+        "backend/services/reportQualityService.js",
+        "claim questions"
+      ],
+      "evidence": [
+        "backend/tests/report-intelligence.test.js"
+      ]
+    },
+    {
+      "id": 21,
+      "capability": "Translation/normalisation",
+      "status": "implemented",
+      "source": [
+        "backend/services/chatSearchService.js",
+        "frontend/src/i18n"
+      ],
+      "evidence": [
+        "backend/tests/chat-search.test.js",
+        "frontend/tests/i18n.test.mjs"
+      ]
+    },
+    {
+      "id": 22,
+      "capability": "Admin AI triage",
+      "status": "implemented",
+      "source": [
+        "backend/controllers/adminController.js",
+        "admin dashboards/queues"
+      ],
+      "evidence": [
+        "backend/tests/dashboard-source.test.js"
+      ]
+    },
+    {
+      "id": 23,
+      "capability": "Daily operational summaries",
+      "status": "implemented",
+      "source": [
+        "backend/services/operationalIntelligenceService.js",
+        "backend/controllers/adminController.js",
+        "frontend/src/pages/admin/Analytics.jsx"
+      ],
+      "evidence": [
+        "backend/tests/operational-intelligence.test.js",
+        "frontend/tests/dashboard.test.mjs"
+      ]
+    },
+    {
+      "id": 24,
+      "capability": "Recovery analytics",
+      "status": "implemented",
+      "source": [
+        "backend/services/operationalIntelligenceService.js",
+        "backend/controllers/adminController.js",
+        "frontend/src/pages/admin/Analytics.jsx"
+      ],
+      "evidence": [
+        "backend/tests/operational-intelligence.test.js",
+        "frontend/tests/dashboard.test.mjs"
+      ]
+    },
+    {
+      "id": 25,
+      "capability": "Predictive recommendations",
+      "status": "field-data-dependent",
+      "source": [
+        "backend/services/operationalIntelligenceService.js",
+        "backend/controllers/adminController.js",
+        "frontend/src/pages/admin/Analytics.jsx"
+      ],
+      "evidence": [
+        "backend/tests/operational-intelligence.test.js",
+        "frontend/tests/dashboard.test.mjs",
+        "Meaningful calibration requires sufficient verified historical outcomes and university governance"
+      ]
+    },
+    {
+      "id": 26,
+      "capability": "Smart notifications",
+      "status": "implemented",
+      "source": [
+        "backend/services/notificationService.js",
+        "backend/services/emailService.js"
+      ],
+      "evidence": [
+        "Live email/push delivery pending"
+      ]
+    },
+    {
+      "id": 27,
+      "capability": "Feedback-based improvement",
+      "status": "implemented",
+      "source": [
+        "backend/models/AIDecisionFeedback.js",
+        "admin review UI"
+      ],
+      "evidence": [
+        "backend/tests/report-intelligence.test.js",
+        "frontend/tests/ai-governance.test.mjs"
+      ]
+    },
+    {
+      "id": 28,
+      "capability": "Provider failover",
+      "status": "implemented",
+      "source": [
+        "backend/services/aiProviderService.js"
+      ],
+      "evidence": [
+        "backend/tests/ai-provider.test.js",
+        "live provider test pending"
+      ]
+    },
+    {
+      "id": 29,
+      "capability": "AI monitoring",
+      "status": "implemented",
+      "source": [
+        "backend/services/aiProviderService.js",
+        "admin AI health UI"
+      ],
+      "evidence": [
+        "backend/tests/ai-provider.test.js"
+      ]
+    },
+    {
+      "id": 30,
+      "capability": "AI governance/safety controls",
+      "status": "implemented",
+      "source": [
+        "serializers, risk/feedback policies, provider schema validation"
+      ],
+      "evidence": [
+        "security and focused AI tests"
+      ]
+    },
+    {
+      "id": 31,
+      "capability": "SEUSL regional micro-location intelligence",
+      "status": "field-data-dependent",
+      "source": [
+        "backend/data/seuslLocations.js",
+        "LocationKnowledge governance"
+      ],
+      "evidence": [
+        "backend/tests/location-governance.test.js",
+        "field/university approval pending"
+      ]
+    }
+  ]
+}

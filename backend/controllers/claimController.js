@@ -1,8 +1,4 @@
-// ============================================
-// Claim Request Controller
-// Handles item ownership claims and admin approvals
-// ============================================
-
+import mongoose from 'mongoose';
 import ClaimRequest from '../models/ClaimRequest.js';
 import FoundItem from '../models/FoundItem.js';
 import LostItem from '../models/LostItem.js';
@@ -13,565 +9,280 @@ import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate } from '../utils/pagination.js';
-import { uploadMultipleImages } from '../services/cloudinaryService.js';
-import { sendEmail } from '../services/emailService.js';
-import { createNotification } from '../services/notificationService.js';
+import { uploadMultipleImages, deleteMultipleImages, privateAssetView } from '../services/cloudinaryService.js';
+import { sendWorkflowEmail } from '../services/workflowEmailService.js';
+import { createNotification, createBulkNotifications } from '../services/notificationService.js';
+import { claimView } from '../utils/serializers.js';
+import { clientOrigins } from '../config/security.js';
+import { buildClaimQuestions, parseVerificationAnswers, assessClaimEvidence } from '../services/claimVerificationService.js';
+import { assessClaimRisk } from '../services/claimRiskService.js';
 
-/**
- * Submit a claim request for a found item.
- */
-const createClaimRequest = asyncHandler(async (req, res) => {
-  const { foundItemId, lostItemId, proofDescription, matchId } = req.body;
-  const claimantId = req.user._id;
 
-  let targetItem = null;
-  let itemType = '';
-  let reporter = null;
-
-  if (foundItemId) {
-    targetItem = await FoundItem.findOne({ _id: foundItemId, isDeleted: { $ne: true } }).populate('userId');
-    itemType = 'FoundItem';
-  } else if (lostItemId) {
-    targetItem = await LostItem.findOne({ _id: lostItemId, isDeleted: { $ne: true } }).populate('userId');
-    itemType = 'LostItem';
-  } else {
-    throw ApiError.badRequest('Either foundItemId or lostItemId is required.');
+const clientUrl = () => clientOrigins[0] || 'http://localhost:5173';
+const runSideEffects = async (label, tasks) => {
+  const results = await Promise.allSettled(tasks);
+  for (const result of results) {
+    if (result.status === 'rejected') console.warn(`[claim] ${label} side effect failed`, { error: result.reason?.message || String(result.reason) });
   }
+  return results;
+};
 
-  if (!targetItem) {
-    throw ApiError.notFound(`${itemType === 'FoundItem' ? 'Found' : 'Lost'} item not found.`);
-  }
+const targetInfo = (claimOrBody) => {
+  if (claimOrBody.foundItemId) return { itemType: 'FoundItem', itemId: claimOrBody.foundItemId?._id || claimOrBody.foundItemId, Model: FoundItem };
+  if (claimOrBody.lostItemId) return { itemType: 'LostItem', itemId: claimOrBody.lostItemId?._id || claimOrBody.lostItemId, Model: LostItem };
+  throw ApiError.badRequest('Exactly one target item is required.');
+};
 
-  if (targetItem.status === 'claimed' || targetItem.status === 'in_progress') {
-    throw ApiError.badRequest('This item is currently not available for new claims.');
-  }
+const populateClaim = (query) => query
+  .populate('claimantId', 'fullName email phone studentId profileImage notificationPreferences')
+  .populate({ path: 'foundItemId', populate: { path: 'userId', select: 'fullName email phone studentId profileImage notificationPreferences' } })
+  .populate({ path: 'lostItemId', populate: { path: 'userId', select: 'fullName email phone studentId profileImage notificationPreferences' } })
+  .populate('reviewedBy', 'fullName role');
 
-  // Prevent user claiming their own reported item
-  reporter = targetItem.userId;
-  const reporterIdStr = reporter ? reporter._id.toString() : null;
-  if (reporterIdStr === claimantId.toString()) {
-    throw ApiError.badRequest('You cannot submit a claim for an item you reported yourself.');
-  }
+const isAuthorized = (claim, user) => {
+  const userId = user._id.toString();
+  const target = claim.foundItemId || claim.lostItemId;
+  return user.role === 'admin' || claim.claimantId?._id?.toString() === userId || target?.userId?._id?.toString() === userId;
+};
 
-  // --- ANTI-SPAM: Check pending claims limit ---
-  const spamSettingPending = await SystemSetting.findOne({ key: 'spam_max_pending_claims' });
-  const maxPendingAllowed = spamSettingPending && spamSettingPending.value !== undefined ? parseInt(spamSettingPending.value, 10) : 5;
-  
-  const pendingClaimsCount = await ClaimRequest.countDocuments({ claimantId, status: 'pending' });
-  if (pendingClaimsCount >= maxPendingAllowed && req.user.role !== 'admin') {
-    throw ApiError.badRequest(`You have reached the maximum allowed active claims (${maxPendingAllowed}). Please wait for them to be reviewed.`);
-  }
+const sendAdminClaimNotifications = async (claim, item) => {
+  const admins = await User.find({ role: 'admin', isActive: true, deletedAt: null }).select('_id').lean();
+  await createBulkNotifications(admins.map((admin) => ({
+    userId: admin._id,
+    title: 'Claim review required',
+    message: `A claim was submitted for “${item.itemName}”.`,
+    type: 'claim_submitted', relatedItem: { itemType: 'ClaimRequest', itemId: claim._id },
+  })));
+};
 
-  // --- ANTI-FRAUD / VELOCITY CHECK: Check claims submitted in the last 24 hours ---
-  const spamSettingVelocity = await SystemSetting.findOne({ key: 'spam_max_claims_per_day' });
-  const maxClaimsPerDay = spamSettingVelocity && spamSettingVelocity.value !== undefined ? parseInt(spamSettingVelocity.value, 10) : 3;
-
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const recentClaimsCount = await ClaimRequest.countDocuments({ 
-    claimantId, 
-    createdAt: { $gte: oneDayAgo } 
-  });
-
-  if (recentClaimsCount >= maxClaimsPerDay && req.user.role !== 'admin') {
-    // Suspend user for abnormal velocity
-    await User.findByIdAndUpdate(claimantId, { isActive: false });
-    
-    // Notify them via email
-    await sendEmail({
-      to: req.user.email,
-      template: 'accountSuspended',
-      data: {
-        name: req.user.fullName || req.user.name,
-        reason: 'suspicious claim velocity (submitting too many claims in a short timeframe)'
-      }
-    });
-
-    throw ApiError.forbidden('Your account has been suspended due to suspicious activity (abnormal claim volume). Please contact support.');
-  }
-
-  // Check if user has already submitted a pending/approved claim for this item
-  const query = { claimantId, status: { $in: ['pending', 'approved'] } };
-  if (foundItemId) query.foundItemId = foundItemId;
-  if (lostItemId) query.lostItemId = lostItemId;
-
-  const existingClaim = await ClaimRequest.findOne(query);
-  if (existingClaim) {
-    throw ApiError.conflict('You have already submitted an active claim for this item.');
-  }
-
-  // Upload proof images if provided
-  let proofImages = [];
-  if (req.files && req.files.length > 0) {
-    proofImages = await uploadMultipleImages(req.files, 'claim-proofs');
-  }
-
-  // Create claim request
-  const claimData = {
-    claimantId,
-    matchId: matchId || null,
-    proofDescription,
-    proofImages,
-    status: 'pending'
-  };
-  if (foundItemId) claimData.foundItemId = foundItemId;
-  if (lostItemId) claimData.lostItemId = lostItemId;
-
-  const claim = await ClaimRequest.create(claimData);
-
-  // Notify item reporter (if reported by a user)
-  if (reporter) {
-    await createNotification({
-      userId: reporter._id,
-      title: '📦 New Claim Submitted',
-      message: `Someone has submitted a claim for the "${targetItem.itemName}" you reported.`,
-      type: 'claim_submitted',
-      relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
-    });
-
-    // Send email to reporter
-    await sendEmail({
-      to: reporter.email,
-      template: 'claimReceived',
-      data: {
-        name: reporter.fullName || reporter.name,
-        itemName: targetItem.itemName,
-        claimantName: req.user.fullName || req.user.name
-      }
-    });
-  }
-
-  // Send admin notification
-  await createNotification({
-    userId: null, // Broadcast to admin room
-    title: '🛡️ New Claim Verification Required',
-    message: `A new claim has been submitted for item "${targetItem.itemName}". Verification needed.`,
-    type: 'claim_submitted',
-    relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
-  });
-
-  ApiResponse.created(claim, 'Claim request submitted successfully.').send(res);
+const getClaimQuestions = asyncHandler(async (req, res) => {
+  const itemType = req.params.itemType;
+  const Model = itemType === 'FoundItem' ? FoundItem : itemType === 'LostItem' ? LostItem : null;
+  if (!Model) throw ApiError.badRequest('Item type must be FoundItem or LostItem.');
+  const item = await Model.findOne({ _id: req.params.itemId, isDeleted: { $ne: true }, isArchived: { $ne: true } })
+    .select('itemName category status userId')
+    .lean();
+  if (!item) throw ApiError.notFound('Item not found.');
+  if (item.userId?.toString() === req.user._id.toString()) throw ApiError.badRequest('You cannot claim your own report.');
+  if (['claimed', 'closed', 'in_progress'].includes(item.status)) throw ApiError.conflict('This item is not accepting new claims.');
+  const questions = buildClaimQuestions({ itemType, item });
+  return ApiResponse.ok({ questions }, 'Claim verification questions generated.').send(res);
 });
 
-/**
- * Get claim requests (with filters & pagination).
- * Users can see:
- * - Claims they submitted
- * - Claims submitted for found items they reported
- * Admins can see:
- * - All claims
- */
+const createClaimRequest = asyncHandler(async (req, res) => {
+  const { itemType, itemId, Model } = targetInfo(req.body);
+  const item = await Model.findOne({ _id: itemId, isDeleted: { $ne: true }, isArchived: { $ne: true } }).populate('userId');
+  if (!item) throw ApiError.notFound('Item not found.');
+  if (['claimed', 'closed', 'in_progress'].includes(item.status)) throw ApiError.conflict('This item is not accepting new claims.');
+  if (item.userId?._id.toString() === req.user._id.toString()) throw ApiError.badRequest('You cannot claim your own report.');
+
+  let verificationAnswers;
+  try {
+    verificationAnswers = parseVerificationAnswers(req.body.verificationAnswers);
+  } catch (error) {
+    throw ApiError.badRequest(error.message);
+  }
+
+  const evidenceAssessment = assessClaimEvidence({
+    proofDescription: req.body.proofDescription,
+    files: req.files || [],
+    verificationAnswers,
+  });
+
+  const [maxPendingSetting, rejectedReviewSetting, maxDailySetting] = await Promise.all([
+    SystemSetting.findOne({ key: 'spam_max_pending_claims' }).lean(),
+    SystemSetting.findOne({ key: 'spam_max_rejected_claims' }).lean(),
+    SystemSetting.findOne({ key: 'spam_max_claims_per_day' }).lean(),
+  ]);
+  const maxPending = Math.min(50, Math.max(1, Number(maxPendingSetting?.value || 5)));
+  const rejectedClaimReviewThreshold = Math.min(50, Math.max(1, Number(rejectedReviewSetting?.value || 3)));
+  const maxDaily = Math.min(100, Math.max(1, Number(maxDailySetting?.value || 5)));
+  if (req.user.role !== 'admin' && await ClaimRequest.countDocuments({ claimantId: req.user._id, status: 'pending' }) >= maxPending) {
+    throw ApiError.tooManyRequests(`You can have at most ${maxPending} pending claims.`);
+  }
+  if (req.user.role !== 'admin' && await ClaimRequest.countDocuments({ claimantId: req.user._id, createdAt: { $gte: new Date(Date.now() - 86_400_000) } }) >= maxDaily) {
+    throw ApiError.tooManyRequests('Daily claim limit reached. Try again later.');
+  }
+
+  let match = null;
+  if (req.body.matchId) {
+    match = await Match.findById(req.body.matchId);
+    if (!match) throw ApiError.badRequest('Match not found.');
+    const valid = itemType === 'FoundItem'
+      ? match.foundItemId.toString() === item._id.toString() && match.lostUserId.toString() === req.user._id.toString()
+      : match.lostItemId.toString() === item._id.toString() && match.foundUserId.toString() === req.user._id.toString();
+    if (!valid) throw ApiError.forbidden('The supplied match is not related to this item and claimant.');
+  }
+
+  const proofImages = await uploadMultipleImages(req.files || [], 'claim-proofs', { authenticated: true });
+  let claim;
+  try {
+    const claimData = {
+      claimantId: req.user._id, matchId: match?._id || null,
+      proofDescription: req.body.proofDescription,
+      proofImages,
+      verificationAnswers,
+      evidenceAssessment,
+      status: 'pending',
+      ...(itemType === 'FoundItem' ? { foundItemId: item._id } : { lostItemId: item._id }),
+    };
+    claimData.riskAssessment = await assessClaimRisk({
+      claimantId: req.user._id,
+      proofImages,
+      evidenceAssessment,
+      rejectedClaimReviewThreshold,
+    });
+    claim = await ClaimRequest.create(claimData);
+  } catch (error) {
+    await deleteMultipleImages(proofImages).catch(() => undefined);
+    if (error?.code === 11000) throw ApiError.conflict('You already have a pending claim for this item.');
+    throw error;
+  }
+
+  await runSideEffects('submission', [
+    createNotification({
+      userId: item.userId._id, title: 'New claim submitted', message: `A claim was submitted for “${item.itemName}”.`,
+      type: 'claim_submitted', relatedItem: { itemType: 'ClaimRequest', itemId: claim._id },
+      dedupeKey: `claim-submitted:reporter:${claim._id}`,
+    }),
+    sendAdminClaimNotifications(claim, item),
+    sendWorkflowEmail({
+      user: item.userId,
+      category: 'claims',
+      template: 'claimReceived',
+      idempotencyKey: `claim-submitted-email:${claim._id}:reporter`,
+      data: { name: item.userId.fullName, itemName: item.itemName, url: `${clientUrl()}/dashboard/claims` },
+    }),
+  ]);
+  return ApiResponse.created({ _id: claim._id, status: claim.status, evidenceAssessment: claim.evidenceAssessment, riskAssessment: { level: claim.riskAssessment.level, requiresHumanReview: claim.riskAssessment.requiresHumanReview, policy: claim.riskAssessment.policy } }, 'Claim request submitted successfully.').send(res);
+});
+
 const getClaimRequests = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-  const isAdmin = req.user.role === 'admin';
   const filter = {};
-
-  if (!isAdmin) {
-    // Standard users: claims they made, OR claims on found/lost items they reported
-    const userReportedFoundItems = await FoundItem.find({ userId, isDeleted: { $ne: true } }).select('_id');
-    const foundItemIds = userReportedFoundItems.map((item) => item._id);
-
-    const userReportedLostItems = await LostItem.find({ userId, isDeleted: { $ne: true } }).select('_id');
-    const lostItemIds = userReportedLostItems.map((item) => item._id);
-
+  if (req.user.role !== 'admin') {
+    const [found, lost] = await Promise.all([
+      FoundItem.find({ userId: req.user._id }).select('_id').lean(),
+      LostItem.find({ userId: req.user._id }).select('_id').lean(),
+    ]);
     filter.$or = [
-      { claimantId: userId },
-      { foundItemId: { $in: foundItemIds } },
-      { lostItemId: { $in: lostItemIds } }
+      { claimantId: req.user._id },
+      { foundItemId: { $in: found.map((x) => x._id) } },
+      { lostItemId: { $in: lost.map((x) => x._id) } },
     ];
   } else {
-    // Admin filters
-    if (req.query.claimantId) {
-      filter.claimantId = req.query.claimantId;
-    }
-    if (req.query.status) {
-      filter.status = req.query.status;
-    }
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.claimantId) filter.claimantId = req.query.claimantId;
   }
-
   const totalDocs = await ClaimRequest.countDocuments(filter);
-  const pagination = paginate(req.query, totalDocs);
-
-  const claims = await ClaimRequest.find(filter)
-    .populate('claimantId', 'fullName email phone studentId profileImage')
-    .populate({
-      path: 'foundItemId',
-      populate: { path: 'userId', select: 'fullName email phone' }
-    })
-    .populate({
-      path: 'lostItemId',
-      populate: { path: 'userId', select: 'fullName email phone' }
-    })
-    .sort({ createdAt: -1 })
-    .skip(pagination.skip)
-    .limit(pagination.limit)
-    .lean();
-
-  ApiResponse.ok({ claims, pagination }, 'Claim requests retrieved successfully.').send(res);
+  const pageInfo = paginate(req.query, totalDocs);
+  const claims = await populateClaim(ClaimRequest.find(filter)).sort({ createdAt: -1 }).skip(pageInfo.skip).limit(pageInfo.limit);
+  const safeClaims = await Promise.all(claims.map((claim) => claimView(claim, req.user, privateAssetView)));
+  return ApiResponse.ok({ claims: safeClaims, pagination: pageInfo }, 'Claim requests retrieved successfully.').send(res);
 });
 
-/**
- * Get claim request details by ID.
- */
 const getClaimRequestById = asyncHandler(async (req, res) => {
-  const claim = await ClaimRequest.findById(req.params.id)
-    .populate('claimantId', 'fullName email phone studentId profileImage')
-    .populate({
-      path: 'foundItemId',
-      populate: { path: 'userId', select: 'fullName email phone' }
-    })
-    .populate({
-      path: 'lostItemId',
-      populate: { path: 'userId', select: 'fullName email phone' }
-    })
-    .populate('reviewedBy', 'fullName');
-
-  if (!claim) {
-    throw ApiError.notFound('Claim request not found.');
-  }
-
-  // Access control
-  const isClaimant = claim.claimantId._id.toString() === req.user._id.toString();
-  
-  let isReporter = false;
-  if (claim.foundItemId && claim.foundItemId.userId) {
-    isReporter = claim.foundItemId.userId._id.toString() === req.user._id.toString();
-  } else if (claim.lostItemId && claim.lostItemId.userId) {
-    isReporter = claim.lostItemId.userId._id.toString() === req.user._id.toString();
-  }
-  
-  const isAdmin = req.user.role === 'admin';
-
-  if (!isClaimant && !isReporter && !isAdmin) {
-    throw ApiError.forbidden('You are not authorised to view this claim request.');
-  }
-
-  ApiResponse.ok(claim, 'Claim request details retrieved successfully.').send(res);
+  const claim = await populateClaim(ClaimRequest.findById(req.params.id));
+  if (!claim) throw ApiError.notFound('Claim request not found.');
+  if (!isAuthorized(claim, req.user)) throw ApiError.forbidden('You are not authorised to view this claim.');
+  return ApiResponse.ok(await claimView(claim, req.user, privateAssetView), 'Claim request retrieved successfully.').send(res);
 });
 
-/**
- * Review a claim request (Approve / Reject).
- * Admin and Reporter.
- */
 const reviewClaimRequest = asyncHandler(async (req, res) => {
-  const { status, adminRemark } = req.body; // 'approved' or 'rejected'
-  const adminId = req.user._id;
+  const dbSession = await mongoose.startSession();
+  let postCommit;
+  try {
+    await dbSession.withTransaction(async () => {
+      const claim = await ClaimRequest.findById(req.params.id).session(dbSession);
+      if (!claim) throw ApiError.notFound('Claim request not found.');
+      if (claim.status !== 'pending') throw ApiError.conflict(`This claim has already been ${claim.status}.`);
+      const { itemType, itemId, Model } = targetInfo(claim);
+      const item = await Model.findById(itemId).populate('userId').session(dbSession);
+      if (!item) throw ApiError.notFound('Target item not found.');
+      const isReporter = item.userId._id.toString() === req.user._id.toString();
+      if (req.user.role !== 'admin' && !isReporter) throw ApiError.forbidden('Only the reporter or an administrator can review this claim.');
+      const claimant = await User.findById(claim.claimantId).session(dbSession);
+      if (!claimant) throw ApiError.notFound('Claimant not found.');
 
-  const claim = await ClaimRequest.findById(req.params.id)
-    .populate('claimantId')
-    .populate({
-      path: 'foundItemId',
-      populate: { path: 'userId' }
-    })
-    .populate({
-      path: 'lostItemId',
-      populate: { path: 'userId' }
-    });
+      if (req.body.status === 'approved' && ['claimed', 'closed', 'in_progress'].includes(item.status)) throw ApiError.conflict('Item is no longer available.');
+      claim.status = req.body.status;
+      claim.adminRemark = req.body.adminRemark || '';
+      claim.reviewedBy = req.user._id;
+      claim.reviewedAt = new Date();
+      await claim.save({ session: dbSession });
 
-  if (!claim) {
-    throw ApiError.notFound('Claim request not found.');
-  }
-
-  // Authorize: Only Admin or Reporter can review
-  const isAdmin = req.user.role === 'admin';
-  let isReporter = false;
-  let targetItem = null;
-  let itemType = '';
-  
-  if (claim.foundItemId) {
-    targetItem = claim.foundItemId;
-    itemType = 'FoundItem';
-    isReporter = targetItem.userId && targetItem.userId._id.toString() === adminId.toString();
-  } else if (claim.lostItemId) {
-    targetItem = claim.lostItemId;
-    itemType = 'LostItem';
-    isReporter = targetItem.userId && targetItem.userId._id.toString() === adminId.toString();
-  }
-
-  if (!isAdmin && !isReporter) {
-    throw ApiError.forbidden('You do not have permission to review this claim.');
-  }
-
-  if (claim.status !== 'pending') {
-    throw ApiError.badRequest(`This claim request has already been ${claim.status}.`);
-  }
-
-  // Update claim details
-  claim.status = status;
-  claim.adminRemark = adminRemark || '';
-  claim.reviewedBy = adminId;
-  claim.reviewedAt = new Date();
-  await claim.save();
-
-  const claimant = claim.claimantId;
-
-  // --- ANTI-FRAUD: Check rejected claims limit if this was rejected ---
-  if (status === 'rejected' && claimant.role !== 'admin') {
-    const spamSettingRejected = await SystemSetting.findOne({ key: 'spam_max_rejected_claims' });
-    const maxRejectedAllowed = spamSettingRejected && spamSettingRejected.value !== undefined ? parseInt(spamSettingRejected.value, 10) : 3;
-
-    const rejectedCount = await ClaimRequest.countDocuments({ claimantId: claimant._id, status: 'rejected' });
-    if (rejectedCount >= maxRejectedAllowed) {
-      // Suspend user
-      await User.findByIdAndUpdate(claimant._id, { isActive: false });
-      
-      // Notify them
-      await sendEmail({
-        to: claimant.email,
-        template: 'accountSuspended',
-        data: {
-          name: claimant.fullName || claimant.name,
-          reason: 'suspicious claim behavior (too many rejected claims)'
+      const otherClaimants = [];
+      if (req.body.status === 'approved') {
+        item.status = 'in_progress'; item.connectedUserId = claimant._id; item.connectedAt = new Date(); item.reminderSent = false;
+        await item.save({ session: dbSession });
+        if (claim.matchId) {
+          const match = await Match.findById(claim.matchId).session(dbSession);
+          if (!match) throw ApiError.conflict('Related match no longer exists.');
+          const valid = itemType === 'FoundItem'
+            ? match.foundItemId.toString() === item._id.toString() && match.lostUserId.toString() === claimant._id.toString()
+            : match.lostItemId.toString() === item._id.toString() && match.foundUserId.toString() === claimant._id.toString();
+          if (!valid) throw ApiError.conflict('Related match does not belong to this claim and claimant.');
+          const ReciprocalModel = itemType === 'FoundItem' ? LostItem : FoundItem;
+          const reciprocalId = itemType === 'FoundItem' ? match.lostItemId : match.foundItemId;
+          const reciprocal = await ReciprocalModel.findById(reciprocalId).session(dbSession);
+          if (!reciprocal || reciprocal.userId.toString() !== claimant._id.toString()) throw ApiError.conflict('Reciprocal report is unavailable or changed ownership.');
+          if (['claimed', 'closed', 'in_progress'].includes(reciprocal.status)) throw ApiError.conflict('Reciprocal report is no longer available.');
+          reciprocal.status = 'in_progress'; reciprocal.connectedUserId = item.userId._id; reciprocal.connectedAt = new Date(); reciprocal.reminderSent = false;
+          await reciprocal.save({ session: dbSession });
+          match.status = 'confirmed'; await match.save({ session: dbSession });
         }
-      });
-    }
-  }
-
-  const poster = targetItem.userId;
-
-  if (status === 'approved') {
-    // 1. Update target item status
-    targetItem.status = 'in_progress'; // Changed from 'claimed' to 'in_progress' to allow "Mark as Done" handover phase
-    targetItem.connectedUserId = claimant._id;
-    targetItem.connectedAt = new Date();
-    await targetItem.save();
-
-    // 2. If claim had a match, update match status & reciprocal item status
-    if (claim.matchId) {
-      const match = await Match.findById(claim.matchId);
-      if (match) {
-        match.status = 'confirmed';
-        await match.save();
-
-        if (itemType === 'FoundItem') {
-           await LostItem.findByIdAndUpdate(match.lostItemId, { status: 'in_progress', connectedUserId: targetItem.userId._id, connectedAt: new Date() });
-        } else {
-           await FoundItem.findByIdAndUpdate(match.foundItemId, { status: 'in_progress', connectedUserId: targetItem.userId._id, connectedAt: new Date() });
+        const otherFilter = { _id: { $ne: claim._id }, status: 'pending', ...(itemType === 'FoundItem' ? { foundItemId: item._id } : { lostItemId: item._id }) };
+        const others = await ClaimRequest.find(otherFilter).populate('claimantId', 'email fullName notificationPreferences').session(dbSession);
+        for (const other of others) {
+          other.status = 'rejected'; other.adminRemark = 'Another claim was approved.'; other.reviewedBy = req.user._id; other.reviewedAt = new Date();
+          await other.save({ session: dbSession });
+          otherClaimants.push({ id: other.claimantId._id, email: other.claimantId.email, fullName: other.claimantId.fullName, notificationPreferences: other.claimantId.notificationPreferences, claimId: other._id });
         }
       }
-    } else {
-      // Auto-update any matching lost/found items they might have posted for this
-      if (itemType === 'FoundItem') {
-        const matchingLost = await LostItem.findOne({ userId: claimant._id, category: targetItem.category, status: { $ne: 'claimed' } });
-        if (matchingLost) {
-          matchingLost.status = 'in_progress';
-          matchingLost.connectedUserId = targetItem.userId._id;
-          matchingLost.connectedAt = new Date();
-          await matchingLost.save();
-        }
-      } else {
-        const matchingFound = await FoundItem.findOne({ userId: claimant._id, category: targetItem.category, status: { $ne: 'claimed' } });
-        if (matchingFound) {
-          matchingFound.status = 'in_progress';
-          matchingFound.connectedUserId = targetItem.userId._id;
-          matchingFound.connectedAt = new Date();
-          await matchingFound.save();
-        }
-      }
+      postCommit = { claimId: claim._id, status: claim.status, itemType, itemName: item.itemName, reporter: item.userId, claimant, otherClaimants, remark: claim.adminRemark };
+    });
+  } finally { await dbSession.endSession(); }
+
+  const sideEffects = [];
+  if (postCommit.status === 'approved') {
+    sideEffects.push(
+      createNotification({ userId: postCommit.claimant._id, title: 'Claim approved', message: `Your claim for “${postCommit.itemName}” was approved.`, type: 'claim_approved', relatedItem: { itemType: 'ClaimRequest', itemId: postCommit.claimId }, dedupeKey: `claim-approved:claimant:${postCommit.claimId}` }),
+      createNotification({ userId: postCommit.reporter._id, title: 'Handover in progress', message: `The claim for “${postCommit.itemName}” was approved.`, type: 'claim_approved', relatedItem: { itemType: 'ClaimRequest', itemId: postCommit.claimId }, dedupeKey: `claim-approved:reporter:${postCommit.claimId}` }),
+      sendWorkflowEmail({ user: postCommit.claimant, category: 'handover', template: 'claimApproved', idempotencyKey: `claim-approved-email:claimant:${postCommit.claimId}`, data: { name: postCommit.claimant.fullName, itemName: postCommit.itemName, message: postCommit.remark, url: `${clientUrl()}/dashboard/claims` } }),
+      sendWorkflowEmail({ user: postCommit.reporter, category: 'handover', template: 'claimApprovedReporter', idempotencyKey: `claim-approved-email:reporter:${postCommit.claimId}`, data: { name: postCommit.reporter.fullName, itemName: postCommit.itemName, url: `${clientUrl()}/dashboard/claims` } }),
+    );
+    for (const other of postCommit.otherClaimants) {
+      sideEffects.push(
+        createNotification({ userId: other.id, title: 'Claim rejected', message: `Another claim for “${postCommit.itemName}” was approved.`, type: 'claim_rejected', relatedItem: { itemType: 'ClaimRequest', itemId: other.claimId }, dedupeKey: `claim-rejected:competing:${other.claimId}` }),
+        sendWorkflowEmail({ user: other, category: 'claims', template: 'claimRejected', idempotencyKey: `claim-rejected-email:competing:${other.claimId}`, data: { name: other.fullName, itemName: postCommit.itemName, reason: 'Another claim was approved.' } }),
+      );
     }
-
-    // 3. Send approval emails (Peer-to-Peer Contact Exchange)
-    const collectionDetails = adminRemark || `Please contact each other to arrange the handover.`;
-    
-    // Email to Claimant
-    import('../services/emailService.js').then(async (emailService) => {
-      await emailService.sendEmail({
-        to: claimant.email,
-        template: 'claimApproved',
-        data: {
-          name: claimant.fullName,
-          itemName: targetItem.itemName,
-          collectionDetails: `${collectionDetails}\n\nPoster Contact Details:\nName: ${poster?.fullName || 'N/A'}\nEmail: ${poster?.email || 'N/A'}\nPhone: ${poster?.phone || 'N/A'}`
-        }
-      }).catch(err => console.error('Failed to send email to claimant:', err));
-
-      // Email to Poster
-      if (poster?.email) {
-        await emailService.sendEmail({
-          to: poster.email,
-          template: 'claimApprovedFounder',
-          data: {
-            name: poster.fullName,
-            itemName: targetItem.itemName,
-            claimantDetails: `Name: ${claimant.fullName}\nEmail: ${claimant.email}\nPhone: ${claimant.phone || 'N/A'}\nRemark: ${adminRemark || 'N/A'}`
-          }
-        }).catch(err => console.error('Failed to send email to poster:', err));
-      }
-    });
-
-    // 4. Create in-app notification
-    await createNotification({
-      userId: claimant._id,
-      title: '✅ Claim Request Approved!',
-      message: `Your claim for "${targetItem.itemName}" has been approved. Handover is in progress. Check email for details.`,
-      type: 'claim_approved',
-      relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
-    });
-
-    // 5. Automatically reject other pending claims for this same item
-    const query = { status: 'pending', _id: { $ne: claim._id } };
-    if (claim.foundItemId) query.foundItemId = targetItem._id;
-    if (claim.lostItemId) query.lostItemId = targetItem._id;
-
-    const otherClaims = await ClaimRequest.find(query).populate('claimantId');
-
-    for (const otherClaim of otherClaims) {
-      otherClaim.status = 'rejected';
-      otherClaim.adminRemark = 'Item successfully claimed by another user.';
-      otherClaim.reviewedBy = adminId;
-      otherClaim.reviewedAt = new Date();
-      await otherClaim.save();
-
-      import('../services/emailService.js').then(async (emailService) => {
-        await emailService.sendEmail({
-          to: otherClaim.claimantId.email,
-          template: 'claimRejected',
-          data: {
-            name: otherClaim.claimantId.fullName,
-            itemName: targetItem.itemName,
-            reason: otherClaim.adminRemark
-          }
-        }).catch(err => console.error('Failed to send reject email:', err));
-      });
-
-      await createNotification({
-        userId: otherClaim.claimantId._id,
-        title: '❌ Claim Request Rejected',
-        message: `Your claim for "${targetItem.itemName}" has been rejected: Item claimed by another user.`,
-        type: 'claim_rejected',
-        relatedItem: { itemType: 'ClaimRequest', itemId: otherClaim._id }
-      });
-    }
-
-  } else if (status === 'rejected') {
-    // If claim is rejected:
-    // Update target item back to available if it was marked matched
-    const query = { status: 'pending' };
-    if (claim.foundItemId) query.foundItemId = targetItem._id;
-    if (claim.lostItemId) query.lostItemId = targetItem._id;
-
-    const activeClaimsCount = await ClaimRequest.countDocuments(query);
-
-    // If no other pending claims, set item back to available
-    if (activeClaimsCount === 0 && (targetItem.status === 'matched' || targetItem.status === 'in_progress')) {
-      targetItem.status = 'available';
-      await targetItem.save();
-    }
-
-    // Send rejection email
-    import('../services/emailService.js').then(async (emailService) => {
-      await emailService.sendEmail({
-        to: claim.claimantId.email,
-        template: 'claimRejected',
-        data: {
-          name: claim.claimantId.fullName,
-          itemName: targetItem.itemName,
-          reason: adminRemark || 'Insufficient proof of ownership provided.'
-        }
-      }).catch(err => console.error('Failed to send reject email:', err));
-    });
-
-    // In-app notification
-    await createNotification({
-      userId: claim.claimantId._id,
-      title: '❌ Claim Request Rejected',
-      message: `Your claim for "${targetItem.itemName}" has been rejected. Reason: ${adminRemark || 'Insufficient proof.'}`,
-      type: 'claim_rejected',
-      relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
-    });
+  } else {
+    sideEffects.push(
+      createNotification({ userId: postCommit.claimant._id, title: 'Claim rejected', message: `Your claim for “${postCommit.itemName}” was rejected.`, type: 'claim_rejected', relatedItem: { itemType: 'ClaimRequest', itemId: postCommit.claimId }, dedupeKey: `claim-rejected:claimant:${postCommit.claimId}` }),
+      sendWorkflowEmail({ user: postCommit.claimant, category: 'claims', template: 'claimRejected', idempotencyKey: `claim-rejected-email:claimant:${postCommit.claimId}`, data: { name: postCommit.claimant.fullName, itemName: postCommit.itemName, reason: postCommit.remark || 'Insufficient evidence.' } }),
+    );
   }
-
-  ApiResponse.ok(claim, `Claim request reviewed and ${status} successfully.`).send(res);
+  await runSideEffects('review', sideEffects);
+  return ApiResponse.ok({ _id: postCommit.claimId, status: postCommit.status }, `Claim ${postCommit.status} successfully.`).send(res);
 });
 
-/**
- * Share contact info for a pending claim without approving it.
- * Only the item owner can do this.
- */
 const shareClaimContact = asyncHandler(async (req, res) => {
-  const claim = await ClaimRequest.findById(req.params.id)
-    .populate({
-      path: 'foundItemId',
-      populate: { path: 'userId', select: 'fullName email phone' }
-    })
-    .populate({
-      path: 'lostItemId',
-      populate: { path: 'userId', select: 'fullName email phone' }
-    })
-    .populate('claimantId', 'fullName email phone studentId profileImage');
-
-  if (!claim) {
-    throw ApiError.notFound('Claim request not found.');
-  }
-
-  if (claim.status !== 'pending') {
-    throw ApiError.badRequest('Contact can only be shared for pending claims.');
-  }
-
-  if (claim.isContactShared) {
-    throw ApiError.badRequest('Contact has already been shared for this claim.');
-  }
-
-  const targetItem = claim.foundItemId || claim.lostItemId;
-  if (!targetItem) {
-    throw ApiError.internal('Claim has no associated item.');
-  }
-
-  // Ensure user is the item owner
-  const itemOwnerId = targetItem.userId._id ? targetItem.userId._id.toString() : targetItem.userId.toString();
-  if (itemOwnerId !== req.user._id.toString()) {
-    throw ApiError.forbidden('Only the item owner can share contact information.');
-  }
-
-  claim.isContactShared = true;
-  await claim.save();
-
-  // In-app notification to claimant
-  const { createNotification } = await import('../services/notificationService.js');
-  await createNotification({
-    userId: claim.claimantId._id,
-    title: '📱 Contact Shared',
-    message: `The poster of "${targetItem.itemName}" has shared their contact details with you. Please call them to verify ownership.`,
-    type: 'contact_shared',
-    relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }
-  });
-
-  // Optional: Send email
-  import('../services/emailService.js').then(async (emailService) => {
-    await emailService.sendEmail({
-      to: claim.claimantId.email,
-      template: 'claimUpdate',
-      data: {
-        name: claim.claimantId.fullName,
-        itemName: targetItem.itemName,
-        message: `The poster has requested to share contacts to verify your claim over the phone.\n\nPoster Contact Details:\nName: ${req.user.fullName || 'N/A'}\nEmail: ${req.user.email || 'N/A'}\nPhone: ${req.user.phone || 'N/A'}`
-      }
-    }).catch(err => console.error('Failed to send contact share email:', err));
-  });
-
-  ApiResponse.ok(claim, 'Contact shared successfully.').send(res);
+  const claim = await populateClaim(ClaimRequest.findById(req.params.id));
+  if (!claim) throw ApiError.notFound('Claim request not found.');
+  if (claim.status !== 'pending') throw ApiError.conflict('Contact sharing is only available for pending claims.');
+  const item = claim.foundItemId || claim.lostItemId;
+  if (item.userId._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') throw ApiError.forbidden('Only the reporter or an administrator can share contact access.');
+  if (!claim.isContactShared) { claim.isContactShared = true; await claim.save(); }
+  await runSideEffects('contact-share', [
+    createNotification({ userId: claim.claimantId._id, title: 'Contact shared', message: `Contact access was granted for “${item.itemName}”.`, type: 'contact_shared', relatedItem: { itemType: 'ClaimRequest', itemId: claim._id }, dedupeKey: `contact-shared:${claim._id}` }),
+    sendWorkflowEmail({ user: claim.claimantId, category: 'handover', template: 'contactShared', idempotencyKey: `contact-shared-email:${claim._id}`, data: { name: claim.claimantId.fullName, itemName: item.itemName, url: `${clientUrl()}/dashboard/claims` } }),
+  ]);
+  return ApiResponse.ok(await claimView(claim, req.user, privateAssetView), 'Contact access granted.').send(res);
 });
 
-/**
- * Check if the current user has an active claim for a specific item.
- */
 const checkClaimExists = asyncHandler(async (req, res) => {
-  const { itemId } = req.params;
-  const claimantId = req.user._id;
-
-  const claim = await ClaimRequest.findOne({
-    claimantId,
-    status: { $in: ['pending', 'approved'] },
-    $or: [{ foundItemId: itemId }, { lostItemId: itemId }]
-  }).select('_id status isContactShared');
-
-  ApiResponse.ok({ hasClaim: !!claim, claim }, 'Claim check completed.').send(res);
+  const claim = await ClaimRequest.findOne({ claimantId: req.user._id, status: { $in: ['pending', 'approved'] }, $or: [{ foundItemId: req.params.itemId }, { lostItemId: req.params.itemId }] }).select('_id status isContactShared');
+  return ApiResponse.ok({ hasClaim: Boolean(claim), claim }, 'Claim check completed.').send(res);
 });
 
-export {
-  createClaimRequest,
-  getClaimRequests,
-  getClaimRequestById,
-  reviewClaimRequest,
-  shareClaimContact,
-  checkClaimExists
-};
+export { createClaimRequest, getClaimQuestions, getClaimRequests, getClaimRequestById, reviewClaimRequest, shareClaimContact, checkClaimExists };

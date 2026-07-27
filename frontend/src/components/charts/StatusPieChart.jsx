@@ -9,8 +9,8 @@ import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-export const StatusPieChart = ({ data = {} }) => {
-  const labels = Object.keys(data).map(key => key.toUpperCase());
+export const StatusPieChart = ({ data = {}, labelMap = {}, emptyText = 'No status distribution available.' }) => {
+  const labels = Object.keys(data).map((key) => labelMap[key] || key.toUpperCase());
   const values = Object.values(data);
 
   const chartData = {
@@ -72,12 +72,12 @@ export const StatusPieChart = ({ data = {} }) => {
       {values.length > 0 && values.reduce((a, b) => a + b, 0) > 0 ? (
         <Doughnut data={chartData} options={options} />
       ) : (
-        <p className="text-sm text-surface-400">No status distributions available.</p>
+        <p className="text-sm text-surface-400">{emptyText}</p>
       )}
     </div>
   );
 };
 
 export default StatusPieChart;
-// 
+//
 

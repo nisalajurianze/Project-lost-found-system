@@ -13,7 +13,8 @@ import { protect } from '../middlewares/authMiddleware.js';
 import validate from '../middlewares/validateMiddleware.js';
 import {
   updateMatchValidator,
-  mongoIdParam
+  mongoIdParam,
+  matchQueryValidator
 } from '../utils/validators.js';
 
 const router = express.Router();
@@ -21,7 +22,7 @@ const router = express.Router();
 // All match endpoints require authentication
 router.use(protect);
 
-router.get('/', getMatches);
+router.get('/', matchQueryValidator, validate, getMatches);
 router.get('/:id', mongoIdParam, validate, getMatchById);
 router.put('/:id', mongoIdParam, updateMatchValidator, validate, updateMatchStatus);
 

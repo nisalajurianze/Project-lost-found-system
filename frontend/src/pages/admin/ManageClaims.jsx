@@ -11,9 +11,11 @@ import Modal from '../../components/common/Modal';
 import Button from '../../components/common/Button';
 import Textarea from '../../components/common/Textarea';
 import Select from '../../components/common/Select';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 const ManageClaims = () => {
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const { claims, pagination, isLoading, error } = useSelector((state) => state.claims);
 
   // Filter & Search states
@@ -54,27 +56,27 @@ const ManageClaims = () => {
 
     setIsSubmitting(true);
     try {
-      await dispatch(reviewClaimRequest({ 
-        id: reviewDialog.id, 
-        status: reviewDialog.status, 
-        adminRemark: remark 
+      await dispatch(reviewClaimRequest({
+        id: reviewDialog.id,
+        status: reviewDialog.status,
+        adminRemark: remark
       })).unwrap();
 
-      toast.success(`Claim request successfully ${reviewDialog.status}.`);
+      toast.success(t('claims.reviewSuccess', { status: t(`common.${reviewDialog.status}`, {}, reviewDialog.status) }));
       handleCloseReview();
       // Reload current page
       dispatch(fetchClaims({ status, page, limit: 9 }));
     } catch (err) {
-      toast.error(err || 'Failed to submit claim review.');
+      toast.error(err || t('claims.reviewFailure'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const statusOptions = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' }
+    { value: 'pending', label: t('common.pending') },
+    { value: 'approved', label: t('common.approved') },
+    { value: 'rejected', label: t('common.rejected') }
   ];
 
   return (
@@ -83,22 +85,22 @@ const ManageClaims = () => {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
           <FileText className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-          Ownership Claims
+          {t('claims.adminTitle')}
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Verify matching proofs and descriptions. Approve valid ownership handbacks or reject invalid claims.
+          {t('claims.adminSubtitle')}
         </p>
       </div>
 
       {/* Filter Bar */}
       <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4">
         <div className="w-full md:w-64">
-          <Select 
-            label="Filter by Status"
+          <Select
+            label={t('claims.filterStatus')}
             value={status}
             onChange={handleStatusChange}
             options={statusOptions}
-            placeholder="All Statuses"
+            placeholder={t('claims.allStatuses')}
           />
         </div>
       </div>
@@ -108,18 +110,18 @@ const ManageClaims = () => {
         <Loader />
       ) : error ? (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm">
-          Failed to load claims: {error}
+          {t('claims.loadError', { error })}
         </div>
       ) : claims.length === 0 ? (
-        <EmptyState 
-          title="No Claims Found" 
-          message="There are no claims submitted matching this filter." 
+        <EmptyState
+          title={t('claims.emptyTitle')}
+          message={t('claims.emptyMessage')}
         />
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {claims.map((claim) => (
-              <ClaimCard 
+              <ClaimCard
                 key={claim._id}
                 claim={claim}
                 isAdmin={true}
@@ -130,10 +132,10 @@ const ManageClaims = () => {
           </div>
 
           {pagination.totalPages > 1 && (
-            <Pagination 
-              page={page} 
-              totalPages={pagination.totalPages} 
-              onPageChange={handlePageChange} 
+            <Pagination
+              page={page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
             />
           )}
         </div>
@@ -144,22 +146,22 @@ const ManageClaims = () => {
         <Modal
           isOpen={!!reviewDialog}
           onClose={handleCloseReview}
-          title={reviewDialog.status === 'approved' ? 'Approve Claim Request' : 'Reject Claim Request'}
+          title={reviewDialog.status === 'approved' ? t('claims.approveTitle') : t('claims.rejectTitle')}
           size="md"
         >
           <form onSubmit={handleSubmitReview} className="space-y-4 pt-2">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {reviewDialog.status === 'approved' 
-                ? 'Approve this claim. This will mark the found listing as claimed, update the claimant, and notify both parties.' 
-                : 'Reject this claim. This will notify the claimant that the claim has been declined. The item will remain available.'
+              {reviewDialog.status === 'approved'
+                ? t('claims.approveDesc')
+                : t('claims.rejectDesc')
               }
             </p>
 
-            <Textarea 
-              label="Admin Remark / Message to Claimant"
-              placeholder={reviewDialog.status === 'approved' 
-                ? 'Specify instructions for collecting the item (e.g., "Please collect your item at the security office main gate during office hours.")' 
-                : 'Specify reason for rejection (e.g., "Provided details do not match the found item characteristics.")'
+            <Textarea
+              label={t('claims.remarkLabel')}
+              placeholder={reviewDialog.status === 'approved'
+                ? t('claims.approvePlaceholder')
+                : t('claims.rejectPlaceholder')
               }
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
@@ -168,19 +170,19 @@ const ManageClaims = () => {
             />
 
             <div className="flex gap-2 justify-end border-t border-slate-100 dark:border-slate-800 pt-4 mt-6">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={handleCloseReview}
                 disabled={isSubmitting}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
-              <Button 
+              <Button
                 variant={reviewDialog.status === 'approved' ? 'success' : 'danger'}
                 type="submit"
                 loading={isSubmitting}
               >
-                {reviewDialog.status === 'approved' ? 'Approve' : 'Reject'}
+                {reviewDialog.status === 'approved' ? t('claims.approveAction') : t('claims.rejectAction')}
               </Button>
             </div>
           </form>

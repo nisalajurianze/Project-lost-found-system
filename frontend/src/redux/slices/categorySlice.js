@@ -43,8 +43,8 @@ export const deleteCategoryById = createAsyncThunk(
   'categories/delete',
   async (id, { rejectWithValue }) => {
     try {
-      await categoryService.deleteCategory(id);
-      return id;
+      const result = await categoryService.deleteCategory(id);
+      return { id, category: result.data || null, message: result.message || '' };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -102,7 +102,7 @@ const categorySlice = createSlice({
       })
       // Delete
       .addCase(deleteCategoryById.fulfilled, (state, action) => {
-        state.categories = state.categories.filter(c => c._id !== action.payload);
+        state.categories = state.categories.filter(c => c._id !== action.payload.id);
       });
   }
 });

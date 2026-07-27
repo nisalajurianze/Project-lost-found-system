@@ -3,83 +3,54 @@ import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
 import { deleteMultipleImages } from '../services/cloudinaryService.js';
+import { withJobLock } from '../services/jobLockService.js';
 
-/**
- * Cleanup function to remove images and detailed descriptions for items
- * that have been resolved (claimed or closed) for more than 7 days.
- */
-export const runCleanupTask = async () => {
-  try {
-    console.log('🧹 Running automated cleanup job for old resolved items...');
-    
-    // Calculate 3 days ago
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+const retentionDays = () => Math.min(3650, Math.max(7, Number(process.env.RESOLVED_RETENTION_DAYS || 30)));
 
-    // Filter for items to clean up
-    const query = {
-      status: { $in: ['claimed', 'closed'] },
-      resolvedAt: { $lte: threeDaysAgo },
-      isArchived: false,
-    };
-
-    // 1. Process Lost Items
-    const oldLostItems = await LostItem.find(query);
-    for (const item of oldLostItems) {
-      await processItemCleanup(item, LostItem);
+const cleanupModel = async (Model, statuses, cutoff, limit) => {
+  const items = await Model.find({
+    status: { $in: statuses },
+    resolvedAt: { $lte: cutoff },
+    isArchived: { $ne: true },
+  }).sort({ resolvedAt: 1 }).limit(limit);
+  let archived = 0;
+  let failed = 0;
+  for (const item of items) {
+    try {
+      await deleteMultipleImages(item.images || [], { strict: true });
+      const updated = await Model.updateOne(
+        { _id: item._id, isArchived: { $ne: true } },
+        { $set: { images: [], description: 'Resolved item details removed after the configured privacy-retention period.', isArchived: true } },
+      );
+      if (updated.modifiedCount) {
+        await ImageAnalysis.deleteMany({ itemId: item._id });
+        archived += 1;
+      }
+    } catch (error) {
+      failed += 1;
+      console.error('[cleanup] item retained for retry', { itemId: String(item._id), error: error.message });
     }
-
-    // 2. Process Found Items
-    const oldFoundItems = await FoundItem.find(query);
-    for (const item of oldFoundItems) {
-      await processItemCleanup(item, FoundItem);
-    }
-
-    console.log(`✅ Cleanup job finished. Archived ${oldLostItems.length} lost items and ${oldFoundItems.length} found items.`);
-  } catch (error) {
-    console.error('❌ Error during automated cleanup job:', error);
   }
+  return { archived, failed, scanned: items.length };
 };
 
-/**
- * Helper to process the cleanup for a single item.
- */
-const processItemCleanup = async (item, Model) => {
-  try {
-    // Delete images from Cloudinary
-    if (item.images && item.images.length > 0) {
-      const publicIds = item.images
-        .filter((img) => img.publicId)
-        .map((img) => ({ publicId: img.publicId }));
+const runCleanupTask = () => withJobLock('resolved-item-cleanup', 55 * 60 * 1000, async () => {
+  const days = retentionDays();
+  const cutoff = new Date(Date.now() - days * 86_400_000);
+  const batchLimit = Math.min(1000, Math.max(10, Number(process.env.CLEANUP_BATCH_LIMIT || 100)));
+  const [lost, found] = await Promise.all([
+    cleanupModel(LostItem, ['claimed', 'closed'], cutoff, batchLimit),
+    cleanupModel(FoundItem, ['claimed'], cutoff, batchLimit),
+  ]);
+  console.log('[cleanup] completed', { retentionDays: days, lost, found });
+  return { lost, found };
+});
 
-      if (publicIds.length > 0) {
-        await deleteMultipleImages(publicIds);
-      }
-    }
-
-    // Update item details
-    await Model.findByIdAndUpdate(item._id, {
-      $set: {
-        images: [],
-        description: 'Item resolved. Details and images automatically removed for privacy.',
-        isArchived: true,
-      }
-    });
-
-    // Optionally delete related AI analysis documents to save space
-    await ImageAnalysis.deleteMany({ itemId: item._id });
-  } catch (error) {
-    console.error(`Failed to cleanup item ${item._id}:`, error);
-  }
-};
-
-/**
- * Initialize and start the cron job.
- * Runs every day at midnight (0 0 * * *)
- */
-export const initCleanupJob = () => {
-  cron.schedule('0 0 * * *', () => {
-    runCleanupTask();
+const initCleanupJob = () => {
+  cron.schedule('15 0 * * *', () => runCleanupTask().catch((error) => console.error('[cleanup] failed', error.message)), {
+    timezone: process.env.JOB_TIMEZONE || 'Asia/Colombo',
   });
-  console.log('⏰ Cleanup job initialized. Will run daily at midnight.');
+  console.log('[cleanup] daily job scheduled.');
 };
+
+export { runCleanupTask, initCleanupJob };

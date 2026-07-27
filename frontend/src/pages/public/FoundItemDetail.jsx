@@ -18,6 +18,9 @@ import Textarea from '../../components/common/Textarea';
 import ImageUpload from '../../components/common/ImageUpload';
 import { getCategoryIcon, optimizeImageUrl } from '../../utils/helpers';
 import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
+import WorkflowTimeline from '../../components/common/WorkflowTimeline';
+import ItemEvidenceSummary from '../../components/common/ItemEvidenceSummary';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { FiArrowLeft, FiMapPin, FiClock, FiUser, FiMail, FiPhone, FiLock, FiAlertCircle, FiClipboard } from 'react-icons/fi';
 import useAuth from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -26,8 +29,9 @@ export const FoundItemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
-  
+
   const { currentItem, isLoading, error } = useSelector((state) => state.foundItems);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
   const [activeImage, setActiveImage] = useState('');
@@ -51,7 +55,7 @@ export const FoundItemDetail = () => {
 
   useEffect(() => {
     dispatch(fetchFoundItemById(id));
-    
+
     return () => {
       dispatch(clearCurrentFoundItem());
     };
@@ -75,13 +79,13 @@ export const FoundItemDetail = () => {
         <div className="max-w-md mx-auto text-center px-4">
           <div className="text-6xl text-primary-500 mb-4">🔍</div>
           <h2 className="text-2xl font-extrabold font-display text-surface-900 dark:text-white mb-2">
-            Found Listing Not Found
+            {t('detail.foundNotFound')}
           </h2>
           <p className="text-surface-500 dark:text-surface-400 mb-6">
-            The item listing you are looking for may have been claimed, returned, or deleted.
+            {t('detail.foundNotFoundDesc')}
           </p>
           <Button onClick={() => navigate('/found-items')} variant="primary" className="w-full">
-            Back to Directory
+            {t('detail.backDirectory')}
           </Button>
         </div>
       </div>
@@ -93,7 +97,7 @@ export const FoundItemDetail = () => {
   const isConnectedUser = currentItem.connectedUserId?.toString() === loggedInUserId?.toString();
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
-  
+
   // Can see contact if visibility is public, or if they are the finder, or connected, or item is fully resolved, or if contact was explicitly shared
   const canSeeContact = currentItem.contactVisibility === 'public' || isFinder || isConnectedUser || currentItem.status === 'claimed' || isContactShared;
 
@@ -102,11 +106,11 @@ export const FoundItemDetail = () => {
     <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="max-w-6xl mx-auto px-4">
         {/* Back navigation */}
-        <button
+        <button type="button"
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-sm font-semibold text-surface-500 dark:text-surface-400 hover:text-primary-500 dark:hover:text-primary-400 mb-6 transition-colors"
         >
-          <FiArrowLeft /> Back
+          <FiArrowLeft aria-hidden="true" /> {t('detail.back')}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -123,11 +127,11 @@ export const FoundItemDetail = () => {
                 <div className="w-full h-full flex flex-col items-center justify-center text-6xl bg-gradient-to-br from-primary-950/20 to-primary-950/5 text-primary-500/50">
                   {getCategoryIcon(currentItem.category)}
                   <span className="text-xs font-semibold uppercase tracking-wider text-surface-400 mt-3">
-                    No Image Provided
+                    {t('detail.noImage')}
                   </span>
                 </div>
               )}
-              
+
               <div className="absolute top-4 right-4">
                 <StatusBadge status={currentItem.status} />
               </div>
@@ -137,7 +141,7 @@ export const FoundItemDetail = () => {
             {hasImages && currentItem.images.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-surface-300 dark:scrollbar-thumb-surface-600">
                 {currentItem.images.map((img, index) => (
-                  <button
+                  <button type="button"
                     key={index}
                     onClick={() => setActiveImage(img.url)}
                     className={`relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-all p-1 bg-surface-100 dark:bg-surface-800 ${
@@ -166,64 +170,66 @@ export const FoundItemDetail = () => {
               <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-sm text-surface-500 dark:text-surface-400 pt-1">
                 <span className="flex items-center gap-1.5">
                   <FiClock className="flex-shrink-0" />
-                  Reported {formatRelativeTime(currentItem.createdAt)}
+                  {t('detail.reported', { time: formatRelativeTime(currentItem.createdAt) })}
                 </span>
                 <span>•</span>
-                <span>Found Date: {formatAbsoluteDate(currentItem.foundDate)}</span>
+                <span>{t('detail.foundDate', { date: formatAbsoluteDate(currentItem.foundDate) })}</span>
               </div>
             </div>
 
+            <WorkflowTimeline type="item" status={currentItem.status} />
+
             {/* Resolution Actions */}
-            <div className="p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="mobile-sticky-claim p-4 rounded-xl border bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <p className="text-sm font-extrabold text-surface-900 dark:text-white">
-                  {isHandoverInProgress ? 'Item Handover in Progress' : 'Is this your property?'}
+                  {isHandoverInProgress ? t('detail.handoverProgress') : t('detail.isYours')}
                 </p>
                 <p className="text-xs text-surface-500 dark:text-surface-400">
-                  {isHandoverInProgress 
-                    ? ((isFinder || isConnectedUser) ? 'Contact the other party to arrange a handover.' : 'This item is currently being handed over to its verified owner.') 
-                    : 'Connect with the finder to get your item back.'}
+                  {isHandoverInProgress
+                    ? ((isFinder || isConnectedUser) ? t('detail.arrangeHandover') : t('detail.handoverToVerifiedOwner'))
+                    : t('detail.connectFinder')}
                 </p>
               </div>
               <div>
                 {currentItem.status === 'claimed' ? (
                   <span className="text-xs font-bold text-surface-400 px-3 py-1.5 rounded-lg bg-surface-100 dark:bg-surface-800">
-                    Item Resolved
+                    {t('detail.itemResolved')}
                   </span>
                 ) : hasClaimedSession || hasExistingClaim ? (
                   <Button disabled variant="outline">
-                    Claim Pending Review
+                    {t('detail.claimPending')}
                   </Button>
                 ) : isHandoverInProgress && (isFinder || isConnectedUser) ? (
-                  <Button 
+                  <Button
                     onClick={async () => {
-                      const confirmMsg = isFinder 
-                        ? 'Have you verified the owner and physically handed over the item?' 
-                        : 'Have you physically received your item from the finder?';
+                      const confirmMsg = isFinder
+                        ? t('detail.confirmHandoverQuestion')
+                        : t('detail.confirmReceivedQuestion');
                       if (window.confirm(confirmMsg)) {
                         try {
                           await foundItemService.resolveFoundItem(currentItem._id);
                           dispatch(fetchFoundItemById(id));
-                          toast.success('Item successfully marked as resolved!');
+                          toast.success(t('detail.resolvedSuccess'));
                         } catch (err) {
-                          toast.error(err?.message || 'Failed to resolve item.');
+                          toast.error(t('detail.resolveError'));
                         }
                       }
-                    }} 
+                    }}
                     variant="primary"
                   >
-                    {isFinder ? 'Confirm Handover & Close' : 'Confirm Item Received'}
+                    {isFinder ? t('detail.confirmHandover') : t('detail.confirmReceived')}
                   </Button>
                 ) : isClaimable ? (
                   isAuthenticated ? (
                     <>
-                      <Button 
+                      <Button
                         onClick={() => setIsClaimModalOpen(true)}
                         variant="primary"
                       >
-                        This is mine
+                        {t('detail.thisMine')}
                       </Button>
-                      <ClaimModal 
+                      <ClaimModal
                         isOpen={isClaimModalOpen}
                         onClose={(isSuccess) => {
                           setIsClaimModalOpen(false);
@@ -232,11 +238,12 @@ export const FoundItemDetail = () => {
                         targetItemId={currentItem._id}
                         itemType="FoundItem"
                         itemName={currentItem.itemName}
+                        itemCategory={typeof currentItem.category === 'string' ? currentItem.category : currentItem.category?.name}
                       />
                     </>
                   ) : (
                     <Link to="/login">
-                      <Button variant="primary">Log In to Connect</Button>
+                      <Button variant="primary">{t('detail.loginConnect')}</Button>
                     </Link>
                   )
                 ) : null}
@@ -246,12 +253,14 @@ export const FoundItemDetail = () => {
             {/* Description Card */}
             <div className="glass-card p-6 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900/50 shadow-sm rounded-xl">
               <h3 className="text-sm font-bold uppercase tracking-wider text-surface-400 mb-2">
-                Description & Found Details
+                {t('detail.foundDetails')}
               </h3>
               <p className="text-surface-700 dark:text-surface-300 text-sm leading-relaxed whitespace-pre-line">
                 {currentItem.description}
               </p>
             </div>
+
+            <ItemEvidenceSummary item={currentItem} />
 
             {/* Location & Tags details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -262,14 +271,14 @@ export const FoundItemDetail = () => {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-surface-400">
-                    Found Location
+                    {t('detail.foundLocation')}
                   </h4>
                   <p className="text-surface-800 dark:text-surface-200 text-sm font-medium mt-1 leading-snug">
                     {currentItem.foundLocation}
                   </p>
                   {currentItem.storedAt && (
                     <p className="text-xs text-surface-500 dark:text-surface-400 mt-1.5 font-medium">
-                      Stored at: {currentItem.storedAt}
+                      {t('detail.storedAt', { place: currentItem.storedAt })}
                     </p>
                   )}
                 </div>
@@ -279,7 +288,7 @@ export const FoundItemDetail = () => {
               {currentItem.tags && currentItem.tags.length > 0 && (
                 <div className="glass-card p-5 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900/50 shadow-sm rounded-xl">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-surface-400 mb-2.5">
-                    Keywords / Tags
+                    {t('detail.keywords')}
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {currentItem.tags.map((tag, idx) => (
@@ -298,21 +307,18 @@ export const FoundItemDetail = () => {
             {/* Contact Details */}
             <div className="glass-card p-6 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900/50 shadow-sm rounded-xl">
               <h3 className="text-sm font-bold uppercase tracking-wider text-surface-400 mb-4">
-                Finder Contact Details
+                {t('detail.finderContact')}
               </h3>
 
               {canSeeContact ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                     {currentItem.userId?.profileImage?.url ? (
-                      <img 
-                        src={currentItem.userId.profileImage.url} 
-                        alt={currentItem.userId.fullName || 'Finder'} 
+                      <img
+                        src={currentItem.userId.profileImage.url}
+                        alt={currentItem.userId.fullName || t('detail.finder')}
                         className="w-10 h-10 rounded-full object-cover border border-surface-200 dark:border-surface-700 flex-shrink-0"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentItem.userId.fullName || 'Finder')}&background=random`;
-                        }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-surface-100 dark:bg-surface-800 flex items-center justify-center flex-shrink-0 border border-surface-200 dark:border-surface-700">
@@ -320,9 +326,9 @@ export const FoundItemDetail = () => {
                       </div>
                     )}
                     <div>
-                      <p className="text-xs text-surface-400 font-medium">Found By</p>
+                      <p className="text-xs text-surface-400 font-medium">{t('detail.foundBy')}</p>
                       <p className="font-semibold text-surface-800 dark:text-surface-200">
-                        {currentItem.userId?.fullName || 'Anonymous Finder'}
+                        {currentItem.userId?.fullName || t('detail.anonymousFinder')}
                       </p>
                     </div>
                   </div>
@@ -332,7 +338,7 @@ export const FoundItemDetail = () => {
                     <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                       <FiMail className="text-surface-400 text-lg flex-shrink-0" />
                       <div>
-                        <p className="text-xs text-surface-400 font-medium">Email Address</p>
+                        <p className="text-xs text-surface-400 font-medium">{t('detail.email')}</p>
                         <a
                           href={`mailto:${currentItem.userId.email}`}
                           className="font-semibold text-primary-500 hover:underline"
@@ -348,7 +354,7 @@ export const FoundItemDetail = () => {
                     <div className="flex items-center gap-3.5 text-sm text-surface-700 dark:text-surface-300">
                       <FiPhone className="text-surface-400 text-lg flex-shrink-0" />
                       <div>
-                        <p className="text-xs text-surface-400 font-medium">Phone Number</p>
+                        <p className="text-xs text-surface-400 font-medium">{t('detail.phone')}</p>
                         <a
                           href={`tel:${currentItem.userId.phone}`}
                           className="font-semibold text-primary-500 hover:underline"
@@ -366,20 +372,20 @@ export const FoundItemDetail = () => {
                   </div>
                   <div className="max-w-xs mx-auto">
                     <p className="text-sm font-semibold text-surface-800 dark:text-surface-200">
-                      Finder info is protected
+                      {t('detail.finderProtected')}
                     </p>
                     <p className="text-xs text-surface-500 dark:text-surface-400 mt-1">
-                      {isAuthenticated 
-                        ? (hasClaimedSession || hasExistingClaim 
-                            ? "You have submitted a claim. Please check 'My Claims' in your dashboard to view shared contacts or status updates." 
-                            : "You must click 'This is mine' to exchange contact details.") 
-                        : "Please log in to connect and view contact details."}
+                      {isAuthenticated
+                        ? (hasClaimedSession || hasExistingClaim
+                            ? t('detail.claimSubmitted')
+                            : t('detail.clickMine'))
+                        : t('detail.loginProtected')}
                     </p>
                   </div>
                   <div className="pt-2">
                     {!isAuthenticated && (
                       <Button variant="primary" size="sm" className="px-6">
-                        Log In to Contact Finder
+                        {t('detail.loginFinder')}
                       </Button>
                     )}
                   </div>
@@ -396,4 +402,4 @@ export const FoundItemDetail = () => {
 };
 
 export default FoundItemDetail;
-// 
+//

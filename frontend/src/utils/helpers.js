@@ -34,7 +34,7 @@ export const getStatusBadgeClass = (status) => {
       return 'badge-success'; // green
     case 'closed':
       return 'badge-neutral'; // grey
-    
+
     // Found Item statuses
     case 'available':
       return 'badge-success'; // green
@@ -46,7 +46,7 @@ export const getStatusBadgeClass = (status) => {
       return 'badge-danger';
     case 'in_progress':
       return 'badge-warning'; // yellow
-    
+
     default:
       return 'badge-neutral';
   }
@@ -109,13 +109,13 @@ export const getConfidenceLabel = (score) => {
 export const optimizeImageUrl = (url, width = 800) => {
   if (!url) return null;
   const secureUrl = url.replace(/^http:\/\//i, 'https://');
-  
+
   // Apply Cloudinary optimizations only if it's a Cloudinary URL and doesn't already have them
   if (secureUrl.includes('res.cloudinary.com') && secureUrl.includes('/upload/')) {
     if (!secureUrl.includes('/upload/f_auto')) {
       return secureUrl.replace('/upload/', `/upload/f_auto,q_auto,w_${width},c_limit/`);
     }
   }
-  
+
   return secureUrl;
 };

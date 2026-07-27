@@ -58,7 +58,7 @@ const getFeedback = asyncHandler(async (req, res) => {
  */
 const respondToFeedback = asyncHandler(async (req, res) => {
   const { adminResponse, status } = req.body;
-  
+
   const feedback = await Feedback.findById(req.params.id);
   if (!feedback) {
     throw ApiError.notFound('Feedback item not found.');
@@ -67,7 +67,7 @@ const respondToFeedback = asyncHandler(async (req, res) => {
   if (adminResponse !== undefined) {
     feedback.adminResponse = adminResponse;
   }
-  
+
   feedback.status = status || 'reviewed';
   await feedback.save();
 

@@ -1,383 +1,195 @@
 import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
+import ClaimRequest from '../models/ClaimRequest.js';
+import Match from '../models/Match.js';
+import Notification from '../models/Notification.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { parseJSONResponse } from '../services/imageAnalysisService.js';
+import {
+  detectLanguage,
+  expandKeywords,
+  inferIntent,
+  isPersonalQuery,
+  normalizeText,
+  resolveSearchMessage,
+  scoreCandidate,
+} from '../services/chatSearchService.js';
+import { buildConversationalReportDraft } from '../services/conversationalReportService.js';
 
-/**
- * Handle AI Chat queries
- * User asks a question, AI translates to a search, we query DB, AI formats answer.
- */
+const DEFAULT_PAGE_SIZE = 6;
+const MAX_PAGE_SIZE = 12;
+const MAX_CANDIDATES_PER_MODEL = 120;
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const copy = {
+  en: {
+    greeting: 'I can search lost and found reports, explain likely matches, help you start a report, and show your account activity after you sign in.',
+    ask: 'Please add an item name, colour, brand, category, or location so I can search accurately.',
+    none: 'I could not find a close public report yet. Try another detail or create a report so the matching service can keep checking.',
+    results: (count) => `${count} relevant public report${count === 1 ? '' : 's'} found. Best matches are shown first.`,
+    signIn: 'Please sign in to view your reports, claims, matches, and unread notifications.',
+    personal: 'Here is your current Smart L&F activity.',
+  },
+  si: {
+    greeting: 'මට lost සහ found reports සොයන්න, match එකක් ගැලපෙන්නේ ඇයි කියලා පැහැදිලි කරන්න, report එකක් පටන්ගන්න සහ sign in වුණාම ඔබගේ activity පෙන්වන්න පුළුවන්.',
+    ask: 'නිවැරදිව සොයන්න භාණ්ඩයේ නම, පාට, brand එක, category එක හෝ ස්ථානයක් දෙන්න.',
+    none: 'ගැලපෙන public report එකක් තවම හමු වුණේ නැහැ. වෙනත් විස්තරයක් දෙන්න හෝ matching service එක දිගටම බලන්න report එකක් සාදන්න.',
+    results: (count) => `ගැලපෙන public reports ${count}ක් හමු වුණා. හොඳම results මුලින් පෙන්වනවා.`,
+    signIn: 'ඔබගේ reports, claims, matches සහ unread notifications බලන්න sign in වෙන්න.',
+    personal: 'ඔබගේ Smart L&F activity එක මෙන්න.',
+  },
+  ta: {
+    greeting: 'காணாமல் போன மற்றும் கண்டெடுக்கப்பட்ட பதிவுகளை தேடவும், பொருத்தம் ஏன் பரிந்துரைக்கப்பட்டது என்பதை விளக்கவும், புதிய பதிவை தொடங்கவும், உள்நுழைந்த பின் உங்கள் செயல்பாட்டை காட்டவும் முடியும்.',
+    ask: 'துல்லியமாக தேட பொருளின் பெயர், நிறம், brand, category அல்லது இடத்தைச் சேர்க்கவும்.',
+    none: 'நெருக்கமான பொது பதிவு இன்னும் கிடைக்கவில்லை. வேறு விவரத்தை முயற்சிக்கவும் அல்லது தொடர்ந்த matching காக புதிய report உருவாக்கவும்.',
+    results: (count) => `தொடர்புடைய பொது பதிவுகள் ${count} கிடைத்தன. சிறந்த பொருத்தங்கள் முதலில் காட்டப்படுகின்றன.`,
+    signIn: 'உங்கள் reports, claims, matches மற்றும் unread notifications பார்க்க sign in செய்யவும்.',
+    personal: 'உங்கள் தற்போதைய Smart L&F activity இதோ.',
+  },
+};
+
+const t = (language, key, ...args) => {
+  const value = copy[language]?.[key] ?? copy.en[key];
+  return typeof value === 'function' ? value(...args) : value;
+};
+
+const publicItem = (item, itemType, scored) => ({
+  _id: item._id,
+  itemType,
+  itemName: item.itemName,
+  category: item.category,
+  description: String(item.description || '').slice(0, 260),
+  location: item.lostLocation || item.foundLocation || '',
+  date: item.lostDate || item.foundDate || item.createdAt,
+  image: item.images?.[0]?.url || '',
+  status: item.status,
+  relevanceScore: scored.score,
+  confidence: scored.confidence,
+  reasons: scored.reasons,
+  url: itemType === 'FoundItem' ? `/found-items/${item._id}` : `/lost-items/${item._id}`,
+});
+
+const candidateQuery = (statuses, terms) => {
+  const fields = ['itemName', 'category', 'description', 'tags', 'aiKeywords', 'lostLocation', 'foundLocation'];
+  const clauses = [];
+  for (const term of terms.slice(0, 24)) {
+    const regex = new RegExp(escapeRegex(term), 'i');
+    for (const field of fields) clauses.push({ [field]: regex });
+  }
+  return {
+    status: { $in: statuses },
+    isDeleted: { $ne: true },
+    isArchived: { $ne: true },
+    ...(clauses.length ? { $or: clauses } : {}),
+  };
+};
+
+const searchModel = async (Model, itemType, statuses, searchMessage, terms) => {
+  const candidates = await Model.find(candidateQuery(statuses, terms))
+    .select('itemName category description lostLocation foundLocation lostDate foundDate images status createdAt tags aiKeywords')
+    .sort({ createdAt: -1 })
+    .limit(MAX_CANDIDATES_PER_MODEL)
+    .lean();
+
+  return candidates
+    .map((item) => ({ item, scored: scoreCandidate(item, searchMessage, terms) }))
+    .filter(({ scored }) => scored.score >= 18)
+    .map(({ item, scored }) => publicItem(item, itemType, scored));
+};
+
+const personalSummary = async (userId) => {
+  const [lostReports, foundReports, pendingClaims, totalClaims, suggestedMatches, unreadNotifications] = await Promise.all([
+    LostItem.countDocuments({ userId, isArchived: { $ne: true } }),
+    FoundItem.countDocuments({ userId, isArchived: { $ne: true } }),
+    ClaimRequest.countDocuments({ claimantId: userId, status: 'pending' }),
+    ClaimRequest.countDocuments({ claimantId: userId }),
+    Match.countDocuments({ $or: [{ lostUserId: userId }, { foundUserId: userId }], status: 'suggested' }),
+    Notification.countDocuments({ userId, isRead: false }),
+  ]);
+  return { lostReports, foundReports, pendingClaims, totalClaims, suggestedMatches, unreadNotifications };
+};
+
 export const handleAIChat = asyncHandler(async (req, res) => {
-  const { message, history = [] } = req.body;
-  if (!message) return ApiResponse.ok({ text: "Please say something!" }).send(res);
-  if (typeof message !== 'string' || message.length > 500) {
-    return ApiResponse.ok({ text: "Please keep your message under 500 characters." }).send(res);
-  }
+  const incoming = String(req.body?.message || '').normalize('NFKC').trim();
+  const history = Array.isArray(req.body?.history) ? req.body.history.slice(-10) : [];
+  if (!incoming) return ApiResponse.ok({ text: 'Please say something.', quickReplies: ['Lost an item', 'Found an item'], items: [] }).send(res);
+  if (incoming.length > 500) return ApiResponse.ok({ text: 'Please keep the message under 500 characters.', quickReplies: [], items: [] }).send(res);
 
-  let userContextText = "";
-  if (req.user?._id) {
-    try {
-      // Fetch user's recently reported items to provide context to the AI
-      const lostItems = await LostItem.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(2).lean();
-      const foundItems = await FoundItem.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(2).lean();
-      
-      const pastItems = [];
-      lostItems.forEach(item => pastItems.push(`Lost: ${item.itemName} (${item.status})`));
-      foundItems.forEach(item => pastItems.push(`Found: ${item.itemName} (${item.status})`));
-      
-      userContextText = `User Context:\nYou are talking to: ${req.user.fullName}\n`;
-      if (pastItems.length > 0) {
-        userContextText += `CRITICAL USER CONTEXT: They recently reported these items to the system: ${pastItems.join(', ')}.\nIf they say "my item" or "my lap", strongly assume they are talking about one of these items. Address them by name occasionally to feel friendly.\n\n`;
-      } else {
-        userContextText += `They haven't reported any items yet.\n\n`;
-      }
-    } catch (err) {
-      console.error("Error fetching user context:", err);
-    }
-  }
-
-  const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY;
-  const PRIMARY_KEY = process.env.AI_API_KEY || OPENROUTER_KEY;
-
-  if (!PRIMARY_KEY || PRIMARY_KEY === 'your_openrouter_api_key') {
-    return ApiResponse.ok({ text: "AI is currently unavailable. Please use the manual search." }).send(res);
-  }
-
-  // Format history for the prompt
-  const safeHistory = Array.isArray(history) ? history.slice(-8) : [];
-  const historyText = safeHistory.length > 0
-    ? "Conversation History:\n" + safeHistory.map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${String(m.content || '').slice(0, 500)}`).join('\n') + "\n\n"
-    : "";
-
-  // Helper to safely parse JSON and ignore <think> tags from DeepSeek R1 reasoning models
-  const parseJSONResponse = (text) => {
-    try {
-      let cleanText = text;
-      
-      // Remove thought process up to the last known think end token
-      const altThinkToken = cleanText.lastIndexOf('<｜end▁of▁thinking｜>');
-      if (altThinkToken !== -1) {
-        cleanText = cleanText.substring(altThinkToken + 19);
-      } else {
-        const lastThinkToken = cleanText.lastIndexOf('</think>');
-        if (lastThinkToken !== -1) {
-          cleanText = cleanText.substring(lastThinkToken + 8);
-        }
-      }
-      
-      // Also try to find markdown json block first
-      const mdMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (mdMatch) {
-        const jsonStr = mdMatch[1].replace(/,\s*([}\]])/g, '$1');
-        return JSON.parse(jsonStr);
-      }
-
-      const match = cleanText.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error('No JSON object found');
-      const jsonStr = match[0].replace(/,\s*([}\]])/g, '$1'); // Fix trailing commas
-      return JSON.parse(jsonStr);
-    } catch (e) {
-      throw new Error('Invalid JSON');
-    }
-  };
-
-  // Helper to make AI calls with robust multi-model and multi-key fallback to ensure it never fails
-  const fetchFromAI = async (prompt, format = null) => {
-    const primaryUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
-    
-    const isOpencode = primaryUrl.includes('opencode');
-    
-    const openRouterModels = [
-      process.env.AI_CHAT_MODEL || 'openrouter/free',
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'google/gemma-4-31b-it:free',
-      'qwen/qwen3-coder:free',
-      'openai/gpt-oss-120b:free'
-    ];
-    
-    const opencodeModels = [
-      process.env.AI_CHAT_MODEL || 'deepseek-v4-flash-free',
-      'mimo-v2.5-free',
-      'nemotron-3-ultra-free',
-      'north-mini-code-free',
-      'big-pickle'
-    ];
-    
-    const modelsToTry = isOpencode ? opencodeModels : openRouterModels;
-
-    // Support multiple API keys separated by commas for load balancing / fallback
-    const apiKeys = PRIMARY_KEY.split(',').map(k => k.trim()).filter(k => k);
-
-    let lastError = null;
-
-    // Outer loop: Try each API key
-    for (const key of apiKeys) {
-      // Inner loop: Try each model with the current key
-      for (const model of modelsToTry) {
-        const reqBody = {
-          model: model,
-          messages: [{ role: 'user', content: prompt }]
-        };
-        if (format) reqBody.response_format = format;
-
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
-
-          const res = await fetch(primaryUrl, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json', 
-              'Authorization': `Bearer ${key}`,
-              'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:3000',
-              'X-Title': 'Smart Lost and Found'
-            },
-            body: JSON.stringify(reqBody),
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (res.ok) {
-            const text = await res.text();
-            try { 
-              return parseJSONResponse(text); 
-            } catch (e) { 
-              console.warn(`⚠️ Model ${model} returned invalid JSON with key ${key.substring(0, 8)}...`);
-              continue; // Invalid JSON? Try the next model!
-            }
-          }
-          
-          // If it's a 429 Rate Limit or 5xx Server Error, log it and try the next model
-          const status = res.status;
-          const errText = await res.text();
-          console.warn(`⚠️ Model ${model} failed with ${status} using key ${key.substring(0, 8)}...`);
-          lastError = `Status ${status} on ${model} (Key ending in ${key.slice(-4)})`;
-          
-        } catch (err) {
-          console.warn(`⚠️ Fetch failed for ${model}: ${err.message}`);
-          lastError = err.message;
-        }
-      }
-    }
-    
-    throw new Error(`All AI models and API keys failed or rate-limited. Last error: ${lastError}`);
-  };
-
-  // 1. Analyze the user's intent and extract search keywords
-  const extractionPrompt = `You are 'Smart L&F AI', an incredibly intelligent, highly perceptive, and empathetic autonomous agent for a Lost and Found system in Sri Lanka. You possess advanced deductive reasoning and act like a brilliant human assistant, not just a bot.
-${userContextText}${historyText}The user just said: "${message}"
-
-CRITICAL LANGUAGE RULE: 
-- If the user types a simple English greeting like "hi", "hello", "hey", or converses in English, you MUST reply entirely in English. DO NOT ask annoying or overly complex questions if they just say "hi"; just say a warm, brief hello and ask how you can help.
-- If the user types in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe", "kohomada"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters (e.g., "Ah, hari! Api poddak balamu eka meke thiyenawada kiyala", "Oya kiyana item eka nam labune na thama"). NEVER use the Sinhala alphabet script (අකුරු) for these users. Do not use overly formal words.
-- If they type in Tamil, reply in Tamil.
-- If they type in Sinhala script (අකුරු), reply in Sinhala script.
-- MATCH THEIR LANGUAGE EXACTLY.
-
-Determine their intent based on the context:
-- "lost": They lost a specific item and want to search for it (e.g., "ape lap eka nathi una", "mage purse eka naha").
-- "found": They found a specific item and want to search if someone reported it.
-- "list_found": They want to see a general list of ALL currently found items.
-- "list_lost": They want to see a general list of ALL currently lost items.
-- "general": They are just saying hi, asking a general question, or making small talk.
-
-Extract search keywords in English (e.g., color, brand, object type) ONLY if intent is 'lost' or 'found'. 
-CRITICAL: Translate colloquial/slang terms to proper English object names. For example, if they say "lap", the keyword MUST be "laptop".
-Look at the Conversation History to find missing context. Auto-correct spelling mistakes in keywords (e.g. "camra" -> "camera"). If they say "black phone", keywords should be ["black", "phone"].
-
-Return ONLY a valid JSON object exactly like this:
-{
-  "intent": "lost" | "found" | "list_found" | "list_lost" | "general",
-  "keywords": ["array", "of", "english", "keywords"],
-  "responseIfGeneral": "If intent is 'general', write a natural, friendly reply. If they just said 'hi', give a simple short greeting without asking annoying questions. MUST follow the CRITICAL LANGUAGE RULE.",
-  "responseIfMissingKeywords": "If intent is 'lost' or 'found' but you cannot extract ANY keywords, ask them what exactly they lost/found. MUST follow the CRITICAL LANGUAGE RULE.",
-  "responseIfNotFound": "If intent is 'lost' or 'found', draft a short response saying you couldn't find the item and they should report it using the provided Markdown link [Report Item](/dashboard/report-lost or found). MUST follow the CRITICAL LANGUAGE RULE.",
-  "quickReplies": ["Provide 2 to 3 examples of what the USER might reply. For example, if you ask 'What color?', suggest 'Black', 'Silver', 'White'. NEVER put a question mark '?' in quick replies. These are buttons the user clicks to reply to YOU."]
-}`;
-
-  let extractData;
-  try {
-    extractData = await fetchFromAI(extractionPrompt, { type: 'json_object' });
-  } catch (err) {
-    return ApiResponse.ok({ text: `[System Error: API Connection Failed] ${err.message}` }).send(res);
-  }
-
-  const extractContent = extractData?.choices?.[0]?.message?.content;
-  
-  if (!extractContent) {
-    console.error('Opencode returned an unexpected format:', JSON.stringify(extractData));
-    return ApiResponse.ok({ text: `[System Error: API Connection Failed] Unexpected API response format. Check server logs.` }).send(res);
-  }
-
-  let analysis;
-  try {
-    analysis = parseJSONResponse(extractContent);
-  } catch (err) {
-    console.error('Failed to parse inner JSON content:', extractContent);
-    // Graceful fallback: If AI completely ignored the JSON instruction and just replied naturally, 
-    // we use its raw text as a general response instead of throwing an error!
-    analysis = {
-       intent: 'general',
-       responseIfGeneral: extractContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(),
-       quickReplies: ["I lost something", "I found something"]
-    };
-  }
-
-  if (!analysis) {
-    return ApiResponse.ok({ text: `I'm having trouble understanding. Could you rephrase?` }).send(res);
-  }
-
-  // Handle general chat immediately
-  if (analysis.intent === 'general') {
-    return ApiResponse.ok({ 
-      text: analysis.responseIfGeneral || "How can I help you find or report an item today?",
-      quickReplies: analysis.quickReplies || ["I lost something", "I found something"]
+  const language = detectLanguage(incoming);
+  const greetingOnly = /^(hi|hello|hey|ආයුබෝවන්|வணக்கம்)[!.\s]*$/iu.test(incoming);
+  if (greetingOnly) {
+    return ApiResponse.ok({
+      text: t(language, 'greeting'), language, quickReplies: ['Lost a black phone', 'Found a wallet', 'My reports'], items: [],
+      actions: [{ type: 'report_lost', label: 'Report lost item', url: '/dashboard/report-lost' }, { type: 'report_found', label: 'Report found item', url: '/dashboard/report-found' }],
     }).send(res);
   }
 
-  // Handle generic listings
-  if (analysis.intent === 'list_found' || analysis.intent === 'list_lost') {
-    const targetModel = analysis.intent === 'list_found' ? FoundItem : LostItem;
-    const statusFilter = analysis.intent === 'list_found' ? { $in: ['available'] } : { $in: ['pending'] };
-    const dbItems = await targetModel.find({ status: statusFilter }).sort({ createdAt: -1 }).limit(10).lean();
-
-    if (dbItems.length === 0) {
-      return ApiResponse.ok({ 
-        text: analysis.responseIfNotFound || `No items currently reported. You can report one here:\n\n[Report a ${analysis.intent === 'list_found' ? 'Found' : 'Lost'} Item](/dashboard/report-${analysis.intent === 'list_found' ? 'found' : 'lost'})`,
-        quickReplies: analysis.quickReplies || ["Report an item", "Go to Home"]
-      }).send(res);
+  if (isPersonalQuery(incoming)) {
+    if (!req.user?._id) {
+      return ApiResponse.ok({ text: t(language, 'signIn'), language, quickReplies: [], items: [], actions: [{ type: 'sign_in', label: 'Sign in', url: '/login' }] }).send(res);
     }
-
-    const linkPrefix = analysis.intent === 'list_found' ? '/found-items' : '/lost-items';
-    const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id})`).join('\n');
-    
-    const replyPrompt = `You are a super friendly Lost & Found AI.
-${userContextText}${historyText}The user wants to see a list of ${analysis.intent === 'list_found' ? 'found' : 'lost'} items. We retrieved these recent items from the DB:
-${itemSummary}
-
-CRITICAL LANGUAGE RULE: 
-- If the user types a simple English greeting like "hi", "hello", "hey", or converses in English, you MUST reply entirely in English.
-- If the user types in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters.
-- If they type in Tamil, reply in Tamil.
-- If they type in Sinhala script (අකුරු), reply in Sinhala script.
-- MATCH THEIR LANGUAGE EXACTLY.
-
-Return ONLY a valid JSON object:
-{
-  "text": "CRITICAL: Draft a natural, conversational reply presenting this list following the CRITICAL LANGUAGE RULE. Use emojis. Include the exact markdown links.",
-  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words) from the USER'S perspective (e.g., 'Search again', 'Go to Home'). DO NOT suggest questions."]
-}`;
-
-    let replyData;
-    try {
-      replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
-    } catch (err) {
-      console.error('Third fetchFromAI failed:', err.message);
-    }
-    
-    let replyJson = null;
-    try {
-      const content = replyData?.choices?.[0]?.message?.content;
-      if (content) {
-        replyJson = parseJSONResponse(content);
-      }
-    } catch (err) {
-      console.error('Failed to parse third AI response:', err.message);
-    }
-    const finalReply = replyJson?.text || "Here are the recent items:\n" + itemSummary;
-    const quickReplies = replyJson?.quickReplies || ["Search again", "Report an item"];
-    return ApiResponse.ok({ text: finalReply, quickReplies, items: dbItems }).send(res);
-  }
-
-  // Handle specific searches (lost / found)
-  if (!analysis.keywords || analysis.keywords.length === 0) {
-    return ApiResponse.ok({ 
-      text: analysis.responseIfMissingKeywords || "Please specify what exactly you lost or found.",
-      quickReplies: ["I lost a phone", "I found a wallet", "Cancel"]
+    const summary = await personalSummary(req.user._id);
+    return ApiResponse.ok({
+      text: t(language, 'personal'), language, personalSummary: summary, items: [], quickReplies: ['Search for an item'],
+      actions: [
+        { type: 'reports', label: 'My lost reports', url: '/dashboard/my-lost' },
+        { type: 'claims', label: 'My claims', url: '/dashboard/claims' },
+        { type: 'matches', label: 'My matches', url: '/dashboard/my-matches' },
+        { type: 'notifications', label: 'Notifications', url: '/dashboard/notifications' },
+      ],
     }).send(res);
   }
 
-  const targetModel = analysis.intent === 'lost' ? FoundItem : LostItem;
-  const statusFilter = analysis.intent === 'lost' ? { $in: ['available', 'matched'] } : { $in: ['pending', 'matched'] };
+  const searchMessage = resolveSearchMessage(incoming, history);
+  const terms = expandKeywords(searchMessage);
+  if (!terms.length) {
+    return ApiResponse.ok({ text: t(language, 'ask'), language, quickReplies: ['Black phone', 'Blue wallet', 'Laptop near library'], items: [] }).send(res);
+  }
 
-  // Escape regex characters
-  const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regexPatterns = analysis.keywords.map(kw => new RegExp(escapeRegex(kw), 'i'));
-  
-  // Require ALL keywords to match somewhere in the item document for better precision
-  const keywordQueries = regexPatterns.map(regex => ({
-    $or: [
-      { itemName: regex },
-      { description: regex },
-      { tags: regex },
-      { category: regex },
-      { foundLocation: regex },
-      { lostLocation: regex }
-    ]
-  }));
+  const requestedPage = Number.parseInt(req.body?.page, 10);
+  const requestedPageSize = Number.parseInt(req.body?.pageSize, 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageSize = Math.min(MAX_PAGE_SIZE, Number.isFinite(requestedPageSize) && requestedPageSize > 0 ? requestedPageSize : DEFAULT_PAGE_SIZE);
+  const intent = inferIntent(searchMessage);
+  const reportDraft = buildConversationalReportDraft({ message: searchMessage, intent });
 
-  const dbItems = await targetModel.find({
-    status: statusFilter,
-    $and: keywordQueries
-  }).sort({ createdAt: -1 }).limit(10).lean();
+  let ranked;
+  if (intent === 'lost') {
+    ranked = await searchModel(FoundItem, 'FoundItem', ['available', 'matched'], searchMessage, terms);
+  } else if (intent === 'found') {
+    ranked = await searchModel(LostItem, 'LostItem', ['pending', 'matched'], searchMessage, terms);
+  } else {
+    const [found, lost] = await Promise.all([
+      searchModel(FoundItem, 'FoundItem', ['available', 'matched'], searchMessage, terms),
+      searchModel(LostItem, 'LostItem', ['pending', 'matched'], searchMessage, terms),
+    ]);
+    ranked = [...found, ...lost];
+  }
 
-  if (dbItems.length === 0) {
-    return ApiResponse.ok({ 
-      text: analysis.responseIfNotFound || `I couldn't find that item. Please report it:\n\n[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})`,
-      quickReplies: analysis.quickReplies || [`Report ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item`, "Try another search"]
+  ranked.sort((left, right) => right.relevanceScore - left.relevanceScore || new Date(right.date) - new Date(left.date));
+  const total = ranked.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const items = ranked.slice(start, start + pageSize);
+
+  if (!total) {
+    return ApiResponse.ok({
+      text: t(language, 'none'), language, intent, query: { message: searchMessage, terms, page: 1, pageSize },
+      total: 0, totalPages: 0, hasMore: false, quickReplies: ['Try another search'], items: [],
+      actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
+      reportDraft,
+      meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
     }).send(res);
   }
 
-  // 3. Let AI format the final response
-  const linkPrefix = analysis.intent === 'lost' ? '/found-items' : '/lost-items';
-  const itemSummary = dbItems.map(item => `- [${item.itemName}](${linkPrefix}/${item._id}) (Location: ${item.lostLocation || item.foundLocation})`).join('\n');
-  
-  const replyPrompt = `You are 'Smart L&F AI', an incredibly intelligent, perceptive, and highly empathetic autonomous agent. You possess advanced deductive reasoning and act like a brilliant human assistant.
-${userContextText}${historyText}The user searched for: "${message}".
-We found these matches in the DB:
-${itemSummary}
-
-IMPORTANT RULES:
-1. YOU MUST PRIORITIZE SHOWING THE DB MATCHES. If the items provided above are even slightly relevant (e.g., they are looking for a "laptop" and there are laptops in the list), YOU MUST INCLUDE THEM in your reply. Do not just ask questions and ignore the list. Include the EXACT markdown links provided in the list.
-2. If the user's initial description was vague (e.g., they just said "lap eka nathi una" or "laptop"), FIRST show the matches from the list above, AND THEN ask a context-specific follow-up question to narrow it down (e.g., "What brand was the laptop? Did it have any stickers?").
-3. If NONE of the matches are even remotely relevant, DO NOT list them. Instead, express genuine empathy that you couldn't find it, and ask follow-up questions to clarify.
-4. If you didn't find the item, give them this EXACT Markdown link to report it: "[Report a ${analysis.intent === 'lost' ? 'Lost' : 'Found'} Item](/dashboard/report-${analysis.intent})"
-5. Show empathy. If they lost something, briefly acknowledge the stress of losing it. If they found something, praise them for their honesty. This makes you feel human and incredibly intelligent.
-
-CRITICAL LANGUAGE RULE: 
-- If the user types a simple English greeting like "hi", "hello", "hey", or converses in English, you MUST reply entirely in English.
-- If the user types in Singlish (Sinhala words written in English letters, e.g., "mage phone eka nathi una", "koheda thibbe"), you MUST reply in natural, friendly, colloquial Sri Lankan Singlish using English letters.
-- If they type in Tamil, reply in Tamil.
-- If they type in Sinhala script (අකුරු), reply in Sinhala script.
-- MATCH THEIR LANGUAGE EXACTLY.
-
-Return ONLY a valid JSON object:
-{
-  "text": "CRITICAL: Draft a friendly, natural reply following the CRITICAL LANGUAGE RULE. If there are relevant items, include their markdown links exactly as provided. Use emojis!",
-  "quickReplies": ["Suggest 2 or 3 short follow-up actions (max 4 words) from the USER'S perspective (e.g., 'Search again', 'Report item'). DO NOT suggest questions."]
-}`;
-
-  let replyData;
-  try {
-    replyData = await fetchFromAI(replyPrompt, { type: 'json_object' });
-  } catch (err) {
-    console.error('Second fetchFromAI failed:', err.message);
-  }
-
-  let replyJson = null;
-  try {
-    const content = replyData?.choices?.[0]?.message?.content;
-    if (content) {
-      replyJson = parseJSONResponse(content);
-    }
-  } catch (err) {
-    console.error('Failed to parse second AI response:', err.message);
-  }
-  
-  const finalReply = replyJson?.text || "Here are some matches I found:\n" + itemSummary;
-  const quickReplies = replyJson?.quickReplies || ["Search again", "Report item"];
-
-  return ApiResponse.ok({ text: finalReply, quickReplies, items: dbItems }).send(res);
+  return ApiResponse.ok({
+    text: t(language, 'results', total), language, intent,
+    query: { message: searchMessage, terms, page: safePage, pageSize },
+    total, page: safePage, pageSize, totalPages, hasMore: safePage < totalPages,
+    items, quickReplies: ['Refine search'],
+    reportDraft,
+    actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
+    meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
+  }).send(res);
 });

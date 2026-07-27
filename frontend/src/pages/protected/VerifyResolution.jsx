@@ -1,159 +1,148 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { FiCheckCircle, FiXCircle, FiLoader } from 'react-icons/fi';
+import { FiCheckCircle, FiLoader, FiXCircle } from 'react-icons/fi';
+import Button from '../../components/common/Button';
+import Modal from '../../components/common/Modal';
+import Textarea from '../../components/common/Textarea';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { fetchFoundItemById } from '../../redux/slices/foundItemSlice';
+import { fetchLostItemById } from '../../redux/slices/lostItemSlice';
 import foundItemService from '../../services/foundItemService';
 import lostItemService from '../../services/lostItemService';
-import { fetchLostItemById } from '../../redux/slices/lostItemSlice';
-import { fetchFoundItemById } from '../../redux/slices/foundItemSlice';
 
 const VerifyResolution = () => {
-  const { type, id } = useParams(); // type is 'found' or 'lost'
+  const { type, id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState('');
 
   useEffect(() => {
     const fetchItem = async () => {
       try {
-        if (type === 'found') {
-          const res = await dispatch(fetchFoundItemById(id)).unwrap();
-          setItem(res);
-        } else if (type === 'lost') {
-          const res = await dispatch(fetchLostItemById(id)).unwrap();
-          setItem(res);
-        } else {
-          toast.error('Invalid item type');
-          navigate('/dashboard');
+        if (!['found', 'lost'].includes(type)) {
+          toast.error(t('resolution.invalidType'));
+          navigate('/dashboard', { replace: true });
+          return;
         }
-      } catch (error) {
-        toast.error('Item not found or you are not authorized.');
-        navigate('/dashboard');
+        const action = type === 'found' ? fetchFoundItemById(id) : fetchLostItemById(id);
+        const response = await dispatch(action).unwrap();
+        setItem(response);
+      } catch {
+        toast.error(t('resolution.loadFailed'));
+        navigate('/dashboard', { replace: true });
       } finally {
         setLoading(false);
       }
     };
     fetchItem();
-  }, [type, id, dispatch, navigate]);
+  }, [dispatch, id, navigate, t, type]);
 
   const handleResolve = async () => {
     setIsProcessing(true);
     try {
-      if (type === 'found') {
-        await foundItemService.resolveFoundItem(id);
-      } else {
-        await lostItemService.resolveLostItem(id);
-      }
-      toast.success('Thank you! The item has been marked as resolved.');
+      if (type === 'found') await foundItemService.resolveFoundItem(id);
+      else await lostItemService.resolveLostItem(id);
+      toast.success(t('resolution.resolveSuccess'));
       navigate('/dashboard');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resolve item');
+    } catch {
+      toast.error(t('resolution.resolveError'));
       setIsProcessing(false);
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = async (event) => {
+    event.preventDefault();
+    const reason = cancelReason.trim();
+    if (reason.length < 5) {
+      setCancelError(t('resolution.cancelReasonRequired'));
+      return;
+    }
+    setCancelError('');
     setIsProcessing(true);
     try {
-      if (type === 'found') {
-        await foundItemService.cancelConnection(id);
-      } else {
-        await lostItemService.cancelConnection(id);
-      }
-      toast.success('Connection cancelled. The item is available again.');
+      if (type === 'found') await foundItemService.cancelConnection(id, reason);
+      else await lostItemService.cancelConnection(id, reason);
+      toast.success(t('resolution.cancelSuccess'));
       navigate('/dashboard');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to cancel connection');
+    } catch {
+      toast.error(t('resolution.cancelError'));
       setIsProcessing(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <FiLoader className="h-8 w-8 animate-spin text-primary-500" />
+      <div className="flex h-[60vh] items-center justify-center" role="status" aria-label={t('resolution.loading')}>
+        <FiLoader aria-hidden="true" className="h-8 w-8 animate-spin text-primary-500" />
+        <span className="sr-only">{t('resolution.loading')}</span>
       </div>
     );
   }
 
   if (!item) return null;
 
-  if (item.status === 'claimed') {
-    return (
-      <div className="max-w-2xl mx-auto py-12 px-4 text-center">
-        <div className="bg-white dark:bg-surface-800 rounded-3xl p-8 shadow-xl border border-surface-200 dark:border-surface-700">
-          <FiCheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-surface-900 dark:text-white mb-2">Already Resolved</h2>
-          <p className="text-surface-600 dark:text-surface-400 mb-6">
-            This item has already been marked as resolved. Thank you!
-          </p>
-          <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
-            Go to Dashboard
-          </button>
-        </div>
+  const StateCard = ({ icon, title, description }) => (
+    <div className="mx-auto max-w-2xl px-4 py-12 text-center">
+      <div className="rounded-3xl border border-surface-200 bg-white p-8 shadow-xl dark:border-surface-700 dark:bg-surface-800">
+        {icon}
+        <h1 className="mb-2 text-2xl font-bold text-surface-900 dark:text-white">{title}</h1>
+        <p className="mb-6 text-surface-600 dark:text-surface-400">{description}</p>
+        <Button type="button" onClick={() => navigate('/dashboard')}>{t('resolution.dashboard')}</Button>
       </div>
-    );
+    </div>
+  );
+
+  if (item.status === 'claimed') {
+    return <StateCard icon={<FiCheckCircle aria-hidden="true" className="mx-auto mb-6 h-20 w-20 text-green-500" />} title={t('resolution.alreadyTitle')} description={t('resolution.alreadyDesc')} />;
   }
 
   if (item.status !== 'in_progress') {
-    return (
-      <div className="max-w-2xl mx-auto py-12 px-4 text-center">
-        <div className="bg-white dark:bg-surface-800 rounded-3xl p-8 shadow-xl border border-surface-200 dark:border-surface-700">
-          <h2 className="text-2xl font-bold text-surface-900 dark:text-white mb-2">Invalid State</h2>
-          <p className="text-surface-600 dark:text-surface-400 mb-6">
-            This item is not currently waiting for resolution verification.
-          </p>
-          <button onClick={() => navigate('/dashboard')} className="btn btn-primary">
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    );
+    return <StateCard icon={<FiXCircle aria-hidden="true" className="mx-auto mb-6 h-20 w-20 text-amber-500" />} title={t('resolution.invalidStateTitle')} description={t('resolution.invalidStateDesc')} />;
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-4">
-      <div className="bg-white dark:bg-surface-800 rounded-3xl p-8 sm:p-12 shadow-xl border border-surface-200 dark:border-surface-700 text-center">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary-50 dark:bg-primary-900/20 text-primary-500 mb-6">
-          <FiCheckCircle className="w-10 h-10" />
+    <div className="mx-auto max-w-2xl px-4 py-12">
+      <section className="rounded-3xl border border-surface-200 bg-white p-8 text-center shadow-xl dark:border-surface-700 dark:bg-surface-800 sm:p-12">
+        <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary-50 text-primary-500 dark:bg-primary-900/20">
+          <FiCheckCircle aria-hidden="true" className="h-10 w-10" />
         </div>
-        
-        <h1 className="text-3xl font-black font-display tracking-tight text-surface-900 dark:text-white mb-4">
-          Verify Resolution
-        </h1>
-        
-        <p className="text-lg text-surface-600 dark:text-surface-300 mb-8">
-          You recently connected regarding the {type} item <strong className="text-primary-600 dark:text-primary-400">"{item.itemName}"</strong>. 
-          Did you successfully exchange this item?
+        <h1 className="mb-4 font-display text-3xl font-black tracking-tight text-surface-900 dark:text-white">{t('resolution.title')}</h1>
+        <p className="mb-5 text-lg text-surface-600 dark:text-surface-300">
+          {t('resolution.prompt', { type: t(`resolution.type.${type}`), item: item.itemName })}
         </p>
+        <p className="mb-8 rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">{t('resolution.notice')}</p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button
-            onClick={handleResolve}
-            disabled={isProcessing}
-            className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-green-500 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-400 transition-all focus:outline-none focus:ring-4 focus:ring-green-500/20"
-          >
-            <FiCheckCircle className="w-8 h-8" />
-            <span className="font-bold">Yes, it was resolved</span>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <button type="button" onClick={handleResolve} disabled={isProcessing} className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-green-500 bg-green-50 p-6 text-green-700 transition-colors hover:bg-green-100 focus:outline-none focus:ring-4 focus:ring-green-500/20 disabled:cursor-wait disabled:opacity-60 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40">
+            <FiCheckCircle aria-hidden="true" className="h-8 w-8" />
+            <span className="font-bold">{t('resolution.yes')}</span>
           </button>
-          
-          <button
-            onClick={handleCancel}
-            disabled={isProcessing}
-            className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-red-500 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-700 dark:text-red-400 transition-all focus:outline-none focus:ring-4 focus:ring-red-500/20"
-          >
-            <FiXCircle className="w-8 h-8" />
-            <span className="font-bold">No, we didn't exchange it</span>
+          <button type="button" onClick={() => { setShowCancelDialog(true); setCancelError(''); }} disabled={isProcessing} className="flex min-h-28 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-red-500 bg-red-50 p-6 text-red-700 transition-colors hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-500/20 disabled:cursor-wait disabled:opacity-60 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40">
+            <FiXCircle aria-hidden="true" className="h-8 w-8" />
+            <span className="font-bold">{t('resolution.no')}</span>
           </button>
         </div>
-        
-        <p className="text-sm text-surface-500 dark:text-surface-400 mt-8">
-          If you select "No", the connection will be cancelled and the item will be available for others to claim.
-        </p>
-      </div>
+        {isProcessing && <p className="mt-6 text-sm text-surface-500" role="status">{t('resolution.processing')}</p>}
+      </section>
+
+      <Modal isOpen={showCancelDialog} onClose={() => !isProcessing && setShowCancelDialog(false)} title={t('resolution.cancelTitle')} size="md">
+        <form onSubmit={handleCancel} className="space-y-4 pt-2">
+          <p className="text-sm text-surface-600 dark:text-surface-300">{t('resolution.cancelDesc')}</p>
+          <Textarea name="cancelReason" label={t('resolution.cancelReason')} value={cancelReason} onChange={(event) => { setCancelReason(event.target.value); setCancelError(''); }} placeholder={t('resolution.cancelReasonPlaceholder')} rows={4} maxLength={1000} required error={cancelError} />
+          <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 dark:border-surface-700 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setShowCancelDialog(false)} disabled={isProcessing}>{t('resolution.keepConnection')}</Button>
+            <Button type="submit" variant="danger" loading={isProcessing}>{t('resolution.confirmCancel')}</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

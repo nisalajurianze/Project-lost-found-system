@@ -13,11 +13,14 @@ import { FiSun, FiMoon, FiMonitor, FiBell, FiUser, FiLogOut, FiCheckCircle, FiCl
 import { getInitials } from '../../utils/helpers';
 import { formatRelativeTime } from '../../utils/formatDate';
 import { motion, AnimatePresence } from 'framer-motion';
+import LanguageSwitcher from '../common/LanguageSwitcher';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
+  const { t } = useLanguage();
 
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -30,7 +33,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
     const handleClickOutside = (event) => {
       const isInsideDesktopNotif = notificationDropdownRef.current && notificationDropdownRef.current.contains(event.target);
       const isInsideMobileNotif = mobileNotificationDropdownRef.current && mobileNotificationDropdownRef.current.contains(event.target);
-      
+
       if (!isInsideDesktopNotif && !isInsideMobileNotif) {
         setNotificationDropdownOpen(false);
       }
@@ -73,11 +76,10 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   };
 
   const navLinks = [
-    { label: 'Home', path: '/' },
-    { label: 'Lost Items', path: '/lost-items' },
-    { label: 'Found Items', path: '/found-items' },
-    { label: 'About', path: '/about' },
-    { label: 'Contact', path: '/contact' }
+    { label: t('nav.searchItems'), path: '/search' },
+    { label: t('nav.reportLost'), path: '/dashboard/report-lost' },
+    { label: t('nav.reportFound'), path: '/dashboard/report-found' },
+    { label: t('nav.howItWorks'), path: '/about' }
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -99,21 +101,22 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
       notificationDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
     }`}>
       <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 flex justify-between items-center bg-surface-50 dark:bg-surface-800/50">
-        <h3 className="font-bold text-surface-900 dark:text-white">Recent Notifications</h3>
+        <h3 className="font-bold text-surface-900 dark:text-white">{t('notifications.recent')}</h3>
         {unreadCount > 0 && (
-          <button 
+          <button type="button"
             onClick={() => dispatch(markAllNotificationsRead())}
             className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
           >
-            Mark all as read
+            {t('notifications.markAll')}
           </button>
         )}
       </div>
-      
+
       <div className="max-h-[320px] overflow-y-auto custom-scrollbar">
         {notifications.length > 0 ? (
           notifications.slice(0, 5).map(notification => (
-            <div 
+            <button
+              type="button"
               key={notification._id}
               onClick={() => {
                 if (!notification.isRead) dispatch(markNotificationRead(notification._id));
@@ -123,7 +126,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                   setNotificationDropdownOpen(false);
                 }
               }}
-              className={`p-4 border-b border-surface-100 dark:border-surface-700/50 cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/30 ${
+              className={`w-full text-left p-4 border-b border-surface-100 dark:border-surface-700/50 cursor-pointer transition-colors hover:bg-surface-50 dark:hover:bg-surface-700/30 ${
                 !notification.isRead ? 'bg-primary-50/30 dark:bg-primary-900/10' : ''
               }`}
             >
@@ -141,21 +144,21 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                   </p>
                 </div>
               </div>
-            </div>
+            </button>
           ))
         ) : (
           <div className="p-8 text-center">
             <FiCheckCircle className="mx-auto text-3xl text-surface-300 dark:text-surface-600 mb-3" />
-            <p className="text-sm font-medium text-surface-500 dark:text-surface-400">No recent notifications</p>
+            <p className="text-sm font-medium text-surface-500 dark:text-surface-400">{t('notifications.none')}</p>
           </div>
         )}
       </div>
-      <Link 
+      <Link
         to="/dashboard/notifications"
         onClick={() => setNotificationDropdownOpen(false)}
         className="px-4 py-3 text-center text-sm font-semibold text-primary-600 dark:text-primary-400 hover:bg-surface-50 dark:hover:bg-surface-700/30 transition-colors border-t border-surface-100 dark:border-surface-700"
       >
-        View All Notifications
+        {t('notifications.viewAll')}
       </Link>
     </div>
   );
@@ -170,15 +173,15 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           <p className="text-xs text-surface-500 dark:text-surface-400 truncate">{user?.email}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <Link to="/about" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">About</Link>
-          <Link to="/contact" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">Contact</Link>
+          <Link to="/about" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">{t('common.about')}</Link>
+          <Link to="/contact" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">{t('common.contact')}</Link>
         </div>
       </div>
-      
+
       <div className="flex flex-col py-2">
         <div className="flex items-center justify-between px-4 py-2 sm:hidden border-b border-surface-100 dark:border-surface-700 mb-2 pb-3">
-          <span className="text-sm font-medium text-surface-600 dark:text-surface-400">Theme Mode</span>
-          <button
+          <span className="text-sm font-medium text-surface-600 dark:text-surface-400">{t('common.theme')}</span>
+          <button type="button"
             onClick={() => dispatch(toggleTheme())}
             className="p-2 bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-300 rounded-lg transition-colors flex items-center justify-center overflow-hidden"
           >
@@ -197,51 +200,51 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </button>
         </div>
 
-        <Link 
-          to="/dashboard/profile" 
-          onClick={() => setProfileDropdownOpen(false)} 
+        <Link
+          to="/dashboard/profile"
+          onClick={() => setProfileDropdownOpen(false)}
           className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
-          <FiUser className="text-surface-400 text-lg" /> My Profile
+          <FiUser className="text-surface-400 text-lg" /> {t('profile.myProfile')}
         </Link>
-        <Link 
-          to="/dashboard/my-lost" 
-          onClick={() => setProfileDropdownOpen(false)} 
+        <Link
+          to="/dashboard/my-lost"
+          onClick={() => setProfileDropdownOpen(false)}
           className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
-          <FiFileText className="text-surface-400 text-lg" /> My Lost Reports
+          <FiFileText className="text-surface-400 text-lg" /> {t('profile.myLost')}
         </Link>
-        <Link 
-          to="/dashboard/my-found" 
-          onClick={() => setProfileDropdownOpen(false)} 
+        <Link
+          to="/dashboard/my-found"
+          onClick={() => setProfileDropdownOpen(false)}
           className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
-          <FiFileText className="text-surface-400 text-lg" /> My Found Listings
+          <FiFileText className="text-surface-400 text-lg" /> {t('profile.myFound')}
         </Link>
-        <Link 
-          to="/dashboard/claims" 
-          onClick={() => setProfileDropdownOpen(false)} 
+        <Link
+          to="/dashboard/claims"
+          onClick={() => setProfileDropdownOpen(false)}
           className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
         >
-          <FiCheckSquare className="text-surface-400 text-lg" /> My Claims & Connections
+          <FiCheckSquare className="text-surface-400 text-lg" /> {t('profile.myClaims')}
         </Link>
         {user?.role === 'admin' && (
-          <Link 
-            to="/admin" 
-            onClick={() => setProfileDropdownOpen(false)} 
+          <Link
+            to="/admin"
+            onClick={() => setProfileDropdownOpen(false)}
             className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-700/50 transition-colors"
           >
-            👑 Admin Panel
+            👑 {t('profile.admin')}
           </Link>
         )}
       </div>
 
       <div className="border-t border-surface-100 dark:border-surface-700 py-1">
-        <button 
-          onClick={handleLogout} 
+        <button type="button"
+          onClick={handleLogout}
           className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
         >
-          <FiLogOut className="text-lg" /> Log Out
+          <FiLogOut className="text-lg" /> {t('common.logout')}
         </button>
       </div>
     </div>
@@ -254,20 +257,20 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           {/* Logo & Mobile Menu Toggle */}
           <div className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
             {onMenuClick ? (
-              <button 
+              <button type="button"
                 onClick={onMenuClick}
                 className="lg:hidden relative h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center text-primary-500 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors focus:outline-none"
-                aria-label="Toggle Admin Menu"
+                aria-label={t('common.toggleAdminMenu')}
               >
                 <FiMenu className={`absolute text-2xl transition-all duration-300 ${isMenuOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
                 <FiX className={`absolute text-2xl transition-all duration-300 ${isMenuOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'}`} />
               </button>
             ) : null}
-            
+
             <Link to="/" className={`flex items-center gap-1.5 ${onMenuClick ? 'hidden lg:flex' : ''}`}>
-              <img src="/logo.png" alt="Smart L&F Logo" className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
+              <img src="/logo.png" alt={t('common.logoAlt')} className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
             </Link>
-            
+
             <Link to={onMenuClick ? "/admin" : "/"} className="flex items-center gap-1.5">
               <span className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
                 Smart L&F
@@ -293,12 +296,13 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
           {/* Action Icons */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
+            <LanguageSwitcher compact />
             {/* Theme Toggle */}
-            <button
+            <button type="button"
               onClick={() => dispatch(toggleTheme())}
               className="relative p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors overflow-hidden"
-              aria-label="Toggle Theme"
+              aria-label={t('common.theme')}
             >
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
@@ -317,10 +321,10 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {/* Notification Bell */}
             {isAuthenticated && (
               <div className="relative" ref={notificationDropdownRef}>
-                <button
+                <button type="button"
                   onClick={handleBellClick}
                   className="relative p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors focus:outline-none"
-                  aria-label="Notifications"
+                  aria-label={t('common.notifications')}
                 >
                   <FiBell className="text-xl" />
                   {unreadCount > 0 && (
@@ -336,7 +340,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {/* User Profile Direct Link */}
             {isAuthenticated ? (
               <div className="relative">
-                <button
+                <button type="button"
                   onClick={() => {
                     navigate(user.role === 'admin' ? '/admin' : '/dashboard');
                     setProfileDropdownOpen(false);
@@ -367,13 +371,13 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                   to="/login"
                   className="text-sm font-semibold text-surface-700 hover:text-surface-900 dark:text-surface-200 dark:hover:text-white transition-colors"
                 >
-                  Log In
+                  {t('common.login')}
                 </Link>
                 <Link
                   to="/register"
                   className="btn btn-primary btn-sm rounded-lg"
                 >
-                  Sign Up
+                  {t('common.signup')}
                 </Link>
               </div>
             )}
@@ -381,13 +385,14 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
 
             {/* Mobile Actions */}
           <div className="flex md:hidden items-center gap-2 sm:gap-3">
+            <LanguageSwitcher compact className="scale-90 origin-right" />
             {/* Mobile Notification Bell */}
             {isAuthenticated && (
               <div className="relative" ref={mobileNotificationDropdownRef}>
-                <button
+                <button type="button"
                   onClick={handleBellClick}
                   className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
-                  aria-label="Notifications"
+                  aria-label={t('common.notifications')}
                 >
                   <FiBell className="text-lg" />
                   {unreadCount > 0 && (
@@ -403,11 +408,11 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {/* Mobile Profile Avatar */}
             {isAuthenticated && (
               <div className="relative" ref={mobileProfileDropdownRef}>
-                <button
+                <button type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className={`p-1 rounded-full border transition-all focus:outline-none ${
-                    profileDropdownOpen 
-                      ? 'border-primary-500 ring-2 ring-primary-500/50 bg-primary-50 dark:bg-primary-500/10' 
+                    profileDropdownOpen
+                      ? 'border-primary-500 ring-2 ring-primary-500/50 bg-primary-50 dark:bg-primary-500/10'
                       : 'border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800'
                   }`}
                 >
@@ -429,10 +434,10 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
 
             {/* Theme Toggle for Unauthenticated Mobile Users */}
             {!isAuthenticated && (
-              <button
+              <button type="button"
                 onClick={() => dispatch(toggleTheme())}
                 className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500 overflow-hidden"
-                aria-label="Toggle Theme"
+                aria-label={t('common.theme')}
               >
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div

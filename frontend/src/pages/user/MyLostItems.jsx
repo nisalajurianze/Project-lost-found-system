@@ -14,10 +14,12 @@ import EmptyState from '../../components/common/EmptyState';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import Pagination from '../../components/common/Pagination';
 import FeedbackModal from '../../components/common/FeedbackModal';
+import { useLanguage } from '../../i18n/LanguageContext';
 import toast from 'react-hot-toast';
 
 export const MyLostItems = () => {
   const dispatch = useDispatch();
+  const { t, language } = useLanguage();
   const { user } = useSelector((state) => state.auth);
   const { items, pagination, isLoading } = useSelector((state) => state.lostItems);
 
@@ -48,10 +50,10 @@ export const MyLostItems = () => {
     setIsDeleting(true);
     try {
       await dispatch(deleteLostReport(deleteId)).unwrap();
-      toast.success('Lost report deleted successfully.');
+      toast.success(t('myItems.lostDeleted'));
       setDeleteDialogOpen(false);
     } catch (err) {
-      toast.error(err || 'Failed to delete report.');
+      toast.error(err || t('myItems.deleteReportError'));
     } finally {
       setIsDeleting(false);
     }
@@ -64,21 +66,21 @@ export const MyLostItems = () => {
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             <h1 className="text-xl sm:text-3xl font-extrabold font-display text-surface-900 dark:text-white truncate">
-              My Lost Reports
+              {t('myItems.myLost')}
             </h1>
             <p className="text-xs sm:text-sm text-surface-500 dark:text-surface-400 mt-1 truncate">
-              Manage your reported lost property reports
+              {t('myItems.lostSubtitle')}
             </p>
           </div>
           <Link to="/dashboard/report-lost" className="btn btn-primary rounded-lg flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2 sm:text-sm gap-1.5 font-bold shadow-md flex-shrink-0 transition-transform hover:scale-105 active:scale-95">
-            <FiPlusCircle className="text-xl sm:text-lg" /> <span className="hidden sm:inline">Report New</span>
+            <FiPlusCircle className="text-xl sm:text-lg" /> <span className="hidden sm:inline">{t('myItems.reportNew')}</span>
           </Link>
         </div>
 
       {items.length === 0 ? (
         <EmptyState
-          title="No lost reports found"
-          description="You have not reported any lost property yet. Create a report to start scanning matches."
+          title={t('myItems.emptyLostTitle')}
+          description={t('myItems.emptyLostDesc')}
         />
       ) : (
         <>
@@ -87,11 +89,11 @@ export const MyLostItems = () => {
               <table className="table-base w-full text-sm text-left whitespace-nowrap min-w-[700px]">
                 <thead className="table-head bg-surface-50 dark:bg-surface-800 text-surface-600 dark:text-surface-400">
                   <tr>
-                    <th className="px-6 py-4">Item Name</th>
-                    <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Date Lost</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <th className="px-6 py-4">{t('myItems.itemName')}</th>
+                    <th className="px-6 py-4">{t('myItems.category')}</th>
+                    <th className="px-6 py-4">{t('myItems.dateLost')}</th>
+                    <th className="px-6 py-4">{t('myItems.status')}</th>
+                    <th className="px-6 py-4 text-right">{t('myItems.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -104,17 +106,18 @@ export const MyLostItems = () => {
                         {item.category}
                       </td>
                       <td className="px-6 py-4 text-surface-500 dark:text-surface-400">
-                        {new Date(item.lostDate).toLocaleDateString()}
+                        {new Date(item.lostDate).toLocaleDateString(language === 'si' ? 'si-LK' : language === 'ta' ? 'ta-LK' : 'en-US')}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={item.status} />
                       </td>
                       <td className="px-6 py-4 text-right flex justify-end gap-2.5">
                         {item.status === 'claimed' && (
-                          <button
+                          <button type="button"
                             onClick={() => setFeedbackDialog(item)}
                             className="p-1.5 text-surface-500 hover:text-amber-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                            title="Leave Feedback"
+                            title={t('myItems.leaveFeedback')}
+                            aria-label={t('myItems.leaveFeedback')}
                           >
                             <FiMessageSquare />
                           </button>
@@ -122,21 +125,24 @@ export const MyLostItems = () => {
                         <Link
                           to={`/lost-items/${item._id}`}
                           className="p-1.5 text-surface-500 hover:text-primary-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                          title="View Details"
+                          title={t('myItems.viewDetails')}
+                          aria-label={t('myItems.viewDetails')}
                         >
                           <FiEye />
                         </Link>
                         <Link
                           to={`/dashboard/edit-lost/${item._id}`}
                           className="p-1.5 text-surface-500 hover:text-indigo-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                          title="Edit Report"
+                          title={t('myItems.editReport')}
+                          aria-label={t('myItems.editReport')}
                         >
                           <FiEdit2 />
                         </Link>
-                        <button
+                        <button type="button"
                           onClick={() => handleDeleteClick(item._id)}
                           className="p-1.5 text-surface-500 hover:text-red-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
-                          title="Delete"
+                          title={t('myItems.delete')}
+                          aria-label={t('myItems.delete')}
                         >
                           <FiTrash2 />
                         </button>
@@ -163,7 +169,7 @@ export const MyLostItems = () => {
         <FeedbackModal
           isOpen={!!feedbackDialog}
           onClose={() => setFeedbackDialog(null)}
-          defaultSubject={`Feedback on my lost item: "${feedbackDialog.itemName}"`}
+          defaultSubject={t('myItems.lostFeedbackSubject', { item: feedbackDialog.itemName })}
         />
       )}
 
@@ -172,7 +178,7 @@ export const MyLostItems = () => {
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleDeleteConfirm}
-        message="Are you sure you want to delete this lost report? This will remove all associated matches."
+        message={t('myItems.deleteLostConfirm')}
         isLoading={isDeleting}
       />
 

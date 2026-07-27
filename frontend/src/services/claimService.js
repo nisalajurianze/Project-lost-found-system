@@ -54,6 +54,11 @@ const claimService = {
     return response.data.data;
   },
 
+  getVerificationQuestions: async (itemType, itemId) => {
+    const response = await api.get(`/claims/questions/${itemType}/${itemId}`);
+    return response.data.data;
+  },
+
   checkClaim: async (itemId) => {
     const response = await api.get(`/claims/check/${itemId}`);
     return response.data.data;

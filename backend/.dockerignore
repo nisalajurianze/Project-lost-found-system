@@ -1,0 +1,11 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+.git
+.github
+coverage
+postman
+*.log
+test*.jpg
+test*.png

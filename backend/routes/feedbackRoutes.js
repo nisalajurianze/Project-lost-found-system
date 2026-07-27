@@ -12,7 +12,7 @@ import {
 import { protect } from '../middlewares/authMiddleware.js';
 import authorize from '../middlewares/roleMiddleware.js';
 import validate from '../middlewares/validateMiddleware.js';
-import { createFeedbackValidator, mongoIdParam } from '../utils/validators.js';
+import { createFeedbackValidator, mongoIdParam, feedbackQueryValidator, feedbackResponseValidator } from '../utils/validators.js';
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ const router = express.Router();
 router.post('/', protect, createFeedbackValidator, validate, createFeedback);
 
 // View & Respond (Admin only)
-router.get('/', protect, authorize('admin'), getFeedback);
-router.put('/:id/respond', protect, authorize('admin'), mongoIdParam, validate, respondToFeedback);
+router.get('/', protect, authorize('admin'), feedbackQueryValidator, validate, getFeedback);
+router.put('/:id/respond', protect, authorize('admin'), mongoIdParam, feedbackResponseValidator, validate, respondToFeedback);
 
 export default router;

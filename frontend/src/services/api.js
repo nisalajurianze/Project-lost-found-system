@@ -1,135 +1,74 @@
-// ============================================
-// Axios API Client
-// Handles request/response intercepts and session refreshing
-// ============================================
-
 import axios from 'axios';
 import { API_URL } from '../utils/constants';
 
-const api = axios.create({
+const client = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // Send cookies with all requests (refresh token)
-  headers: {
-    'Content-Type': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest'
-  }
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Request Interceptor
-api.interceptors.request.use(
-  (config) => {
-    // If the browser blocks third-party cookies, we also send the token via Authorization header
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+const rawClient = axios.create({ baseURL: API_URL, withCredentials: true });
+const unsafeMethods = new Set(['post', 'put', 'patch', 'delete']);
+
+const readCookie = (name) => document.cookie
+  .split('; ')
+  .find((entry) => entry.startsWith(`${name}=`))
+  ?.split('=')
+  .slice(1)
+  .join('=');
+
+let csrfPromise;
+export const ensureCsrfToken = async () => {
+  const existing = readCookie('csrfToken');
+  if (existing) return decodeURIComponent(existing);
+  if (!csrfPromise) {
+    csrfPromise = rawClient.get('/auth/csrf').then((response) => response.data?.data?.csrfToken).finally(() => { csrfPromise = null; });
   }
-);
-
-// Response Interceptor: Auto-refresh tokens on 401
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
+  return csrfPromise;
 };
 
-api.interceptors.response.use(
+client.interceptors.request.use(async (config) => {
+  const method = String(config.method || 'get').toLowerCase();
+  if (unsafeMethods.has(method)) {
+    const csrfToken = await ensureCsrfToken();
+    if (csrfToken) config.headers['X-CSRF-Token'] = csrfToken;
+  }
+  return config;
+});
+
+let refreshPromise;
+const refreshSession = async () => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const csrfToken = await ensureCsrfToken();
+      return rawClient.post('/auth/refresh-token', {}, { headers: { 'X-CSRF-Token': csrfToken } });
+    })().finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+};
+
+client.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    // Check if error is 401 Unauthorized and not already retried
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      // Avoid infinite loop of refresh attempts
-      if (
-        originalRequest.url === '/auth/refresh-token' || 
-        originalRequest.url === '/auth/login' ||
-        originalRequest.url === '/auth/logout'
-      ) {
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
-      }
-
+    const originalRequest = error.config || {};
+    const requestUrl = String(originalRequest.url || '');
+    if (error.response?.status === 401 && !originalRequest._retry && !requestUrl.includes('/auth/refresh-token') && !requestUrl.includes('/auth/login')) {
       originalRequest._retry = true;
-      isRefreshing = true;
-
       try {
-        console.log('🔄 Access token expired. Attempting token refresh...');
-        const storedRefreshToken = localStorage.getItem('refreshToken');
-        
-        const refreshRes = await axios.post(
-          `${API_URL}/auth/refresh-token`,
-          { refreshToken: storedRefreshToken },
-          { 
-            withCredentials: true,
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          }
-        );
-
-        const newAccessToken = refreshRes.data?.data?.accessToken;
-        const newRefreshToken = refreshRes.data?.data?.refreshToken;
-        if (newAccessToken) {
-          localStorage.setItem('accessToken', newAccessToken);
-        }
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
-
-        processQueue(null, newAccessToken);
-        isRefreshing = false;
-
-        if (newAccessToken) {
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        }
-        return api(originalRequest);
+        await refreshSession();
+        return client(originalRequest);
       } catch (refreshError) {
-        console.warn('💀 Session expired. Logging user out.');
-        processQueue(refreshError, null);
-        isRefreshing = false;
-
-        // Clear local storage and dispatch a custom event to redirect to login
-        localStorage.removeItem('smart-lf-user');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         window.dispatchEvent(new Event('auth-logout'));
-
-        return Promise.reject(refreshError);
+        return Promise.reject({ message: refreshError.response?.data?.message || 'Your session has expired.', statusCode: 401, errors: [] });
       }
     }
-
-    // Normalized error format for catch blocks
-    const normalizedError = {
-      message: error.response?.data?.message || 'Something went wrong. Please try again.',
+    return Promise.reject({
+      message: error.response?.data?.message || error.message || 'Something went wrong. Please try again.',
       errors: error.response?.data?.errors || [],
-      statusCode: error.response?.status || 500
-    };
-
-    return Promise.reject(normalizedError);
+      statusCode: error.response?.status || 500,
+      response: error.response,
+    });
   }
 );
 
-export default api;
+export default client;

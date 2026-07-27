@@ -1,130 +1,127 @@
-// ============================================
-// Notification Service
-// Create DB notifications + emit via Socket.IO
-// ============================================
-
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { getIO } from '../config/socket.js';
 import webpush from 'web-push';
+import { isNotificationChannelEnabled, notificationCategory } from './notificationPreferenceService.js';
 
-/**
- * Create a notification in the database and emit it via Socket.IO.
- *
- * @param {object} opts
- * @param {string} opts.userId   - Recipient user's ObjectId
- * @param {string} opts.title    - Short notification title
- * @param {string} opts.message  - Notification body
- * @param {string} opts.type     - Notification type enum value
- * @param {object} [opts.relatedItem] - { itemType, itemId }
- * @returns {Promise<import('mongoose').Document>} Created notification
- */
+let vapidConfigured = false;
+const configureVapid = () => {
+  if (vapidConfigured) return true;
+  const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return false;
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:admin@example.invalid',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY,
+  );
+  vapidConfigured = true;
+  return true;
+};
+
+const notificationUrl = (relatedItem = {}) => {
+  if (!relatedItem.itemId) return '/dashboard/notifications';
+  const routes = {
+    LostItem: `/lost-items/${relatedItem.itemId}`,
+    FoundItem: `/found-items/${relatedItem.itemId}`,
+    Match: '/dashboard/matches',
+    ClaimRequest: '/dashboard/claims',
+  };
+  return routes[relatedItem.itemType] || '/dashboard/notifications';
+};
+
 const createNotification = async ({
   userId,
   title,
   message,
   type = 'system',
   relatedItem = {},
+  dedupeKey = null,
 }) => {
-  if (!userId) {
-    console.warn(`⚠️ Attempted to create notification without userId. Title: ${title}`);
-    return null;
-  }
+  if (!userId) return null;
 
   try {
-    const notification = await Notification.create({
-      userId,
-      title,
-      message,
-      type,
-      relatedItem: {
-        itemType: relatedItem.itemType || null,
-        itemId: relatedItem.itemId || null,
-      },
-    });
-
-    // Attempt real-time delivery via Socket.IO
-    const io = getIO();
-    if (io) {
-      io.to(`user_${userId}`).emit('notification', {
-        _id: notification._id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        relatedItem: notification.relatedItem,
-        isRead: notification.isRead,
-        createdAt: notification.createdAt,
+    let notification;
+    if (dedupeKey) {
+      notification = await Notification.findOneAndUpdate(
+        { userId, dedupeKey },
+        {
+          $setOnInsert: {
+            userId,
+            title,
+            message,
+            type,
+            dedupeKey,
+            relatedItem: {
+              itemType: relatedItem.itemType || null,
+              itemId: relatedItem.itemId || null,
+            },
+            isRead: false,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+    } else {
+      notification = await Notification.create({
+        userId,
+        title,
+        message,
+        type,
+        relatedItem: {
+          itemType: relatedItem.itemType || null,
+          itemId: relatedItem.itemId || null,
+        },
       });
     }
 
-    // Attempt Native Web Push Notification delivery
-    const user = await User.findById(userId).select('+pushSubscription');
-    if (user && user.pushSubscription && user.pushSubscription.endpoint) {
-      // Configure web-push with VAPID keys if they exist in the env
-      if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-        webpush.setVapidDetails(
-          process.env.VAPID_SUBJECT || 'mailto:smartlostandfound.seusl@gmail.com',
-          process.env.VAPID_PUBLIC_KEY,
-          process.env.VAPID_PRIVATE_KEY
-        );
-        
-        const pushPayload = JSON.stringify({
+    const payload = {
+      _id: notification._id,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      relatedItem: notification.relatedItem,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+    };
+
+    const io = getIO();
+    if (io) io.to(`user:${String(userId)}`).emit('notification', payload);
+
+    const user = await User.findById(userId).select('+pushSubscription notificationPreferences');
+    const category = notificationCategory(notification.type);
+    const pushAllowed = isNotificationChannelEnabled(user?.notificationPreferences, 'push', category);
+    if (pushAllowed && user?.pushSubscription?.endpoint && configureVapid()) {
+      try {
+        await webpush.sendNotification(user.pushSubscription, JSON.stringify({
           title: notification.title,
           body: notification.message,
-          icon: '/android-chrome-192x192.png',
-          data: {
-            url: notification.relatedItem?.itemType ? `/${notification.relatedItem.itemType === 'FoundItem' ? 'found-items' : 'lost-items'}/${notification.relatedItem.itemId}` : '/'
-          }
-        });
-
-        try {
-          await webpush.sendNotification(user.pushSubscription, pushPayload);
-        } catch (pushErr) {
-          console.warn(`⚠️ Failed to send web push notification: ${pushErr.message}`);
-          if (pushErr.statusCode === 410) {
-            // Subscription has expired or is no longer valid, remove it
-            user.pushSubscription = undefined;
-            await user.save();
-          }
+          icon: '/logo.png',
+          data: { url: notificationUrl(notification.relatedItem) },
+        }), { TTL: 300, urgency: 'normal' });
+      } catch (error) {
+        console.warn('[push] delivery failed', { statusCode: error.statusCode, userId: String(userId) });
+        if ([404, 410].includes(error.statusCode)) {
+          await User.updateOne({ _id: userId }, { $unset: { pushSubscription: 1 } });
         }
       }
     }
-
     return notification;
   } catch (error) {
-    // Don't let notification failures crash the main flow
-    console.error(`❌ Notification creation error: ${error.message}`);
+    if (error?.code === 11000 && dedupeKey) {
+      return Notification.findOne({ userId, dedupeKey });
+    }
+    console.error('[notification] creation failed', { error: error.message, userId: String(userId) });
     return null;
   }
 };
 
-/**
- * Create notifications for multiple users.
- *
- * @param {Array<object>} notifications - Array of notification option objects
- * @returns {Promise<Array>}
- */
 const createBulkNotifications = async (notifications) => {
-  const results = await Promise.allSettled(
-    notifications.map((n) => createNotification(n))
-  );
-
-  return results
-    .filter((r) => r.status === 'fulfilled')
-    .map((r) => r.value);
+  const results = await Promise.allSettled(notifications.map((entry) => createNotification(entry)));
+  return results.filter((entry) => entry.status === 'fulfilled' && entry.value).map((entry) => entry.value);
 };
 
-/**
- * Emit an event to the admin room.
- *
- * @param {string} event - Event name
- * @param {any}    data  - Event payload
- */
 const emitToAdmins = (event, data) => {
   const io = getIO();
-  if (io) {
-    io.to('admin_room').emit(event, data);
-  }
+  if (io) io.to('admins').emit(event, data);
 };
 
 export { createNotification, createBulkNotifications, emitToAdmins };

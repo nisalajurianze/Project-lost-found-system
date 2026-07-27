@@ -1,222 +1,71 @@
-// ============================================
-// User Model
-// Full authentication, JWT generation, bcrypt
-// ============================================
-
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
-const userSchema = new mongoose.Schema(
-  {
-    fullName: {
-      type: String,
-      required: [true, 'Full name is required'],
-      trim: true,
-      minlength: [2, 'Name must be at least 2 characters'],
-      maxlength: [100, 'Name cannot exceed 100 characters'],
-    },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'],
-    },
-    phone: {
-      type: String,
-      required: false,
-      trim: true,
-    },
-    studentId: {
-      type: String,
-      required: false,
-      sparse: true,
-      unique: true,
-      uppercase: true,
-      trim: true,
-      set: v => (v === '' || v === null) ? undefined : v
-    },
-    password: {
-      type: String,
-      required: false,
-      minlength: [6, 'Password must be at least 6 characters'],
-      select: false, // Never return password by default
-    },
-    googleId: {
-      type: String,
-      sparse: true,
-      unique: true,
-    },
-    authProvider: {
-      type: String,
-      enum: ['local', 'google'],
-      default: 'local',
-    },
-    profileImage: {
-      url: {
-        type: String,
-        default: '',
-      },
-      publicId: {
-        type: String,
-        default: '',
-      },
-    },
-    role: {
-      type: String,
-      enum: {
-        values: ['user', 'admin'],
-        message: 'Role must be either user or admin',
-      },
-      default: 'user',
-    },
-    pushSubscription: {
-      endpoint: String,
-      keys: {
-        p256dh: String,
-        auth: String
-      }
-    },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    verificationToken: {
-      type: String,
-      select: false,
-    },
-    verificationTokenExpire: {
-      type: Date,
-      select: false,
-    },
-    resetPasswordToken: {
-      type: String,
-      select: false,
-    },
-    resetPasswordExpire: {
-      type: Date,
-      select: false,
-    },
-    refreshToken: {
-      type: String,
-      select: false,
-    },
-    lastLogin: {
-      type: Date,
-      default: null,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    loginAttempts: {
-      type: Number,
-      required: true,
-      default: 0
-    },
-    lockUntil: {
-      type: Number
-    }
+const userSchema = new mongoose.Schema({
+  fullName: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true, match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email'], index: true },
+  phone: { type: String, trim: true, default: '' },
+  studentId: { type: String, sparse: true, unique: true, uppercase: true, trim: true, set: (v) => (v ? v : undefined) },
+  password: { type: String, required: false, minlength: 12, select: false },
+  googleId: { type: String, sparse: true, unique: true, select: false },
+  authProvider: { type: String, enum: ['local', 'google', 'both'], default: 'local' },
+  profileImage: {
+    url: { type: String, default: '' },
+    publicId: { type: String, default: '' },
   },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  }
-);
+  role: { type: String, enum: ['user', 'admin'], default: 'user', index: true },
+  pushSubscription: { type: mongoose.Schema.Types.Mixed, select: false },
+  notificationPreferences: {
+    pushEnabled: { type: Boolean, default: true },
+    emailEnabled: { type: Boolean, default: true },
+    categories: {
+      matches: { type: Boolean, default: true },
+      claims: { type: Boolean, default: true },
+      handover: { type: Boolean, default: true },
+      reminders: { type: Boolean, default: true },
+      system: { type: Boolean, default: true },
+    },
+  },
+  isVerified: { type: Boolean, default: false },
+  verificationTokenHash: { type: String, select: false },
+  verificationTokenExpire: { type: Date, select: false },
+  resetPasswordTokenHash: { type: String, select: false },
+  resetPasswordExpire: { type: Date, select: false },
+  lastLogin: { type: Date, default: null },
+  isActive: { type: Boolean, default: true, index: true },
+  loginAttempts: { type: Number, default: 0, select: false },
+  lockUntil: { type: Date, default: null, select: false },
+  deletedAt: { type: Date, default: null, index: true },
+}, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
-// ── Indexes ─────────────────────────────────────────────────────────────
-userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 
-// ── Pre-save: hash password ─────────────────────────────────────────────
-userSchema.pre('save', async function (next) {
-  // Only hash if password field was modified and exists
+userSchema.pre('save', async function hashPassword(next) {
   if (!this.isModified('password') || !this.password) return next();
-
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
+    this.password = await bcrypt.hash(this.password, 12);
+    return next();
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
-// ── Instance methods ────────────────────────────────────────────────────
-
-/**
- * Compare a candidate password against the hashed password.
- * @param {string} candidatePassword
- * @returns {Promise<boolean>}
- */
-userSchema.methods.comparePassword = async function (candidatePassword) {
-  if (!this.password) return false;
-  return bcrypt.compare(candidatePassword, this.password);
+userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
+  return this.password ? bcrypt.compare(candidatePassword, this.password) : false;
 };
 
-/**
- * Generate a short-lived access token (15 min default).
- * @returns {string}
- */
-userSchema.methods.generateAccessToken = function () {
-  const accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
-  if (!accessSecret) {
-    throw new Error('JWT access secret is not configured');
-  }
-
-  return jwt.sign(
-    {
-      id: this._id,
-      email: this.email,
-      role: this.role,
-    },
-    accessSecret,
-    { expiresIn: process.env.JWT_ACCESS_EXPIRE || process.env.JWT_EXPIRES_IN || '15m' }
-  );
-};
-
-/**
- * Generate a long-lived refresh token (7 d default).
- * @returns {string}
- */
-userSchema.methods.generateRefreshToken = function () {
-  const refreshSecret = process.env.JWT_REFRESH_SECRET;
-  if (!refreshSecret) {
-    throw new Error('JWT refresh secret is not configured');
-  }
-
-  return jwt.sign(
-    { id: this._id },
-    refreshSecret,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRE || process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
-  );
-};
-
-/**
- * Strip sensitive fields when converting to JSON.
- */
-userSchema.methods.toJSON = function () {
+userSchema.methods.toJSON = function toJSON() {
   const obj = this.toObject();
-  delete obj.password;
-  delete obj.refreshToken;
-  delete obj.verificationToken;
-  delete obj.verificationTokenExpire;
-  delete obj.resetPasswordToken;
-  delete obj.resetPasswordExpire;
-  delete obj.loginAttempts;
-  delete obj.lockUntil;
-  delete obj.__v;
+  for (const key of [
+    'password', 'googleId', 'verificationTokenHash', 'verificationTokenExpire',
+    'resetPasswordTokenHash', 'resetPasswordExpire', 'loginAttempts', 'lockUntil',
+    'pushSubscription', '__v'
+  ]) delete obj[key];
   return obj;
 };
 
-// ── Virtuals ────────────────────────────────────────────────────────────
-
-userSchema.virtual('isLocked').get(function () {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
+userSchema.virtual('isLocked').get(function isLocked() {
+  return Boolean(this.lockUntil && this.lockUntil > new Date());
 });
 
-const User = mongoose.model('User', userSchema);
-export default User;
+export default mongoose.model('User', userSchema);

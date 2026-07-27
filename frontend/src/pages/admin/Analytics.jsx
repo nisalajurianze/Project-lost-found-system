@@ -1,151 +1,142 @@
 import React, { useEffect } from 'react';
+import { Award, BarChart3, Calendar, CheckCircle2, Lightbulb, MapPin, ShieldAlert, TrendingUp } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { BarChart3, TrendingUp, Award, Calendar, CheckCircle2 } from 'lucide-react';
-import { fetchAdminStats } from '../../redux/slices/adminSlice';
-import StatCard from '../../components/cards/StatCard';
 import MonthlyReportsChart from '../../components/charts/MonthlyReportsChart';
 import StatusPieChart from '../../components/charts/StatusPieChart';
 import Loader from '../../components/common/Loader';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { fetchAdminStats } from '../../redux/slices/adminSlice';
+
+const BRIEF_KEYS = {
+  'reports-created-24h': 'analytics.brief.reportsCreated',
+  'claims-pending-overdue': 'analytics.brief.claims',
+  'strong-matches-review': 'analytics.brief.matches',
+  'privacy-review': 'analytics.brief.privacy',
+};
 
 const Analytics = () => {
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const { stats, isLoading, error } = useSelector((state) => state.admin);
 
-  useEffect(() => {
-    dispatch(fetchAdminStats());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchAdminStats()); }, [dispatch]);
+  if (isLoading && !stats) return <Loader fullScreen />;
 
-  if (isLoading && !stats) {
-    return <Loader fullScreen />;
-  }
-
-  const summary = stats?.summary || {
-    totalUsers: 0,
-    totalLostItems: 0,
-    totalFoundItems: 0,
-    totalClaims: 0,
-    successfulRecoveries: 0,
-    pendingClaims: 0
+  const summary = stats?.summary || { totalLostItems: 0, totalFoundItems: 0, successfulRecoveries: 0 };
+  const analytics = stats?.analytics || { monthlyLost: [], monthlyFound: [], lostStatusBreakdown: {}, foundStatusBreakdown: {} };
+  const intelligence = stats?.intelligence || {
+    dailyBrief: [], dailyBriefItems: [], recovery: {}, hotspots: { locations: [], categories: [] },
+    recommendations: { items: [] }, predictions: { categoryCohorts: [], locationCohorts: [], minimumSample: 10, noticeCode: 'insufficient' },
   };
+  const recoveryRate = summary.totalLostItems > 0 ? Math.round((summary.successfulRecoveries / summary.totalLostItems) * 100) : 0;
+  const totalReports = Number(summary.totalLostItems || 0) + Number(summary.totalFoundItems || 0);
+  const statusLabelMap = Object.fromEntries(['pending', 'available', 'matched', 'in_progress', 'claimed', 'closed'].map((key) => [key, t(`analytics.status.${key}`)]));
 
-  const analytics = stats?.analytics || {
-    monthlyLost: [],
-    monthlyFound: [],
-    lostStatusBreakdown: {},
-    foundStatusBreakdown: {}
+  const dailyItems = intelligence.dailyBriefItems?.length
+    ? intelligence.dailyBriefItems
+    : (intelligence.dailyBrief || []).map((message, index) => ({ type: `legacy-${index}`, params: {}, message }));
+  const renderBrief = (item) => {
+    const key = BRIEF_KEYS[item.type];
+    return key ? t(key, item.params) : item.message;
   };
+  const renderRecommendation = (item) => t(`analytics.recommendation.${item.type}`, item.params, item.message);
+  const predictionNotice = t(
+    `analytics.cohort.${intelligence.predictions.noticeCode || (intelligence.predictions.dataSufficient ? 'available' : 'insufficient')}`,
+    intelligence.predictions.noticeParams || { minimumSample: intelligence.predictions.minimumSample || 10 },
+    intelligence.predictions.notice,
+  );
+  const statCards = [
+    { Icon: TrendingUp, label: 'analytics.totalSubmissions', value: totalReports, help: 'analytics.totalSubmissionsHelp', iconClass: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400' },
+    { Icon: Award, label: 'analytics.returnRate', value: `${recoveryRate}%`, help: 'analytics.returnRateHelp', iconClass: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' },
+    { Icon: CheckCircle2, label: 'analytics.successCount', value: summary.successfulRecoveries || 0, help: 'analytics.successCountHelp', iconClass: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' },
+  ];
 
-  // Calculations
-  const recoveryRate = summary.totalLostItems > 0 
-    ? Math.round((summary.successfulRecoveries / summary.totalLostItems) * 100) 
-    : 0;
-
-  const totalReports = summary.totalLostItems + summary.totalFoundItems;
+  const CohortList = ({ title, cohorts }) => (
+    <div>
+      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
+      {cohorts?.length ? (
+        <ul className="mt-3 space-y-3">
+          {cohorts.map((cohort) => (
+            <li key={`${title}-${cohort.label}`} className="rounded-xl border border-sky-200 bg-white/80 p-3 text-sm dark:border-sky-900/60 dark:bg-slate-900/70">
+              <div className="flex flex-wrap items-center justify-between gap-2"><strong>{cohort.label}</strong><span className="text-xs font-semibold text-slate-500">{t('analytics.sample', { count: cohort.sampleSize })}</span></div>
+              <p className="mt-2">{t('analytics.historicalRecovered', { recovered: cohort.recovered, rate: cohort.observedRecoveryRate })}</p>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                {t('analytics.interval', { lower: cohort.interval95?.lower ?? 0, upper: cohort.interval95?.upper ?? 0 })}
+                {cohort.averageRecoveryHours == null ? '' : t('analytics.averageHoursInline', { hours: cohort.averageRecoveryHours })}
+              </p>
+              {!cohort.eligible && <p className="mt-1 text-xs font-semibold text-amber-700 dark:text-amber-300">{t('analytics.belowMinimum')}</p>}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">{t('analytics.noCohorts')}</p>}
+    </div>
+  );
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-          <BarChart3 className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-          System Analytics
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Analyze monthly report frequencies, resolution rates, and listing distributions.
-        </p>
-      </div>
+    <div className="space-y-6 animate-fade-in pb-24">
+      <header>
+        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"><BarChart3 aria-hidden="true" className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />{t('analytics.title')}</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">{t('analytics.subtitle')}</p>
+      </header>
+      {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">{t('analytics.loadError', { error })}</div>}
 
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm">
-          Failed to load stats: {error}
-        </div>
-      )}
+      <section className="grid gap-4 lg:grid-cols-3" aria-labelledby="operational-brief-title">
+        <article className="card border border-indigo-200 bg-indigo-50/70 p-5 dark:border-indigo-900/50 dark:bg-indigo-950/20 lg:col-span-2">
+          <h2 id="operational-brief-title" className="flex items-center gap-2 text-lg font-bold text-slate-950 dark:text-white"><ShieldAlert aria-hidden="true" className="h-5 w-5 text-indigo-600" />{t('analytics.dailyBrief')}</h2>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{t('analytics.aggregateNotice')}</p>
+          <ul className="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-200">{dailyItems.map((item, index) => <li key={`${item.type}-${index}`} className="rounded-lg bg-white/80 px-3 py-2 dark:bg-slate-900/70">{renderBrief(item)}</li>)}</ul>
+        </article>
+        <article className="card border border-emerald-200 bg-emerald-50/70 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+          <h2 className="text-lg font-bold text-slate-950 dark:text-white">{t('analytics.recoveryEvidence')}</h2>
+          <dl className="mt-4 space-y-3 text-sm">
+            <div><dt className="text-slate-500">{t('analytics.averageRecovery')}</dt><dd className="font-bold text-slate-950 dark:text-white">{intelligence.recovery.averageRecoveryHours == null ? t('analytics.insufficientOutcomes') : t('analytics.hours', { count: intelligence.recovery.averageRecoveryHours })}</dd></div>
+            <div><dt className="text-slate-500">{t('analytics.durationSample')}</dt><dd className="font-bold text-slate-950 dark:text-white">{intelligence.recovery.sampleSize || 0}</dd></div>
+            <div><dt className="text-slate-500">{t('analytics.approved30')}</dt><dd className="font-bold text-slate-950 dark:text-white">{intelligence.recovery.approvedClaimsLast30Days || 0}</dd></div>
+          </dl>
+        </article>
+      </section>
 
-      {/* Analytical Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 p-5 flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
-            <TrendingUp className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wide">Total Submissions</p>
-            <p className="text-2xl font-bold text-slate-950 dark:text-white mt-1">{totalReports}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Lost + Found items combined</p>
-          </div>
-        </div>
+      <section className="grid gap-4 md:grid-cols-3">
+        {statCards.map(({ Icon, label, value, help, iconClass }) => (
+          <article key={label} className="card flex items-center gap-4 border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60">
+            <div className={`rounded-lg p-3 ${iconClass}`}><Icon aria-hidden="true" className="h-6 w-6" /></div>
+            <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t(label)}</p><p className="mt-1 text-2xl font-bold text-slate-950 dark:text-white">{value}</p><p className="mt-0.5 text-[11px] text-slate-400">{t(help)}</p></div>
+          </article>
+        ))}
+      </section>
 
-        <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 p-5 flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg">
-            <Award className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wide">Handed Back Rate</p>
-            <p className="text-2xl font-bold text-slate-950 dark:text-white mt-1">{recoveryRate}%</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Item recovery rate</p>
-          </div>
-        </div>
+      <section className="grid gap-6 lg:grid-cols-3">
+        <article className="card border border-slate-200 bg-white lg:col-span-2 dark:border-slate-800 dark:bg-slate-900/60">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white"><Calendar aria-hidden="true" className="h-5 w-5 text-indigo-500" />{t('analytics.monthlyVolume')}</h2>
+          <MonthlyReportsChart monthlyLost={analytics.monthlyLost} monthlyFound={analytics.monthlyFound} lostLabel={t('analytics.chartLost')} foundLabel={t('analytics.chartFound')} emptyText={t('analytics.chartEmptyMonthly')} />
+        </article>
+        <article className="card border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60"><h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.lostStatus')}</h2><StatusPieChart data={analytics.lostStatusBreakdown} labelMap={statusLabelMap} emptyText={t('analytics.chartEmptyStatus')} /></article>
+      </section>
 
-        <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 p-5 flex items-center gap-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-lg">
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wide">Success Count</p>
-            <p className="text-2xl font-bold text-slate-950 dark:text-white mt-1">{summary.successfulRecoveries}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Items successfully returned</p>
-          </div>
-        </div>
-      </div>
+      <section className="grid gap-6 lg:grid-cols-3">
+        <article className="card border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60"><h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.foundStatus')}</h2><StatusPieChart data={analytics.foundStatusBreakdown} labelMap={statusLabelMap} emptyText={t('analytics.chartEmptyStatus')} /></article>
+        <article className="card space-y-3 border border-slate-200 bg-white p-6 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400 lg:col-span-2"><h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('analytics.insights')}</h2><p>{t('analytics.insightRecovery', { rate: recoveryRate })}</p><p>{t('analytics.insightVolume')}</p><p>{t('analytics.insightStatus')}</p></article>
+      </section>
 
-      {/* Main Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-indigo-500" />
-            Monthly Report Volume Analysis
-          </h2>
-          <MonthlyReportsChart 
-            monthlyLost={analytics.monthlyLost} 
-            monthlyFound={analytics.monthlyFound} 
-          />
-        </div>
+      <section className="grid gap-6 lg:grid-cols-2" aria-label={t('analytics.hotspotsRecommendations')}>
+        <article className="card border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/60">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950 dark:text-white"><MapPin aria-hidden="true" className="h-5 w-5 text-rose-500" />{t('analytics.hotspots')}</h2>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2">{[[t('analytics.locations'), intelligence.hotspots.locations], [t('analytics.categories'), intelligence.hotspots.categories]].map(([title, items]) => <div key={title}><h3 className="text-sm font-bold">{title}</h3>{items?.length ? <ol className="mt-2 space-y-2 text-sm">{items.map((item) => <li key={item.label} className="flex justify-between gap-3"><span>{item.label}</span><strong>{item.count}</strong></li>)}</ol> : <p className="mt-2 text-sm text-slate-500">{t('analytics.noHotspots')}</p>}</div>)}</div>
+          <p className="mt-4 text-xs text-slate-500">{t('analytics.hotspotPrivacy')}</p>
+        </article>
+        <article className="card border border-amber-200 bg-amber-50/70 p-6 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950 dark:text-white"><Lightbulb aria-hidden="true" className="h-5 w-5 text-amber-600" />{t('analytics.recommendations')}</h2><p className="mt-1 text-xs font-semibold text-amber-900 dark:text-amber-100">{t('analytics.recommendationNotice')}</p>
+          {intelligence.recommendations.items?.length ? <ul className="mt-4 space-y-3">{intelligence.recommendations.items.map((item, index) => <li key={`${item.type}-${index}`} className="rounded-xl border border-amber-200 bg-white/80 p-3 text-sm dark:border-amber-900/60 dark:bg-slate-900/70"><span className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">{t(`analytics.confidence.${item.confidence}`, undefined, item.confidence)}</span><p className="mt-1">{renderRecommendation(item)}</p></li>)}</ul> : <p className="mt-4 text-sm">{t('analytics.noRecommendations')}</p>}
+        </article>
+      </section>
 
-        <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-          <div>
-            <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
-              Lost Reports Status
-            </h2>
-            <StatusPieChart data={analytics.lostStatusBreakdown} />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800">
-          <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
-            Found Listings Status
-          </h2>
-          <StatusPieChart data={analytics.foundStatusBreakdown} />
-        </div>
-
-        <div className="lg:col-span-2 card bg-white dark:bg-slate-900/60 dark:backdrop-blur-md border border-slate-200 dark:border-slate-800 p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">System Insights</h2>
-          <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-            <p>
-              • The <strong>Recovery Success Rate</strong> of <strong className="text-indigo-600 dark:text-indigo-400">{recoveryRate}%</strong> shows the ratio of successfully matched and claimed items relative to total reported lost items.
-            </p>
-            <p>
-              • Regularly monitor the <strong>Monthly Report Volume</strong> bar graph to identify periods of high activity (e.g., exam months, start of semesters) and manage handback staff allocation.
-            </p>
-            <p>
-              • Check status distribution pie charts to ensure that matched items proceed to claimant handbacks and don't remain stuck in the system status pipelines.
-            </p>
-          </div>
-        </div>
-      </div>
+      <section className="card border border-sky-200 bg-sky-50/70 p-6 dark:border-sky-900/50 dark:bg-sky-950/20" aria-labelledby="historical-cohorts-title">
+        <h2 id="historical-cohorts-title" className="flex items-center gap-2 text-lg font-bold text-slate-950 dark:text-white"><TrendingUp aria-hidden="true" className="h-5 w-5 text-sky-600" />{t('analytics.cohorts')}</h2>
+        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{t('analytics.cohortNotice')}</p><p className="mt-3 rounded-lg bg-white/80 px-3 py-2 text-sm dark:bg-slate-900/70">{predictionNotice}</p>
+        <div className="mt-5 grid gap-6 lg:grid-cols-2"><CohortList title={t('analytics.categoryCohorts')} cohorts={intelligence.predictions.categoryCohorts} /><CohortList title={t('analytics.locationCohorts')} cohorts={intelligence.predictions.locationCohorts} /></div>
+      </section>
     </div>
   );
 };
 
 export default Analytics;
-

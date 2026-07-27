@@ -10,11 +10,12 @@ const lostItemService = {
    * Create a new lost item report (supports image upload).
    * @param {FormData} formData
    */
-  createLostItem: async (formData) => {
+  createLostItem: async (formData, onUploadProgress) => {
     const res = await api.post('/lost-items', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      onUploadProgress
     });
     return res.data.data;
   },
@@ -39,11 +40,12 @@ const lostItemService = {
   /**
    * Update a lost item (supports multipart form for images).
    */
-  updateLostItem: async (id, formData) => {
+  updateLostItem: async (id, formData, onUploadProgress) => {
     const res = await api.put(`/lost-items/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      onUploadProgress
     });
     return res.data.data;
   },
@@ -61,8 +63,8 @@ const lostItemService = {
     return res.data.data;
   },
 
-  cancelConnection: async (id) => {
-    const res = await api.post(`/lost-items/${id}/cancel-connection`);
+  cancelConnection: async (id, reason) => {
+    const res = await api.post(`/lost-items/${id}/cancel-connection`, { reason });
     return res.data.data;
   },
 
@@ -73,4 +75,4 @@ const lostItemService = {
 };
 
 export default lostItemService;
-// 
+//

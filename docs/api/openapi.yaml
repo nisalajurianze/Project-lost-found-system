@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: Smart Lost & Found API
+  version: 2026.07.26
+  description: Privacy-aware SEUSL lost-and-found API. AI scores are advisory and not proof of ownership.
+servers:
+  - url: /api
+security:
+  - cookieAuth: []
+tags:
+  - name: Auth
+  - name: Reports
+  - name: Claims
+  - name: Matches
+  - name: AI
+  - name: Locations
+  - name: Admin
+paths:
+  /auth/csrf:
+    get: {tags: [Auth], security: [], responses: {'200': {description: CSRF token issued}}}
+  /auth/register:
+    post: {tags: [Auth], security: [], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Registered}}}
+  /auth/login:
+    post: {tags: [Auth], security: [], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Authenticated with secure cookies}}}
+  /auth/refresh-token:
+    post: {tags: [Auth], security: [], responses: {'200': {description: Rotated cookie session}, '401': {description: Invalid or reused session}}}
+  /auth/logout:
+    post: {tags: [Auth], responses: {'200': {description: Logged out}}}
+  /auth/me:
+    get: {tags: [Auth], responses: {'200': {description: Current user}}}
+  /lost-items:
+    get: {tags: [Reports], security: [], parameters: [{$ref: '#/components/parameters/Page'}, {$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Search'}], responses: {'200': {description: Privacy-reduced lost reports}}}
+    post: {tags: [Reports], requestBody: {$ref: '#/components/requestBodies/MultipartReport'}, responses: {'201': {description: Lost report created}}}
+  /lost-items/{id}:
+    parameters: [{$ref: '#/components/parameters/Id'}]
+    get: {tags: [Reports], security: [], responses: {'200': {description: Privacy-reduced report}}}
+    put: {tags: [Reports], requestBody: {$ref: '#/components/requestBodies/MultipartReport'}, responses: {'200': {description: Owner/admin report update}}}
+    delete: {tags: [Reports], responses: {'200': {description: Soft deleted}}}
+  /lost-items/{id}/resolve:
+    post: {tags: [Reports], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Authorised handover confirmation}}}
+  /found-items:
+    get: {tags: [Reports], security: [], parameters: [{$ref: '#/components/parameters/Page'}, {$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Search'}], responses: {'200': {description: Privacy-reduced found reports}}}
+    post: {tags: [Reports], requestBody: {$ref: '#/components/requestBodies/MultipartReport'}, responses: {'201': {description: Found report created}}}
+  /found-items/{id}:
+    parameters: [{$ref: '#/components/parameters/Id'}]
+    get: {tags: [Reports], security: [], responses: {'200': {description: Privacy-reduced report}}}
+    put: {tags: [Reports], requestBody: {$ref: '#/components/requestBodies/MultipartReport'}, responses: {'200': {description: Owner/admin report update}}}
+    delete: {tags: [Reports], responses: {'200': {description: Soft deleted}}}
+  /found-items/{id}/resolve:
+    post: {tags: [Reports], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Authorised handover confirmation}}}
+  /claims:
+    get: {tags: [Claims], responses: {'200': {description: Participant/admin claims}}}
+    post: {tags: [Claims], requestBody: {$ref: '#/components/requestBodies/MultipartClaim'}, responses: {'201': {description: Claim submitted for human review}}}
+  /claims/questions/{itemType}/{itemId}:
+    get: {tags: [Claims], parameters: [{name: itemType, in: path, required: true, schema: {type: string, enum: [LostItem, FoundItem]}}, {name: itemId, in: path, required: true, schema: {type: string}}], responses: {'200': {description: Privacy-safe ownership questions}}}
+  /claims/{id}/review:
+    put: {tags: [Claims], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Human claim decision}}}
+  /claims/{id}/share-contact:
+    patch: {tags: [Claims], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Authorised contact share}}}
+  /matches:
+    get: {tags: [Matches], responses: {'200': {description: Explainable match suggestions}}}
+  /matches/{id}:
+    get: {tags: [Matches], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Match detail}}}
+    put: {tags: [Matches], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Confirm/reject and record pending feedback}}}
+  /ai/chat:
+    post: {tags: [AI], security: [], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Grounded assistant response with cards/pagination/fallback}}}
+  /ai/suggest-details:
+    post:
+      tags: [AI]
+      requestBody: {$ref: '#/components/requestBodies/SingleImage'}
+      responses:
+        '200':
+          description: Reviewable item suggestions, moderation decision and normalised privacy-redaction metadata
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ImageSuggestionResponse'}
+  /ai/location/resolve:
+    post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Confidence/sensitivity-aware location interpretation}}}
+  /ai/report/assess:
+    post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Advisory quality and own-report duplicate preflight}}}
+  /ai-feedback:
+    post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Correction queued for admin review}}}
+    get: {tags: [Admin], responses: {'200': {description: Admin AI feedback queue}}}
+  /ai-feedback/{id}/review:
+    put: {tags: [Admin], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Approve/reject dataset use}}}
+  /locations/resolve:
+    get: {tags: [Locations], security: [], parameters: [{name: q, in: query, required: true, schema: {type: string}}], responses: {'200': {description: Public privacy-reduced resolver}}}
+  /locations/suggestions:
+    post: {tags: [Locations], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Community suggestion pending review}}}
+  /locations/admin:
+    get: {tags: [Admin], responses: {'200': {description: Location governance queue}}}
+  /locations/admin/{id}:
+    patch: {tags: [Admin], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Versioned human review}}}
+  /notifications/preferences:
+    get: {tags: [Notifications], responses: {'200': {description: Current optional push/email workflow preferences}}}
+    put:
+      tags: [Notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/NotificationPreferences'}
+      responses: {'200': {description: Updated preferences; in-app audit records remain enabled}}
+  /admin/stats:
+    get: {tags: [Admin], responses: {'200': {description: Database-backed operational metrics}}}
+  /admin/ai-health:
+    get: {tags: [Admin], responses: {'200': {description: Provider/fallback/latency health}}}
+components:
+  securitySchemes:
+    cookieAuth: {type: apiKey, in: cookie, name: lf_access}
+  parameters:
+    Id: {name: id, in: path, required: true, schema: {type: string, pattern: '^[a-fA-F0-9]{24}$'}}
+    Page: {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+    Limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+    Search: {name: search, in: query, schema: {type: string, maxLength: 200}}
+  schemas:
+    NotificationPreferences:
+      type: object
+      required: [pushEnabled, emailEnabled, categories]
+      additionalProperties: false
+      properties:
+        pushEnabled: {type: boolean}
+        emailEnabled: {type: boolean}
+        categories:
+          type: object
+          additionalProperties: false
+          required: [matches, claims, handover, reminders, system]
+          properties:
+            matches: {type: boolean}
+            claims: {type: boolean}
+            handover: {type: boolean}
+            reminders: {type: boolean}
+            system: {type: boolean}
+    RedactionRegion:
+      type: object
+      required: [x, y, width, height, reason]
+      properties:
+        x: {type: number, minimum: 0, maximum: 1}
+        y: {type: number, minimum: 0, maximum: 1}
+        width: {type: number, exclusiveMinimum: 0, maximum: 1}
+        height: {type: number, exclusiveMinimum: 0, maximum: 1}
+        reason: {type: string, maxLength: 80}
+    ImageSuggestion:
+      type: object
+      properties:
+        itemName: {type: string}
+        category: {type: string}
+        categoryIcon: {type: string}
+        description: {type: string}
+        tags: {type: array, items: {type: string}}
+        brand: {type: string}
+        model: {type: string}
+        colors: {type: array, items: {type: string}}
+        material: {type: string}
+        uniqueMarks: {type: array, items: {type: string}}
+        moderationDecision: {type: string, enum: [allow, review, reject]}
+        isSpam: {type: boolean}
+        privacyWarnings: {type: array, items: {type: string}}
+        redactionRegions: {type: array, maxItems: 20, items: {$ref: '#/components/schemas/RedactionRegion'}}
+    ImageSuggestionResponse:
+      type: object
+      properties:
+        success: {type: boolean}
+        data: {$ref: '#/components/schemas/ImageSuggestion'}
+  requestBodies:
+    Json:
+      required: true
+      content: {application/json: {schema: {type: object, additionalProperties: true}}}
+    SingleImage:
+      required: true
+      content: {multipart/form-data: {schema: {type: object, properties: {image: {type: string, format: binary}}, required: [image]}}}
+    MultipartReport:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              itemName: {type: string, maxLength: 150}
+              category: {type: string}
+              description: {type: string, minLength: 10, maxLength: 2000}
+              images: {type: array, maxItems: 5, items: {type: string, format: binary}}
+            required: [itemName, category, description]
+    MultipartClaim:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              itemId: {type: string}
+              itemType: {type: string, enum: [LostItem, FoundItem]}
+              proofDescription: {type: string, minLength: 20}
+              proofImages: {type: array, items: {type: string, format: binary}}
+            required: [itemId, itemType, proofDescription]

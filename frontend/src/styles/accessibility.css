@@ -1,0 +1,148 @@
+/* User-controlled accessibility preferences. System reduced-motion remains respected below. */
+html[data-text-scale="large"] { font-size: 18px; }
+html[data-text-scale="xlarge"] { font-size: 20px; }
+
+html.a11y-high-contrast {
+  --glass-bg: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(15, 23, 42, 0.65);
+  --text-secondary: 30 41 59;
+}
+html.dark.a11y-high-contrast {
+  --glass-bg: rgba(2, 6, 23, 0.96);
+  --glass-border: rgba(248, 250, 252, 0.72);
+  --text-secondary: 226 232 240;
+}
+html.a11y-high-contrast button,
+html.a11y-high-contrast a,
+html.a11y-high-contrast input,
+html.a11y-high-contrast select,
+html.a11y-high-contrast textarea {
+  outline-offset: 3px;
+}
+
+html.a11y-low-effects .glass,
+html.a11y-low-effects [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+html.a11y-low-effects .glass-card-hover,
+html.a11y-low-effects .card-hover,
+html.a11y-low-effects [class*="shadow-"] {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html.a11y-reduce-motion,
+html.a11y-reduce-motion * {
+  scroll-behavior: auto !important;
+}
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+}
+
+/* Accessibility and low-power behaviour */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 9999;
+  transform: translateY(-200%);
+  border-radius: 0.75rem;
+  background: rgb(79 70 229);
+  color: white;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  transition: transform 150ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl {
+    background-color: rgb(255 255 255 / 0.96);
+  }
+
+  .dark .glass,
+  .dark .backdrop-blur-md,
+  .dark .backdrop-blur-lg,
+  .dark .backdrop-blur-xl {
+    background-color: rgb(15 23 42 / 0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .glass-card-hover:hover,
+  .card-hover:hover {
+    transform: none !important;
+  }
+}
+
+@media (max-width: 767px), (prefers-reduced-data: reduce) {
+  .glass,
+  .glass-card {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .glass-card-hover,
+  .card-hover {
+    will-change: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mobile-sticky-claim {
+    position: sticky;
+    bottom: calc(var(--mobile-bottom-nav-height) + 0.5rem);
+    z-index: 30;
+    box-shadow: 0 14px 35px rgba(15, 23, 42, 0.18);
+  }
+}
+
+/* Avoid persistent compositor layers and hover motion on touch-first devices. */
+@media (hover: none), (pointer: coarse) {
+  .glass-card-hover,
+  .card-hover,
+  .premium-stat-card,
+  .quick-action-card,
+  .hero-btn-primary,
+  .hero-btn-secondary,
+  .empty-cta {
+    will-change: auto !important;
+  }
+
+  .glass-card-hover:hover,
+  .card-hover:hover,
+  .premium-stat-card:hover,
+  .quick-action-card:hover,
+  .hero-btn-primary:hover,
+  .hero-btn-secondary:hover,
+  .empty-cta:hover {
+    transform: none !important;
+  }
+}

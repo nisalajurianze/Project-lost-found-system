@@ -18,7 +18,7 @@ export const Button = ({
   ...props
 }) => {
   const baseClasses = 'btn';
-  
+
   const variantClasses = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',

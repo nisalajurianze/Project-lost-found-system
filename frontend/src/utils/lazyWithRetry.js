@@ -2,9 +2,9 @@ import { lazy } from 'react';
 
 /**
  * A wrapper for React.lazy() that automatically retries the dynamic import
- * if it fails (e.g., due to a temporary network issue or a new deployment 
+ * if it fails (e.g., due to a temporary network issue or a new deployment
  * changing chunk hashes).
- * 
+ *
  * @param {Function} componentImport - The dynamic import function (e.g. () => import('./Component'))
  * @returns {React.LazyExoticComponent}
  */

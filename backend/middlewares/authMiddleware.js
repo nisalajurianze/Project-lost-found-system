@@ -1,92 +1,40 @@
-// ============================================
-// Authentication Middleware
-// JWT access token verification via cookie or header
-// ============================================
-
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { accessSecret, allowBearerAuth } from '../config/security.js';
 
-const getAccessSecret = () => process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+const tokenFromRequest = (req) => {
+  if (req.cookies?.accessToken) return req.cookies.accessToken;
+  if (allowBearerAuth && req.headers.authorization?.startsWith('Bearer ')) return req.headers.authorization.slice(7);
+  return null;
+};
 
-/**
- * Protect routes – verifies JWT access token.
- * Token sources (checked in order):
- *   1. HTTP-only cookie "accessToken"
- *   2. Authorization header "Bearer <token>"
- */
-const protect = asyncHandler(async (req, res, next) => {
-  let token;
+const loadUser = async (token) => {
+  const decoded = jwt.verify(token, accessSecret, { algorithms: ['HS256'], issuer: 'smart-lf' });
+  const user = await User.findById(decoded.sub);
+  if (!user || !user.isActive || user.deletedAt) throw ApiError.forbidden('Account is unavailable.');
+  return user;
+};
 
-  // 1. Check cookie first
-  if (req.cookies && req.cookies.accessToken) {
-    token = req.cookies.accessToken;
-  }
-
-  // 2. Fallback to Authorization header
-  if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  if (!token) {
-    throw ApiError.unauthorized('Not authenticated. Please log in.');
-  }
-
+const protect = asyncHandler(async (req, _res, next) => {
+  const token = tokenFromRequest(req);
+  if (!token) throw ApiError.unauthorized('Not authenticated. Please log in.');
   try {
-    // Verify token
-    const decoded = jwt.verify(token, getAccessSecret());
-
-    // Fetch user (exclude password but include isActive check)
-    const user = await User.findById(decoded.id).select('-password -refreshToken');
-
-    if (!user) {
-      throw ApiError.unauthorized('User associated with this token no longer exists.');
-    }
-
-    if (!user.isActive) {
-      throw ApiError.forbidden('Your account has been deactivated. Contact admin.');
-    }
-
-    // Attach user to request object
-    req.user = user;
+    req.user = await loadUser(token);
     next();
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      throw ApiError.unauthorized('Access token expired. Please refresh your token.');
-    }
-    if (error.name === 'JsonWebTokenError') {
-      throw ApiError.unauthorized('Invalid access token.');
-    }
+    if (error.name === 'TokenExpiredError') throw ApiError.unauthorized('Access token expired.');
+    if (error.name === 'JsonWebTokenError') throw ApiError.unauthorized('Invalid access token.');
     throw error;
   }
 });
 
-/**
- * Optional auth – attaches user if valid token present, but doesn't block.
- */
-const optionalAuth = asyncHandler(async (req, res, next) => {
-  let token;
-
-  if (req.cookies && req.cookies.accessToken) {
-    token = req.cookies.accessToken;
-  } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, getAccessSecret());
-      const user = await User.findById(decoded.id).select('-password -refreshToken');
-      if (user && user.isActive) {
-        req.user = user;
-      }
-    } catch {
-      // Silently ignore — user just won't be attached
-    }
-  }
-
-  next();
+const optionalAuth = asyncHandler(async (req, _res, next) => {
+  const token = tokenFromRequest(req);
+  if (!token) return next();
+  try { req.user = await loadUser(token); } catch { /* anonymous response */ }
+  return next();
 });
 
 export { protect, optionalAuth };

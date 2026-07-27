@@ -10,11 +10,12 @@ const foundItemService = {
    * Create a new found item listing (supports image upload).
    * @param {FormData} formData
    */
-  createFoundItem: async (formData) => {
+  createFoundItem: async (formData, onUploadProgress) => {
     const res = await api.post('/found-items', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      onUploadProgress
     });
     return res.data.data;
   },
@@ -38,11 +39,12 @@ const foundItemService = {
   /**
    * Update a found item (supports multipart form).
    */
-  updateFoundItem: async (id, formData) => {
+  updateFoundItem: async (id, formData, onUploadProgress) => {
     const res = await api.put(`/found-items/${id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      onUploadProgress
     });
     return res.data.data;
   },
@@ -60,8 +62,8 @@ const foundItemService = {
     return res.data.data;
   },
 
-  cancelConnection: async (id) => {
-    const res = await api.post(`/found-items/${id}/cancel-connection`);
+  cancelConnection: async (id, reason) => {
+    const res = await api.post(`/found-items/${id}/cancel-connection`, { reason });
     return res.data.data;
   },
 

@@ -9,6 +9,7 @@ import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate } from '../utils/pagination.js';
+import { normalizeNotificationPreferences } from '../services/notificationPreferenceService.js';
 
 /**
  * Retrieve notifications for the logged-in user.
@@ -19,6 +20,9 @@ const getNotifications = asyncHandler(async (req, res) => {
   const filter = { userId };
 
   if (req.query.isRead !== undefined) {
+    if (!['true', 'false'].includes(String(req.query.isRead))) {
+      throw ApiError.badRequest('isRead must be true or false.');
+    }
     filter.isRead = req.query.isRead === 'true';
   }
 
@@ -33,6 +37,24 @@ const getNotifications = asyncHandler(async (req, res) => {
   const unreadCount = await Notification.countDocuments({ userId, isRead: false });
 
   ApiResponse.ok({ notifications, pagination, unreadCount }, 'Notifications retrieved successfully.').send(res);
+});
+
+
+const getNotificationPreferences = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('notificationPreferences');
+  if (!user) throw ApiError.notFound('User not found.');
+  ApiResponse.ok(normalizeNotificationPreferences(user.notificationPreferences), 'Notification preferences retrieved.').send(res);
+});
+
+const updateNotificationPreferences = asyncHandler(async (req, res) => {
+  const preferences = normalizeNotificationPreferences(req.body);
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { notificationPreferences: preferences } },
+    { new: true, runValidators: true },
+  ).select('notificationPreferences');
+  if (!user) throw ApiError.notFound('User not found.');
+  ApiResponse.ok(normalizeNotificationPreferences(user.notificationPreferences), 'Notification preferences updated.').send(res);
 });
 
 /**
@@ -80,14 +102,32 @@ const deleteNotification = asyncHandler(async (req, res) => {
  */
 const subscribeToPush = asyncHandler(async (req, res) => {
   const { subscription } = req.body;
-  if (!subscription || !subscription.endpoint) {
+  if (!subscription || typeof subscription !== 'object' || Array.isArray(subscription)) {
     throw ApiError.badRequest('Invalid push subscription object.');
   }
 
-  const user = await User.findById(req.user._id);
+  let endpoint;
+  try { endpoint = new URL(String(subscription.endpoint || '')); } catch { throw ApiError.badRequest('Invalid push subscription endpoint.'); }
+  if (endpoint.protocol !== 'https:' || endpoint.href.length > 2048) {
+    throw ApiError.badRequest('Push subscription endpoint must be a valid HTTPS URL.');
+  }
+
+  const p256dh = String(subscription.keys?.p256dh || '');
+  const auth = String(subscription.keys?.auth || '');
+  if (!p256dh || p256dh.length > 512 || !auth || auth.length > 256) {
+    throw ApiError.badRequest('Push subscription keys are invalid.');
+  }
+
+  const normalizedSubscription = {
+    endpoint: endpoint.href,
+    expirationTime: Number.isFinite(subscription.expirationTime) ? subscription.expirationTime : null,
+    keys: { p256dh, auth },
+  };
+
+  const user = await User.findById(req.user._id).select('+pushSubscription');
   if (!user) throw ApiError.notFound('User not found.');
 
-  user.pushSubscription = subscription;
+  user.pushSubscription = normalizedSubscription;
   await user.save();
 
   ApiResponse.ok(null, 'Push subscription saved.').send(res);
@@ -97,7 +137,7 @@ const subscribeToPush = asyncHandler(async (req, res) => {
  * Remove Push Subscription for the logged-in user.
  */
 const unsubscribeFromPush = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select('+pushSubscription');
   if (user && user.pushSubscription) {
     user.pushSubscription = undefined;
     await user.save();
@@ -112,9 +152,9 @@ const unsubscribeFromPush = asyncHandler(async (req, res) => {
 const getVapidPublicKey = asyncHandler(async (req, res) => {
   const publicKey = process.env.VAPID_PUBLIC_KEY;
   if (!publicKey) {
-    throw ApiError.internal('Push notifications are not configured on the server.');
+    throw ApiError.serviceUnavailable('Push notifications are not configured on the server.');
   }
-  
+
   ApiResponse.ok({ publicKey }, 'VAPID public key retrieved.').send(res);
 });
 
@@ -125,5 +165,7 @@ export {
   deleteNotification,
   subscribeToPush,
   unsubscribeFromPush,
-  getVapidPublicKey
+  getVapidPublicKey,
+  getNotificationPreferences,
+  updateNotificationPreferences
 };

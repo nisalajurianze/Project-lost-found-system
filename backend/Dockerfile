@@ -1,42 +1,22 @@
-# ============================================
-# Smart Lost & Found - Backend Dockerfile
-# Multi-stage build for optimal image size
-# ============================================
-
-# Stage 1: Dependencies
-FROM node:22-alpine AS deps
+# syntax=docker/dockerfile:1.7
+FROM node:22.14-alpine AS dependencies
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
-
-# Stage 2: Production
-FROM node:22-alpine AS production
-WORKDIR /app
-
-# Add non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodeuser -u 1001 -G nodejs
-
-# Copy dependencies
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Remove dev files
-RUN rm -rf seed/ postman/ .env.example
-
-# Set environment
 ENV NODE_ENV=production
-ENV PORT=5000
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
-# Switch to non-root user
-USER nodeuser
-
-# Expose port
+FROM node:22.14-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production PORT=5000
+RUN apk add --no-cache tini \
+  && addgroup -S app -g 10001 \
+  && adduser -S app -u 10001 -G app
+COPY --from=dependencies --chown=app:app /app/node_modules ./node_modules
+COPY --chown=app:app . .
+RUN rm -rf node_modules/.cache postman test*.js test*.jpg clear_unsplash_images.js .env .env.*
+USER app
 EXPOSE 5000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "const http = require('http'); http.get('http://localhost:5000/api/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"
-
-# Start server
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:5000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "server.js"]

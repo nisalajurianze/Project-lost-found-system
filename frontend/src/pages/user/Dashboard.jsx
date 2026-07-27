@@ -1,179 +1,97 @@
-// ============================================
-// Student Dashboard Page Component
-// Premium redesign with glassmorphism & animations
-// ============================================
-
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
-  FiPlusCircle, FiPackage, FiActivity, FiCheckSquare,
-  FiSearch, FiZap, FiArrowRight, FiTrendingUp,
-  FiMapPin, FiClock, FiStar, FiShield, FiShare, FiPlusSquare, FiX, FiDownload, FiAlertTriangle
+  FiActivity,
+  FiAlertTriangle,
+  FiArrowRight,
+  FiCheckSquare,
+  FiDownload,
+  FiPackage,
+  FiPlusCircle,
+  FiPlusSquare,
+  FiSearch,
+  FiShare,
+  FiShield,
+  FiZap,
 } from 'react-icons/fi';
 import MatchCard from '../../components/cards/MatchCard';
 import ProfileCompletionModal from '../../components/modals/ProfileCompletionModal';
 import api from '../../services/api';
 import matchService from '../../services/matchService';
 import Loader from '../../components/common/Loader';
+import Modal from '../../components/common/Modal';
+import Button from '../../components/common/Button';
 import toast from 'react-hot-toast';
-import { subscribeToPushNotifications } from '../../utils/pushNotifications';
+import { PUSH_NOTIFICATION_ERROR_CODES, subscribeToPushNotifications } from '../../utils/pushNotifications';
+import { useLanguage } from '../../i18n/LanguageContext';
 
-// Animated number counter
-const AnimatedNumber = ({ value }) => {
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    if (value === 0) { setDisplay(0); return; }
-    let start = 0;
-    const step = Math.ceil(value / 20);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= value) { setDisplay(value); clearInterval(timer); }
-      else setDisplay(start);
-    }, 40);
-    return () => clearInterval(timer);
-  }, [value]);
-  return <span>{display}</span>;
-};
-
-// Premium Stat Card
-const PremiumStatCard = ({ title, value, icon: Icon, gradient, delay = 0, to }) => {
-  const content = (
-    <>
-      <div className="premium-stat-inner">
-        <div className="premium-stat-icon" style={{ background: gradient }}>
-          <Icon size={22} />
-        </div>
-        <div className="premium-stat-info">
-          <p className="premium-stat-label">{title}</p>
-          <h3 className="premium-stat-value">
-            <AnimatedNumber value={value} />
-          </h3>
-        </div>
-      </div>
-      <div className="premium-stat-glow" style={{ background: gradient }} />
-    </>
-  );
-
-  return to ? (
-    <Link
-      to={to}
-      className="premium-stat-card block transition-all hover:scale-[1.02]"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {content}
-    </Link>
-  ) : (
-    <div
-      className="premium-stat-card"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {content}
+const MetricCard = ({ label, value, icon: Icon, to }) => (
+  <Link to={to} className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-400 dark:border-surface-800 dark:bg-surface-900">
+    <div className="flex items-center justify-between gap-3">
+      <div><p className="text-sm text-surface-500">{label}</p><p className="mt-1 text-3xl font-extrabold text-surface-900 dark:text-white">{value}</p></div>
+      <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300"><Icon size={22} /></span>
     </div>
-  );
-};
+  </Link>
+);
 
-// Quick Action Card
-const QuickActionCard = ({ to, icon: Icon, label, description, gradient, delay = 0 }) => (
-  <Link
-    to={to}
-    className="quick-action-card"
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    <div className="quick-action-icon" style={{ background: gradient }}>
-      <Icon size={20} />
+const AttentionCard = ({ label, value, description, to, urgent = false }) => (
+  <Link to={to} className={`rounded-xl border p-4 transition hover:-translate-y-0.5 ${urgent && value > 0 ? 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100' : 'border-surface-200 bg-white text-surface-900 dark:border-surface-800 dark:bg-surface-900 dark:text-white'}`}>
+    <div className="flex items-start justify-between gap-3">
+      <div><p className="font-semibold">{label}</p><p className="mt-1 text-sm opacity-75">{description}</p></div>
+      <span className="text-2xl font-extrabold" aria-label={`${value} ${label}`}>{value}</span>
     </div>
-    <div className="quick-action-text">
-      <span className="quick-action-label">{label}</span>
-      <span className="quick-action-desc">{description}</span>
-    </div>
-    <FiArrowRight className="quick-action-arrow" size={16} />
+  </Link>
+);
+
+const QuickAction = ({ to, icon: Icon, label, description }) => (
+  <Link to={to} className="flex min-h-20 items-center gap-3 rounded-xl border border-surface-200 bg-white p-4 transition hover:border-primary-400 dark:border-surface-800 dark:bg-surface-900">
+    <span className="inline-flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300"><Icon size={20} /></span>
+    <span className="min-w-0 flex-1"><span className="block font-semibold text-surface-900 dark:text-white">{label}</span><span className="block text-sm text-surface-500">{description}</span></span>
+    <FiArrowRight aria-hidden="true" />
   </Link>
 );
 
 export const Dashboard = () => {
-  const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useSelector((state) => state.auth);
-
   const [stats, setStats] = useState({
     totalLostItems: 0,
     totalFoundItems: 0,
     totalClaims: 0,
-    successfulRecoveries: 0
+    successfulRecoveries: 0,
+    attention: { suggestedMatches: 0, pendingClaims: 0, claimsAwaitingReview: 0, handoverPending: 0, activeReports: 0, total: 0 },
   });
   const [matches, setMatches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  
-  // App Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      setShowPushPrompt(true);
-    }
-
-    // Listen for PWA Install Prompt (Android/Chrome)
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
+    if ('Notification' in window && Notification.permission === 'default') setShowPushPrompt(true);
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredPrompt(event);
       setShowInstallPrompt(true);
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
-
-  const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      toast.success('App installed successfully!');
-    }
-    
-    setDeferredPrompt(null);
-    setShowInstallPrompt(false);
-  };
-
-  const handleEnablePush = async () => {
-    // iOS Safari Web Push requires PWA (Add to Home Screen)
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-
-    if (isIOS && !isStandalone) {
-      setShowIosPrompt(true);
-      return;
-    }
-
-    try {
-      await subscribeToPushNotifications();
-      toast.success('Push notifications enabled!');
-      setShowPushPrompt(false);
-    } catch (err) {
-      toast.error('Could not enable push notifications. Check browser settings.');
-      console.error(err);
-    }
-  };
 
   const fetchDashboardData = async () => {
     try {
-      const statsRes = await api.get('/users/stats');
-      setStats(statsRes.data.data);
-      const matchesData = await matchService.getMatches('suggested');
-      // Fix: Handle cases where backend returns paginated object { matches, pagination }
-      const matchesArray = Array.isArray(matchesData) ? matchesData : (matchesData.matches || []);
-      setMatches(matchesArray.slice(0, 2));
-    } catch (err) {
-      console.error('Failed to load student dashboard stats:', err);
+      const [statsResponse, matchResponse] = await Promise.all([
+        api.get('/users/stats'),
+        matchService.getMatches('suggested'),
+      ]);
+      setStats(statsResponse.data.data);
+      const list = Array.isArray(matchResponse) ? matchResponse : (matchResponse.matches || []);
+      setMatches(list.slice(0, 3));
+    } catch {
+      toast.error(t('dashboard.refreshError'));
     } finally {
       setIsLoading(false);
     }
@@ -183,318 +101,118 @@ export const Dashboard = () => {
     if (user) fetchDashboardData();
   }, [user]);
 
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') toast.success(t('dashboard.installSuccess'));
+    setDeferredPrompt(null);
+    setShowInstallPrompt(false);
+  };
+
+  const handleEnablePush = async () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    if (isIOS && !isStandalone) { setShowIosPrompt(true); return; }
+    try {
+      await subscribeToPushNotifications();
+      toast.success(t('dashboard.pushSuccess'));
+      setShowPushPrompt(false);
+    } catch (error) {
+      const errorKey = error?.code === PUSH_NOTIFICATION_ERROR_CODES.UNSUPPORTED
+        ? 'notifications.pushUnsupported'
+        : error?.code === PUSH_NOTIFICATION_ERROR_CODES.PERMISSION_DENIED
+          ? 'notifications.pushDenied'
+          : 'notifications.pushSetupFailed';
+      toast.error(t(errorKey));
+    }
+  };
+
   const handleMatchConfirm = async (id) => {
     try {
       await matchService.updateMatchStatus(id, 'confirmed');
-      toast.success('Match confirmed! File a claim request.');
+      toast.success(t('dashboard.matchConfirmSuccess'));
       fetchDashboardData();
-    } catch (err) {
-      toast.error(err.message || 'Failed to confirm match.');
-    }
+    } catch { toast.error(t('dashboard.matchConfirmError')); }
   };
 
   const handleMatchReject = async (id) => {
     try {
       await matchService.updateMatchStatus(id, 'rejected');
-      toast.success('Match discarded.');
+      toast.success(t('dashboard.matchRejectSuccess'));
       fetchDashboardData();
-    } catch (err) {
-      toast.error(err.message || 'Failed to discard match.');
-    }
+    } catch { toast.error(t('dashboard.matchRejectError')); }
   };
 
   if (isLoading) return <Loader fullPage />;
 
-  const firstName = user?.fullName?.split(' ')[0] || 'there';
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+  const firstName = user?.fullName?.split(' ')[0] || t('dashboard.fallbackName');
+  const attention = stats.attention || {};
 
   return (
-    <div className="dashboard-premium">
-      {/* ── App Install Prompt (Android/Chrome) ── */}
-      {showInstallPrompt && (
-        <div className="bg-primary-900/40 border border-primary-500/30 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary-500/20 text-primary-400 rounded-full">
-              <FiDownload size={20} />
-            </div>
-            <div>
-              <h4 className="text-white font-medium">Install App</h4>
-              <p className="text-sm text-surface-300">Add Smart L&F to your home screen for a faster, app-like experience!</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowInstallPrompt(false)} className="px-4 py-2 text-sm text-surface-300 hover:text-white transition-colors">Not Now</button>
-            <button onClick={handleInstallApp} className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg shadow-lg shadow-primary-900/50 transition-all font-medium">Install</button>
-          </div>
+    <div className="space-y-7 animate-fade-in">
+      <header className="rounded-2xl border border-primary-200 bg-gradient-to-br from-primary-700 to-indigo-800 p-6 text-white shadow-lg dark:border-primary-900">
+        <p className="text-sm font-semibold text-primary-100">{t('dashboard.welcome', { name: firstName })}</p>
+        <div className="mt-2 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div><h1 className="text-3xl font-extrabold">{t('dashboard.heroTitle')}</h1><p className="mt-2 max-w-2xl text-primary-100">{t('dashboard.heroDesc')}</p></div>
+          <div className="flex flex-wrap gap-3"><Link to="/dashboard/report-lost" className="btn btn-md bg-white text-primary-800 hover:bg-primary-50"><FiPlusCircle /> {t('nav.reportLost')}</Link><Link to="/dashboard/report-found" className="btn btn-md border border-white/50 bg-white/10 text-white hover:bg-white/20"><FiPackage /> {t('nav.reportFound')}</Link></div>
         </div>
+      </header>
+
+      <section aria-labelledby="attention-title">
+        <div className="mb-3 flex items-center justify-between gap-3"><div><h2 id="attention-title" className="text-xl font-bold text-surface-900 dark:text-white">{t('dashboard.needsAttention')}</h2><p className="text-sm text-surface-500">{t('dashboard.attentionDesc')}</p></div>{attention.total > 0 && <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">{t('dashboard.open', { count: attention.total })}</span>}</div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <AttentionCard label={t('dashboard.potentialMatches')} value={attention.suggestedMatches || 0} description={t('dashboard.reviewSuggestions')} to="/dashboard/my-matches" urgent />
+          <AttentionCard label={t('dashboard.claimsToReview')} value={attention.claimsAwaitingReview || 0} description={t('dashboard.claimsToReviewDesc')} to="/dashboard/claims" urgent />
+          <AttentionCard label={t('dashboard.pendingClaims')} value={attention.pendingClaims || 0} description={t('dashboard.pendingClaimsDesc')} to="/dashboard/claims" />
+          <AttentionCard label={t('dashboard.handoverPending')} value={attention.handoverPending || 0} description={t('dashboard.handoverDesc')} to="/dashboard/claims" urgent />
+        </div>
+      </section>
+
+      <section aria-labelledby="quick-actions-title">
+        <h2 id="quick-actions-title" className="mb-3 text-xl font-bold text-surface-900 dark:text-white">{t('dashboard.quickActions')}</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickAction to="/search" icon={FiSearch} label={t('dashboard.searchReports')} description={t('dashboard.searchReportsDesc')} />
+          <QuickAction to="/dashboard/report-lost" icon={FiPlusCircle} label={t('nav.reportLost')} description={t('dashboard.reportLostDesc')} />
+          <QuickAction to="/dashboard/report-found" icon={FiPackage} label={t('nav.reportFound')} description={t('dashboard.reportFoundDesc')} />
+          <QuickAction to="/dashboard/my-matches" icon={FiActivity} label={t('dashboard.reviewMatches')} description={t('dashboard.reviewMatchesDesc')} />
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t('dashboard.accountTotals')}>
+        <MetricCard label={t('dashboard.lostReports')} value={stats.totalLostItems} icon={FiSearch} to="/dashboard/my-lost" />
+        <MetricCard label={t('dashboard.foundReports')} value={stats.totalFoundItems} icon={FiPackage} to="/dashboard/my-found" />
+        <MetricCard label={t('dashboard.submittedClaims')} value={stats.totalClaims} icon={FiCheckSquare} to="/dashboard/claims" />
+        <MetricCard label={t('dashboard.recoveredItems')} value={stats.successfulRecoveries} icon={FiShield} to="/dashboard/claims" />
+      </section>
+
+      <section aria-labelledby="matches-title" className="rounded-2xl border border-surface-200 bg-white p-5 dark:border-surface-800 dark:bg-surface-900">
+        <div className="mb-4 flex items-center justify-between"><div><h2 id="matches-title" className="text-xl font-bold text-surface-900 dark:text-white">{t('dashboard.potentialMatches')}</h2><p className="text-sm text-surface-500">{t('dashboard.matchesDesc')}</p></div><Link to="/dashboard/my-matches" className="text-sm font-semibold text-primary-700 dark:text-primary-300">{t('common.viewAll')}</Link></div>
+        {matches.length === 0 ? <div className="rounded-xl bg-surface-50 p-6 text-center dark:bg-surface-950/40"><p className="font-semibold">{t('dashboard.noSuggestions')}</p><p className="mt-1 text-sm text-surface-500">{t('dashboard.noSuggestionsDesc')}</p></div> : <div className="space-y-4">{matches.map((match) => <MatchCard key={match._id} match={match} onConfirm={handleMatchConfirm} onReject={handleMatchReject} />)}</div>}
+      </section>
+
+      {(showInstallPrompt || showPushPrompt || !user?.phone || !user?.studentId) && (
+        <section aria-labelledby="optional-setup-title" className="space-y-3">
+          <h2 id="optional-setup-title" className="text-lg font-bold text-surface-900 dark:text-white">{t('dashboard.optionalSetup')}</h2>
+          {(!user?.phone || !user?.studentId) && <div className="flex flex-col justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center dark:border-amber-900/50 dark:bg-amber-950/30"><div className="flex gap-3"><FiAlertTriangle className="mt-1 flex-none text-amber-600" /><div><p className="font-semibold">{t('dashboard.profileSetupTitle')}</p><p className="text-sm opacity-75">{t('dashboard.profileSetupDesc')}</p></div></div><button type="button" onClick={() => setIsProfileModalOpen(true)} className="btn btn-primary btn-md">{t('dashboard.profileSetupAction')}</button></div>}
+          {showInstallPrompt && <div className="flex flex-col justify-between gap-3 rounded-xl border border-surface-200 bg-white p-4 sm:flex-row sm:items-center dark:border-surface-800 dark:bg-surface-900"><div className="flex gap-3"><FiDownload className="mt-1 flex-none text-primary-600" /><div><p className="font-semibold">{t('dashboard.installTitle')}</p><p className="text-sm text-surface-500">{t('dashboard.installDesc')}</p></div></div><div className="flex gap-2"><button type="button" onClick={() => setShowInstallPrompt(false)} className="btn btn-ghost btn-md">{t('dashboard.notNow')}</button><button type="button" onClick={handleInstallApp} className="btn btn-primary btn-md">{t('dashboard.installAction')}</button></div></div>}
+          {showPushPrompt && <div className="flex flex-col justify-between gap-3 rounded-xl border border-surface-200 bg-white p-4 sm:flex-row sm:items-center dark:border-surface-800 dark:bg-surface-900"><div className="flex gap-3"><FiZap className="mt-1 flex-none text-primary-600" /><div><p className="font-semibold">{t('dashboard.pushTitle')}</p><p className="text-sm text-surface-500">{t('dashboard.pushDesc')}</p></div></div><div className="flex gap-2"><button type="button" onClick={() => setShowPushPrompt(false)} className="btn btn-ghost btn-md">{t('dashboard.notNow')}</button><button type="button" onClick={handleEnablePush} className="btn btn-primary btn-md">{t('dashboard.enableAction')}</button></div></div>}
+        </section>
       )}
 
-      {/* ── Push Notification Prompt ── */}
-      {showPushPrompt && !showIosPrompt && (
-        <div className="bg-primary-900/40 border border-primary-500/30 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary-500/20 text-primary-400 rounded-full">
-              <FiZap size={20} />
-            </div>
-            <div>
-              <h4 className="text-white font-medium">Enable Push Notifications</h4>
-              <p className="text-sm text-surface-300">Get instantly notified when we find a match or your claim updates!</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowPushPrompt(false)} className="px-4 py-2 text-sm text-surface-300 hover:text-white transition-colors">Not Now</button>
-            <button onClick={handleEnablePush} className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-500 text-white rounded-lg shadow-lg shadow-primary-900/50 transition-all font-medium">Enable</button>
-          </div>
-        </div>
-      )}
+      <ProfileCompletionModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
 
-      {/* ── Profile Incomplete Banner ── */}
-      {(!user?.phone || !user?.studentId) && (
-        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-full">
-              <FiAlertTriangle size={20} />
-            </div>
-            <div>
-              <h4 className="text-surface-900 dark:text-white font-bold">Profile Incomplete</h4>
-              <p className="text-sm text-surface-600 dark:text-surface-300">
-                Please add your phone number and student ID to use all features.
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsProfileModalOpen(true)}
-            className="px-4 py-2 text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-sm"
-          >
-            Complete Profile
-          </button>
-        </div>
-      )}
-      
-      <ProfileCompletionModal 
-        isOpen={isProfileModalOpen} 
-        onClose={() => setIsProfileModalOpen(false)} 
-      />
-
-      {/* ── iOS PWA Instructions Modal ── */}
-      {showIosPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-900/80 backdrop-blur-sm">
-          <div className="bg-surface-800 border border-surface-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl relative">
-            <button 
-              onClick={() => setShowIosPrompt(false)}
-              className="absolute top-4 right-4 text-surface-400 hover:text-white transition-colors"
-            >
-              <FiX size={24} />
-            </button>
-            
-            <div className="w-12 h-12 bg-primary-500/20 rounded-2xl flex items-center justify-center mb-4">
-              <FiZap className="text-primary-400 text-xl" />
-            </div>
-            
-            <h3 className="text-xl font-bold text-white mb-2">iOS Push Notifications</h3>
-            <p className="text-surface-300 mb-6 text-sm leading-relaxed">
-              To receive instant notifications on your iPhone or iPad, you need to add this app to your Home Screen first.
-            </p>
-            
-            <div className="bg-surface-900/50 rounded-xl p-4 space-y-4 mb-6 border border-surface-700/50">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">1</div>
-                <p className="text-sm text-surface-300">Tap the <FiShare className="inline mx-1 text-primary-400" /> <b>Share</b> button in your Safari menu bar.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">2</div>
-                <p className="text-sm text-surface-300">Scroll down and tap <FiPlusSquare className="inline mx-1 text-primary-400" /> <b>Add to Home Screen</b>.</p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-surface-700 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5">3</div>
-                <p className="text-sm text-surface-300">Open the app from your Home Screen to enable notifications!</p>
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => setShowIosPrompt(false)}
-              className="w-full py-3 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-xl transition-colors"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Hero Welcome Banner ── */}
-      <div className="dashboard-hero">
-        <div className="dashboard-hero-bg" />
-        <div className="dashboard-hero-orb orb-1" />
-        <div className="dashboard-hero-orb orb-2" />
-        <div className="dashboard-hero-content">
-          <div className="dashboard-hero-left">
-            <span className="dashboard-greeting-tag">
-              <FiZap size={12} /> {greeting}
-            </span>
-            <h1 className="dashboard-hero-title">
-              Welcome back, <span className="dashboard-hero-name">{firstName}!</span> 👋
-            </h1>
-            <p className="dashboard-hero-subtitle">
-              Track your lost items, view AI matches, and manage claims — all in one place.
-            </p>
-          </div>
-          <div className="dashboard-hero-actions">
-            <Link to="/dashboard/report-lost" className="hero-btn-primary">
-              <FiPlusCircle size={16} /> Report Lost
-            </Link>
-            <Link to="/dashboard/report-found" className="hero-btn-secondary">
-              <FiPackage size={16} /> Report Found
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Stat Cards ── */}
-      <div className="dashboard-stats-grid">
-        <PremiumStatCard
-          title="Lost Reports"
-          value={stats.totalLostItems}
-          icon={FiSearch}
-          gradient="linear-gradient(135deg, #f59e0b, #d97706)"
-          delay={0}
-          to="/dashboard/my-lost"
-        />
-        <PremiumStatCard
-          title="Found Listings"
-          value={stats.totalFoundItems}
-          icon={FiPackage}
-          gradient="linear-gradient(135deg, #10b981, #059669)"
-          delay={80}
-          to="/dashboard/my-found"
-        />
-        <PremiumStatCard
-          title="Submitted Claims"
-          value={stats.totalClaims}
-          icon={FiCheckSquare}
-          gradient="linear-gradient(135deg, #06b6d4, #0284c7)"
-          delay={160}
-          to="/dashboard/claims"
-        />
-        <PremiumStatCard
-          title="Recovered Items"
-          value={stats.successfulRecoveries}
-          icon={FiShield}
-          gradient="linear-gradient(135deg, #8b5cf6, #6366f1)"
-          delay={240}
-          to="/dashboard/claims"
-        />
-      </div>
-
-      {/* ── Main Content Grid ── */}
-      <div className="dashboard-main-grid">
-
-        {/* Left: AI Matches */}
-        <div className="dashboard-matches-col">
-          <div className="dashboard-section-header">
-            <div className="dashboard-section-title">
-              <span className="section-icon-badge">
-                <FiActivity size={16} />
-              </span>
-              <h2>AI Match Recommendations</h2>
-            </div>
-            <Link to="/dashboard/my-matches" className="view-all-link">
-              View All <FiArrowRight size={13} />
-            </Link>
-          </div>
-
-          {matches.length === 0 ? (
-            <div className="dashboard-empty-state">
-              <div className="empty-icon">🔍</div>
-              <h3>No matches yet</h3>
-              <p>We'll notify you instantly when AI finds a potential match for your reported items.</p>
-              <Link to="/dashboard/report-lost" className="empty-cta">
-                <FiPlusCircle size={14} /> Report a Lost Item
-              </Link>
-            </div>
-          ) : (
-            <div className="matches-list">
-              {matches.map((match) => (
-                <MatchCard
-                  key={match._id}
-                  match={match}
-                  onConfirm={handleMatchConfirm}
-                  onReject={handleMatchReject}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Tips Card */}
-          <div className="dashboard-tips-card mt-6">
-            <div className="tips-header">
-              <FiTrendingUp size={16} />
-              <span>Pro Tip</span>
-            </div>
-            <p>Add detailed descriptions and photos when reporting items. AI matching is <strong>3x more accurate</strong> with clear images!</p>
-          </div>
-        </div>
-
-        {/* Right: Quick Actions */}
-        <div className="dashboard-sidebar-col">
-
-          {/* Quick Actions */}
-          <div className="dashboard-section-header">
-            <div className="dashboard-section-title">
-              <span className="section-icon-badge">
-                <FiZap size={16} />
-              </span>
-              <h2>Quick Actions</h2>
-            </div>
-          </div>
-
-          <div className="quick-actions-list">
-            <QuickActionCard
-              to="/dashboard/my-lost"
-              icon={FiSearch}
-              label="My Lost Reports"
-              description="View & manage your reports"
-              gradient="linear-gradient(135deg, #f59e0b, #d97706)"
-              delay={0}
-            />
-            <QuickActionCard
-              to="/dashboard/my-found"
-              icon={FiPackage}
-              label="My Found Listings"
-              description="Items you've reported found"
-              gradient="linear-gradient(135deg, #10b981, #059669)"
-              delay={60}
-            />
-            <QuickActionCard
-              to="/dashboard/my-matches"
-              icon={FiActivity}
-              label="AI Matches"
-              description="Smart item suggestions"
-              gradient="linear-gradient(135deg, #8b5cf6, #6366f1)"
-              delay={120}
-            />
-            <QuickActionCard
-              to="/dashboard/claims"
-              icon={FiCheckSquare}
-              label="My Claims"
-              description="Track your claim statuses"
-              gradient="linear-gradient(135deg, #06b6d4, #0284c7)"
-              delay={180}
-            />
-            <QuickActionCard
-              to="/dashboard/profile"
-              icon={FiStar}
-              label="Profile Settings"
-              description="Update your information"
-              gradient="linear-gradient(135deg, #ec4899, #db2777)"
-              delay={240}
-            />
-          </div>
-        </div>
-      </div>
+      <Modal isOpen={showIosPrompt} onClose={() => setShowIosPrompt(false)} title={t('dashboard.iosTitle')} closeLabel={t('dashboard.iosClose')} size="sm">
+        <p className="text-sm text-surface-500">{t('dashboard.iosDesc')}</p>
+        <ol className="mt-4 space-y-3 text-sm">
+          <li className="flex gap-2"><FiShare aria-hidden="true" className="mt-0.5" /> {t('dashboard.iosStep1')}</li>
+          <li className="flex gap-2"><FiPlusSquare aria-hidden="true" className="mt-0.5" /> {t('dashboard.iosStep2')}</li>
+          <li className="flex gap-2"><FiZap aria-hidden="true" className="mt-0.5" /> {t('dashboard.iosStep3')}</li>
+        </ol>
+        <Button type="button" onClick={() => setShowIosPrompt(false)} className="mt-5 w-full">{t('dashboard.done')}</Button>
+      </Modal>
     </div>
   );
 };
 
 export default Dashboard;
-

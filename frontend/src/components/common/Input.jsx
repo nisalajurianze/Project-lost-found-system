@@ -14,6 +14,8 @@ export const Input = React.forwardRef(({
   helperText = '',
   required = false,
   className = '',
+  showPasswordLabel = 'Show password',
+  hidePasswordLabel = 'Hide password',
   ...props
 }, ref) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +45,7 @@ export const Input = React.forwardRef(({
             type="button"
             className="absolute inset-y-0 right-0 pr-3 flex items-center text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 focus:outline-none"
             onClick={() => setShowPassword(!showPassword)}
-            tabIndex="-1"
+            aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
           >
             {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
           </button>

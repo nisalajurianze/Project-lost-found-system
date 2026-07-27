@@ -1,9 +1,7 @@
-// ============================================
-// Category Controller
-// Handles item categories with Redis caching
-// ============================================
-
-import Category from '../models/Category.js';
+import mongoose from 'mongoose';
+import Category, { normalizeCategoryName } from '../models/Category.js';
+import LostItem from '../models/LostItem.js';
+import FoundItem from '../models/FoundItem.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -11,169 +9,147 @@ import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { generateCategoryDetails } from '../services/imageAnalysisService.js';
 
 const CACHE_KEY_CATEGORIES = 'categories:all';
-const CACHE_TTL_SECONDS = 3600; // Cache for 1 hour
+const CACHE_TTL_SECONDS = 900;
+const cleanName = (value) => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ');
 
-/**
- * Get all active categories. Uses Redis caching.
- */
-const getCategories = asyncHandler(async (req, res) => {
-  // 1. Try to fetch from Redis cache
-  const cachedData = await getCache(CACHE_KEY_CATEGORIES);
-  if (cachedData) {
-    console.log('🔄 Redis Cache Hit: getCategories');
-    res.set('Cache-Control', 'public, max-age=300');
-    return ApiResponse.ok(cachedData, 'Categories retrieved from cache.').send(res);
+const categoryCounts = async () => {
+  const [lost, found] = await Promise.all([
+    LostItem.aggregate([{ $match: { isDeleted: { $ne: true } } }, { $group: { _id: '$category', count: { $sum: 1 } } }]),
+    FoundItem.aggregate([{ $match: { isDeleted: { $ne: true } } }, { $group: { _id: '$category', count: { $sum: 1 } } }]),
+  ]);
+  const counts = new Map();
+  for (const entry of [...lost, ...found]) counts.set(normalizeCategoryName(entry._id), (counts.get(normalizeCategoryName(entry._id)) || 0) + entry.count);
+  return counts;
+};
+
+const getCategories = asyncHandler(async (_req, res) => {
+  const cached = await getCache(CACHE_KEY_CATEGORIES);
+  if (cached) {
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    return ApiResponse.ok(cached, 'Categories retrieved successfully.').send(res);
   }
-
-  console.log('🐌 Redis Cache Miss: getCategories. Querying MongoDB...');
-  
-  // 2. Query MongoDB
-  const categories = await Category.find({ isActive: true }).sort({ name: 1 }).lean();
-
-  // 3. Save to Redis cache
-  await setCache(CACHE_KEY_CATEGORIES, categories, CACHE_TTL_SECONDS);
-
-  res.set('Cache-Control', 'public, max-age=300');
-  ApiResponse.ok(categories, 'Categories retrieved from database.').send(res);
+  const [categories, counts] = await Promise.all([
+    Category.find({ isActive: true }).select('+normalizedName').sort({ name: 1 }).lean(),
+    categoryCounts(),
+  ]);
+  const output = categories.map(({ normalizedName, ...category }) => ({ ...category, itemCount: counts.get(normalizedName) || 0 }));
+  await setCache(CACHE_KEY_CATEGORIES, output, CACHE_TTL_SECONDS);
+  res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+  return ApiResponse.ok(output, 'Categories retrieved successfully.').send(res);
 });
 
-/**
- * Create a new category (Admin only).
- */
 const createCategory = asyncHandler(async (req, res) => {
-  const { name, icon, description } = req.body;
-
-  const existing = await Category.findOne({ name });
-  if (existing) {
-    throw ApiError.conflict(`Category '${name}' already exists.`);
+  const name = cleanName(req.body.name);
+  if (!name) throw ApiError.badRequest('Category name is required.');
+  const normalizedName = normalizeCategoryName(name);
+  if (await Category.exists({ normalizedName })) throw ApiError.conflict(`Category '${name}' already exists.`);
+  try {
+    const category = await Category.create({
+      name,
+      normalizedName,
+      icon: req.body.icon || '📦',
+      description: req.body.description || '',
+      isActive: true,
+      itemCount: 0,
+    });
+    await deleteCache(CACHE_KEY_CATEGORIES);
+    return ApiResponse.created(category, 'Category created successfully.').send(res);
+  } catch (error) {
+    if (error?.code === 11000) throw ApiError.conflict(`Category '${name}' already exists.`);
+    throw error;
   }
-
-  const category = await Category.create({
-    name,
-    icon: icon || '📦',
-    description: description || '',
-    isActive: true,
-    itemCount: 0
-  });
-
-  // Invalidate Redis cache
-  await deleteCache(CACHE_KEY_CATEGORIES);
-
-  ApiResponse.created(category, 'Category created successfully.').send(res);
 });
 
-/**
- * Update an existing category (Admin only).
- */
 const updateCategory = asyncHandler(async (req, res) => {
-  const { name, icon, description, isActive } = req.body;
-  const category = await Category.findById(req.params.id);
+  const session = await mongoose.startSession();
+  let result;
+  try {
+    await session.withTransaction(async () => {
+      const category = await Category.findById(req.params.id).select('+normalizedName').session(session);
+      if (!category) throw ApiError.notFound('Category not found.');
+      const oldName = category.name;
 
-  if (!category) {
-    throw ApiError.notFound('Category not found.');
-  }
+      if (req.body.name !== undefined) {
+        const name = cleanName(req.body.name);
+        if (!name) throw ApiError.badRequest('Category name is required.');
+        const normalizedName = normalizeCategoryName(name);
+        const duplicate = await Category.exists({ normalizedName, _id: { $ne: category._id } }).session(session);
+        if (duplicate) throw ApiError.conflict(`Category '${name}' already exists.`);
+        category.name = name;
+        category.normalizedName = normalizedName;
+      }
+      if (req.body.icon !== undefined) category.icon = req.body.icon || '📦';
+      if (req.body.description !== undefined) category.description = req.body.description;
+      if (req.body.isActive !== undefined) {
+        if (typeof req.body.isActive !== 'boolean') throw ApiError.badRequest('isActive must be a boolean.');
+        category.isActive = req.body.isActive;
+      }
+      await category.save({ session });
 
-  // If changing name, verify unique
-  if (name && name !== category.name) {
-    const existing = await Category.findOne({ name });
-    if (existing) {
-      throw ApiError.conflict(`Category '${name}' already exists.`);
-    }
-    category.name = name;
-  }
-
-  if (icon) category.icon = icon;
-  if (description !== undefined) category.description = description;
-  if (isActive !== undefined) category.isActive = isActive;
-
-  await category.save();
-
-  // Invalidate Redis cache
+      if (oldName !== category.name) {
+        await Promise.all([
+          LostItem.updateMany({ category: oldName }, { $set: { category: category.name } }, { session }),
+          FoundItem.updateMany({ category: oldName }, { $set: { category: category.name } }, { session }),
+        ]);
+      }
+      result = category.toObject();
+      delete result.normalizedName;
+    });
+  } finally { await session.endSession(); }
   await deleteCache(CACHE_KEY_CATEGORIES);
-
-  ApiResponse.ok(category, 'Category updated successfully.').send(res);
+  return ApiResponse.ok(result, 'Category updated successfully.').send(res);
 });
 
-/**
- * Delete a category (Admin only).
- * Disallows deletion if there are items associated, deactivates instead.
- */
 const deleteCategory = asyncHandler(async (req, res) => {
   const category = await Category.findById(req.params.id);
-
-  if (!category) {
-    throw ApiError.notFound('Category not found.');
-  }
-
-  // If category contains items, deactivate it instead of deleting
-  if (category.itemCount > 0) {
+  if (!category) throw ApiError.notFound('Category not found.');
+  const [lostCount, foundCount] = await Promise.all([
+    LostItem.countDocuments({ category: category.name, isDeleted: { $ne: true } }),
+    FoundItem.countDocuments({ category: category.name, isDeleted: { $ne: true } }),
+  ]);
+  const itemCount = lostCount + foundCount;
+  if (itemCount > 0) {
     category.isActive = false;
+    category.itemCount = itemCount;
     await category.save();
     await deleteCache(CACHE_KEY_CATEGORIES);
-    return ApiResponse.ok(category, 'Category contains items. Deactivated instead of deleted.').send(res);
+    return ApiResponse.ok(category, 'Category has reports and was deactivated instead of deleted.').send(res);
   }
-
-  await Category.findByIdAndDelete(req.params.id);
-
-  // Invalidate Redis cache
+  await category.deleteOne();
   await deleteCache(CACHE_KEY_CATEGORIES);
-
-  ApiResponse.noContent('Category deleted successfully.').send(res);
+  return ApiResponse.ok(null, 'Category deleted successfully.').send(res);
 });
 
-/**
- * Auto-create a category with AI generated details.
- */
 const autoCreateCategory = asyncHandler(async (req, res) => {
-  const { name } = req.body;
-  
-  if (!name) throw ApiError.badRequest('Category name is required.');
+  const requestedName = cleanName(req.body.name);
+  if (!requestedName) throw ApiError.badRequest('Category name is required.');
+  const existing = await Category.findOne({ normalizedName: normalizeCategoryName(requestedName) });
+  if (existing) return ApiResponse.ok(existing, 'Category mapped to existing.').send(res);
 
-  // Check if it exists (case insensitive)
-  let category = await Category.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
-  
-  if (!category) {
-    // Generate AI details with existing categories context
-    const existingCats = await Category.find({ isActive: true }).select('name').lean();
-    const existingNames = existingCats.map(c => c.name);
+  const existingNames = await Category.find({ isActive: true }).distinct('name');
+  const details = await generateCategoryDetails(requestedName, existingNames);
+  const correctedName = cleanName(details.correctedName || requestedName);
+  const normalizedName = normalizeCategoryName(correctedName);
+  const mapped = await Category.findOne({ normalizedName });
+  if (mapped) return ApiResponse.ok(mapped, 'Category mapped to existing.').send(res);
 
-    let details;
-    try {
-      details = await generateCategoryDetails(name, existingNames);
-    } catch (err) {
-      if (err.message === 'INVALID_CATEGORY') {
-        throw ApiError.badRequest(`'${name}' is not a valid physical item category.`);
-      }
-      throw err;
-    }
-    
-    const correctedName = details.correctedName || name;
-    
-    // Check if the AI corrected name ALREADY exists (case-insensitive)
-    let existingCorrected = await Category.findOne({ name: { $regex: new RegExp(`^${correctedName}$`, 'i') } });
-    if (existingCorrected) {
-      return ApiResponse.ok(existingCorrected, 'Category mapped to existing.').send(res);
-    }
-    
-    category = await Category.create({
+  try {
+    const category = await Category.create({
       name: correctedName,
+      normalizedName,
       icon: details.icon || '📦',
       description: details.description || '',
       isActive: true,
-      itemCount: 0
     });
-    
-    // Invalidate cache
     await deleteCache(CACHE_KEY_CATEGORIES);
+    return ApiResponse.created(category, 'Category created successfully.').send(res);
+  } catch (error) {
+    if (error?.code === 11000) {
+      const category = await Category.findOne({ normalizedName });
+      return ApiResponse.ok(category, 'Category mapped to existing.').send(res);
+    }
+    throw error;
   }
-
-  ApiResponse.ok(category, 'Category processed.').send(res);
 });
 
-export {
-  getCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  autoCreateCategory
-};
+export { getCategories, createCategory, updateCategory, deleteCategory, autoCreateCategory };

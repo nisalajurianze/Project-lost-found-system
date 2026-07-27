@@ -15,9 +15,6 @@ import AdminRoute from './routes/AdminRoute';
 import useAuth from './hooks/useAuth';
 import useSocket from './hooks/useSocket';
 
-// Constants
-import { LOCAL_STORAGE_USER_KEY } from './utils/constants';
-
 // Custom lazy loading wrapper to handle chunk load errors (e.g. after a new deployment)
 const lazyWithRetry = (componentImport) =>
   lazy(async () => {
@@ -25,7 +22,7 @@ const lazyWithRetry = (componentImport) =>
       return await componentImport();
     } catch (error) {
       if (
-        error.name === 'TypeError' || 
+        error.name === 'TypeError' ||
         error.message.includes('Failed to fetch dynamically imported module') ||
         error.message.includes('Importing a module script failed')
       ) {
@@ -46,6 +43,7 @@ const ForgotPassword = lazyWithRetry(() => import('./pages/public/ForgotPassword
 const ResetPassword = lazyWithRetry(() => import('./pages/public/ResetPassword'));
 const About = lazyWithRetry(() => import('./pages/public/About'));
 const Contact = lazyWithRetry(() => import('./pages/public/Contact'));
+const SearchItems = lazyWithRetry(() => import('./pages/public/SearchItems'));
 const LostItems = lazyWithRetry(() => import('./pages/public/LostItems'));
 const LostItemDetail = lazyWithRetry(() => import('./pages/public/LostItemDetail'));
 const FoundItems = lazyWithRetry(() => import('./pages/public/FoundItems'));
@@ -77,12 +75,16 @@ const AdminLogs = lazyWithRetry(() => import('./pages/admin/AdminLogs'));
 const Analytics = lazyWithRetry(() => import('./pages/admin/Analytics'));
 const ManageCategories = lazyWithRetry(() => import('./pages/admin/ManageCategories'));
 const SiteSettings = lazyWithRetry(() => import('./pages/admin/SiteSettings'));
+const LocationKnowledge = lazyWithRetry(() => import('./pages/admin/LocationKnowledge'));
+const AIFeedbackReview = lazyWithRetry(() => import('./pages/admin/AIFeedbackReview'));
 
 // Fallback loader
 import Loader from './components/common/Loader';
 import AIChatbot from './components/common/AIChatbot';
 import MobileBottomNav from './components/layout/MobileBottomNav';
 import ScrollToTopButton from './components/common/ScrollToTopButton';
+import AccessibilityPreferences from './components/common/AccessibilityPreferences';
+import { useLanguage } from './i18n/LanguageContext';
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -96,32 +98,27 @@ const ScrollToTop = () => {
 };
 
 // 404 Page (Inline or separate, we will just use a simple one)
-const NotFound = () => (
-  <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
-    <h1 className="text-6xl font-bold text-slate-800 dark:text-slate-100 mb-4">404</h1>
-    <h2 className="text-2xl font-semibold text-slate-600 dark:text-slate-300 mb-6">Page Not Found</h2>
-    <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">
-      The page you're looking for doesn't exist or has been moved.
-    </p>
-    <a href="/" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
-      Return Home
-    </a>
-  </div>
-);
+const NotFound = () => {
+  const { t } = useLanguage();
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
+      <h1 className="text-6xl font-bold text-slate-800 dark:text-slate-100 mb-4">404</h1>
+      <h2 className="text-2xl font-semibold text-slate-600 dark:text-slate-300 mb-6">{t('error.notFoundTitle')}</h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-8 max-w-md">{t('error.notFoundDesc')}</p>
+      <a href="/" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">{t('error.returnHome')}</a>
+    </div>
+  );
+};
 
 const App = () => {
+  const { t } = useLanguage();
   const dispatch = useDispatch();
-  const { user, getMe, isAuthenticated } = useAuth();
+  const { user, getMe } = useAuth();
   const { mode } = useSelector((state) => state.theme);
 
-  // Authenticate user on page load/refresh
+  // Restore the authenticated session from HTTP-only cookies.
   useEffect(() => {
-    const userInStorage = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-    if (userInStorage) {
-      getMe().catch(() => {
-        console.warn('Session expired or token invalid');
-      });
-    }
+    getMe().catch(() => undefined);
   }, [dispatch, getMe]);
 
   // Apply dark mode theme class globally
@@ -157,6 +154,7 @@ const App = () => {
 
   return (
     <>
+      <a href="#main-content" className="skip-link">{t('nav.skip')}</a>
       <ScrollToTop />
       <Suspense fallback={<Loader fullPage={true} />}>
         <Routes>
@@ -169,12 +167,13 @@ const App = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/search" element={<SearchItems />} />
           <Route path="/lost-items" element={<LostItems />} />
           <Route path="/lost-items/:id" element={<LostItemDetail />} />
           <Route path="/found-items" element={<FoundItems />} />
           <Route path="/found-items/:id" element={<FoundItemDetail />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
-          
+
           {/* Catch-all 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Route>
@@ -210,12 +209,15 @@ const App = () => {
             <Route path="/admin/analytics" element={<Analytics />} />
             <Route path="/admin/categories" element={<ManageCategories />} />
             <Route path="/admin/settings" element={<SiteSettings />} />
+            <Route path="/admin/locations" element={<LocationKnowledge />} />
+            <Route path="/admin/ai-feedback" element={<AIFeedbackReview />} />
           </Route>
         </Route>
       </Routes>
       <AIChatbot />
       <MobileBottomNav />
       <ScrollToTopButton />
+      <AccessibilityPreferences />
     </Suspense>
     </>
   );

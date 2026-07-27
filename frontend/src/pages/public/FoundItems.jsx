@@ -15,9 +15,11 @@ import EmptyState from '../../components/common/EmptyState';
 import Pagination from '../../components/common/Pagination';
 import { Link } from 'react-router-dom';
 import { FiPlusCircle } from 'react-icons/fi';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const FoundItems = () => {
   const dispatch = useDispatch();
+  const { t } = useLanguage();
 
   const { items, pagination, isLoading, error } = useSelector((state) => state.foundItems);
   const { categories } = useSelector((state) => state.categories);
@@ -69,24 +71,24 @@ export const FoundItems = () => {
   };
 
   const statusOptions = [
-    { value: 'available', label: 'Available' },
-    { value: 'matched', label: 'Matched' },
-    { value: 'claimed', label: 'Claimed' }
+    { value: 'available', label: t('directory.statusAvailable') },
+    { value: 'matched', label: t('directory.statusMatched') },
+    { value: 'claimed', label: t('directory.statusClaimed') }
   ];
 
   return (
     <div className="flex-1 pt-4 pb-8 sm:pt-6 sm:pb-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="page-container max-w-screen-2xl mx-auto">
-        
+
         {/* Header & Controls */}
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
           <div className="flex flex-row items-center justify-between xl:justify-start gap-4">
             <div className="flex items-center gap-3">
               <h1 className="text-xl sm:text-2xl font-extrabold font-display text-surface-900 dark:text-white whitespace-nowrap">
-                Found Property
+                {t('directory.foundTitle')}
               </h1>
               <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-surface-100 dark:bg-surface-800 text-xs font-semibold text-surface-500 dark:text-surface-400">
-                Directory
+                {t('directory.label')}
               </span>
             </div>
             {/* Mobile Report Button (hidden on xl) */}
@@ -95,8 +97,8 @@ export const FoundItems = () => {
               className="xl:hidden inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap h-10"
             >
               <FiPlusCircle className="text-base" />
-              <span className="hidden sm:inline">Report Found</span>
-              <span className="sm:hidden">Report</span>
+              <span className="hidden sm:inline">{t('directory.reportFound')}</span>
+              <span className="sm:hidden">{t('directory.report')}</span>
             </Link>
           </div>
 
@@ -124,7 +126,7 @@ export const FoundItems = () => {
             className="hidden xl:inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:-translate-y-0.5 whitespace-nowrap h-10 shrink-0"
           >
             <FiPlusCircle className="text-base" />
-            <span>Report Found</span>
+            <span>{t('directory.reportFound')}</span>
           </Link>
         </div>
 
@@ -133,13 +135,13 @@ export const FoundItems = () => {
           <Loader fullPage />
         ) : error ? (
           <div className="p-4 bg-red-50 text-red-500 rounded-xl max-w-lg mx-auto text-center border border-red-200">
-            ⚠️ Error: {error}
+            ⚠️ {t('directory.error', { error })}
           </div>
         ) : items.length === 0 ? (
           <EmptyState
-            title="No found items match your criteria"
-            description="Adjust your search terms or filters above to view other reported property."
-            actionText="Clear Filters"
+            title={t('directory.noFoundTitle')}
+            description={t('directory.noResultsDesc')}
+            actionText={t('directory.clearFilters')}
             onAction={handleClearFilters}
           />
         ) : (

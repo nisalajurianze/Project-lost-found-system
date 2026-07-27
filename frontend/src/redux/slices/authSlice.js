@@ -1,202 +1,47 @@
-// ============================================
-// Auth Redux Slice
-// Thunks for signups, logins, and session restoration
-// ============================================
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '../../services/authService';
-import { LOCAL_STORAGE_USER_KEY, LOCAL_STORAGE_TOKEN_KEY } from '../../utils/constants';
 
-// BUG-014 & SEC-013: Safe initialization
-let cachedUser = null;
-try {
-  const stored = localStorage.getItem(LOCAL_STORAGE_USER_KEY);
-  if (stored) cachedUser = JSON.parse(stored);
-} catch {
-  cachedUser = null;
-}
+const initialState = { user: null, isAuthenticated: false, isLoading: true, error: null };
 
-const initialState = {
-  user: cachedUser,
-  isAuthenticated: !!cachedUser,
-  isLoading: false,
-  error: null
-};
-
-export const registerUser = createAsyncThunk(
-  'auth/register',
-  async (userData, { rejectWithValue }) => {
-    try {
-      return await authService.register(userData);
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const loginUser = createAsyncThunk(
-  'auth/login',
-  async (credentials, { rejectWithValue }) => {
-    try {
-      return await authService.login(credentials); // Returns { user }
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const googleLoginUser = createAsyncThunk(
-  'auth/googleLogin',
-  async (idToken, { rejectWithValue }) => {
-    try {
-      return await authService.googleLogin(idToken);
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const fetchCurrentUser = createAsyncThunk(
-  'auth/fetchCurrentUser',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await authService.getMe();
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const logoutUser = createAsyncThunk(
-  'auth/logout',
-  async (_, { dispatch }) => {
-    await authService.logout();
-    dispatch(clearAuth());
-  }
-);
+export const registerUser = createAsyncThunk('auth/register', async (data, { rejectWithValue }) => {
+  try { return await authService.register(data); } catch (error) { return rejectWithValue(error.message); }
+});
+export const loginUser = createAsyncThunk('auth/login', async (data, { rejectWithValue }) => {
+  try { return await authService.login(data); } catch (error) { return rejectWithValue(error.message); }
+});
+export const googleLoginUser = createAsyncThunk('auth/googleLogin', async (idToken, { rejectWithValue }) => {
+  try { return await authService.googleLogin(idToken); } catch (error) { return rejectWithValue(error.message); }
+});
+export const fetchCurrentUser = createAsyncThunk('auth/fetchCurrentUser', async (_, { rejectWithValue }) => {
+  try { return await authService.getMe(); } catch (error) { return rejectWithValue(error.message); }
+});
+export const logoutUser = createAsyncThunk('auth/logout', async () => { await authService.logout(); });
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    clearAuth: (state) => {
-      state.user = null;
-      state.isAuthenticated = false;
-      state.error = null;
-      localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-      localStorage.removeItem(LOCAL_STORAGE_TOKEN_KEY); // Legacy fallback
-    },
-    clearAuthError: (state) => {
-      state.error = null;
-    },
-    updateUserProfile: (state, action) => {
-      state.user = action.payload;
-      const safeUser = {
-        _id: action.payload._id,
-        fullName: action.payload.fullName,
-        role: action.payload.role,
-        profileImage: action.payload.profileImage
-      };
-      localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
-    }
+    clearAuth: (state) => { state.user = null; state.isAuthenticated = false; state.isLoading = false; state.error = null; },
+    clearAuthError: (state) => { state.error = null; },
+    updateUserProfile: (state, action) => { state.user = action.payload; },
   },
-  extraReducers: (builder) => {
-    builder
-      // Register
-      .addCase(registerUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        
-        // If email verification is disabled, backend sends a token and logs user in directly
-        if (action.payload && action.payload.token && action.payload.data) {
-          state.user = action.payload.data;
-          state.isAuthenticated = true;
-          
-          const safeUser = {
-            _id: action.payload.data._id,
-            fullName: action.payload.data.fullName,
-            role: action.payload.data.role,
-            profileImage: action.payload.data.profileImage
-          };
-          localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
-        }
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      // Login
-      .addCase(loginUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
-        
-        const safeUser = {
-          _id: action.payload.user._id,
-          fullName: action.payload.user.fullName,
-          role: action.payload.user.role,
-          profileImage: action.payload.user.profileImage
-        };
-        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      // Google Login
-      .addCase(googleLoginUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(googleLoginUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.isAuthenticated = true;
-        
-        const safeUser = {
-          _id: action.payload.user._id,
-          fullName: action.payload.user.fullName,
-          role: action.payload.user.role,
-          profileImage: action.payload.user.profileImage
-        };
-        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
-      })
-      .addCase(googleLoginUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      })
-      // Fetch Current User
-      .addCase(fetchCurrentUser.pending, (state) => {
-        state.isLoading = true;
-      })
-      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
-        const safeUser = {
-          _id: action.payload._id,
-          fullName: action.payload.fullName,
-          role: action.payload.role,
-          profileImage: action.payload.profileImage
-        };
-        localStorage.setItem(LOCAL_STORAGE_USER_KEY, JSON.stringify(safeUser));
-      })
-      .addCase(fetchCurrentUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-        // Auto logout if auth fetch fails
-        state.user = null;
-        state.isAuthenticated = false;
-        localStorage.removeItem(LOCAL_STORAGE_USER_KEY);
-      });
-  }
+  extraReducers: (builder) => builder
+    .addCase(registerUser.pending, (state) => { state.isLoading = true; state.error = null; })
+    .addCase(registerUser.fulfilled, (state, action) => {
+      state.isLoading = false;
+      if (action.payload?.user?.isVerified) { state.user = action.payload.user; state.isAuthenticated = true; }
+    })
+    .addCase(registerUser.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
+    .addCase(loginUser.pending, (state) => { state.isLoading = true; state.error = null; })
+    .addCase(loginUser.fulfilled, (state, action) => { state.isLoading = false; state.user = action.payload.user; state.isAuthenticated = true; })
+    .addCase(loginUser.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
+    .addCase(googleLoginUser.pending, (state) => { state.isLoading = true; state.error = null; })
+    .addCase(googleLoginUser.fulfilled, (state, action) => { state.isLoading = false; state.user = action.payload.user; state.isAuthenticated = true; })
+    .addCase(googleLoginUser.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; })
+    .addCase(fetchCurrentUser.pending, (state) => { state.isLoading = true; })
+    .addCase(fetchCurrentUser.fulfilled, (state, action) => { state.isLoading = false; state.user = action.payload; state.isAuthenticated = true; state.error = null; })
+    .addCase(fetchCurrentUser.rejected, (state) => { state.isLoading = false; state.user = null; state.isAuthenticated = false; })
+    .addCase(logoutUser.fulfilled, (state) => { state.user = null; state.isAuthenticated = false; state.isLoading = false; state.error = null; }),
 });
 
 export const { clearAuth, clearAuthError, updateUserProfile } = authSlice.actions;

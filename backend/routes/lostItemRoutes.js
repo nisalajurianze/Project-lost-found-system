@@ -13,29 +13,29 @@ import {
   resolveLostItem,
   cancelConnectionLostItem
 } from '../controllers/lostItemController.js';
-import { protect } from '../middlewares/authMiddleware.js';
+import { protect, optionalAuth } from '../middlewares/authMiddleware.js';
 import { uploadMultiple } from '../middlewares/uploadMiddleware.js';
 import validate from '../middlewares/validateMiddleware.js';
 import {
   createLostItemValidator,
   updateLostItemValidator,
   mongoIdParam,
-  paginationQuery
+  paginationQuery,
+  handoverCancellationValidator
 } from '../utils/validators.js';
 
-import { cacheResponse } from '../middlewares/cacheMiddleware.js';
 
 const router = express.Router();
 
 // Publicly viewable items
-router.get('/', paginationQuery, validate, cacheResponse(60), getLostItems);
-router.get('/:id', mongoIdParam, validate, cacheResponse(60), getLostItemById);
+router.get('/', optionalAuth, paginationQuery, validate, getLostItems);
+router.get('/:id', optionalAuth, mongoIdParam, validate, getLostItemById);
 
 // Protected items reporting/management
 router.post('/', protect, uploadMultiple, createLostItemValidator, validate, createLostItem);
 router.put('/:id', protect, uploadMultiple, mongoIdParam, updateLostItemValidator, validate, updateLostItem);
 router.delete('/:id', protect, mongoIdParam, validate, deleteLostItem);
 router.post('/:id/resolve', protect, mongoIdParam, validate, resolveLostItem);
-router.post('/:id/cancel-connection', protect, mongoIdParam, validate, cancelConnectionLostItem);
+router.post('/:id/cancel-connection', protect, mongoIdParam, handoverCancellationValidator, validate, cancelConnectionLostItem);
 
 export default router;

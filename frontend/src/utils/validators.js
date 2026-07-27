@@ -13,14 +13,15 @@ export const validateEmail = (email) => {
 
 /**
  * Validates password strength.
- * Must contain at least one uppercase, one lowercase, and one number, min 6 characters.
+ * Must contain at least one uppercase letter, lowercase letter, number, and symbol, with a minimum length of 12 characters.
  */
 export const validatePassword = (password) => {
-  if (password.length < 6) return false;
+  if (typeof password !== 'string' || password.length < 12 || password.length > 128) return false;
   const hasUppercase = /[A-Z]/.test(password);
   const hasLowercase = /[a-z]/.test(password);
   const hasDigit = /\d/.test(password);
-  return hasUppercase && hasLowercase && hasDigit;
+  const hasSymbol = /[^A-Za-z0-9]/.test(password);
+  return hasUppercase && hasLowercase && hasDigit && hasSymbol;
 };
 
 /**

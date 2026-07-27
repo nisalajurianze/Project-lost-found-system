@@ -96,7 +96,7 @@ export const CreatableCategorySelect = React.forwardRef(({
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      
+
       <div className={`input-base p-0 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500 ${error ? 'input-error' : ''}`}>
         <CreatableSelect
           ref={ref}

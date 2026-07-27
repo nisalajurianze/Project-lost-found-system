@@ -18,9 +18,11 @@ import Button from '../../components/common/Button';
 import Textarea from '../../components/common/Textarea';
 import FeedbackModal from '../../components/common/FeedbackModal';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const MyClaims = () => {
   const dispatch = useDispatch();
+  const { t } = useLanguage();
   const { claims, isLoading, pagination } = useSelector((state) => state.claims);
   const { notifications } = useSelector((state) => state.notifications);
   const { user } = useSelector((state) => state.auth);
@@ -45,8 +47,8 @@ export const MyClaims = () => {
       const latestNotification = notifications[0];
       // If it's a claim related notification, refetch to get updated status/contact info
       if (
-        latestNotification?.type === 'contact_shared' || 
-        latestNotification?.type === 'claim_approved' || 
+        latestNotification?.type === 'contact_shared' ||
+        latestNotification?.type === 'claim_approved' ||
         latestNotification?.type === 'claim_rejected' ||
         latestNotification?.type === 'claim_submitted'
       ) {
@@ -66,12 +68,12 @@ export const MyClaims = () => {
   };
 
   const handleShareContact = async (claimId) => {
-    if (window.confirm('Are you sure you want to share your contact details with this claimant?')) {
+    if (window.confirm(t('myClaims.shareConfirm'))) {
       try {
         await dispatch(shareClaimContact(claimId)).unwrap();
-        toast.success('Your contact details have been shared!');
+        toast.success(t('myClaims.shareSuccess'));
       } catch (err) {
-        toast.error(err || 'Failed to share contact details');
+        toast.error(t('myClaims.shareError'));
       }
     }
   };
@@ -82,18 +84,18 @@ export const MyClaims = () => {
 
     setIsSubmitting(true);
     try {
-      await dispatch(reviewClaimRequest({ 
-        id: reviewDialog.id, 
-        status: reviewDialog.status, 
-        adminRemark: remark 
+      await dispatch(reviewClaimRequest({
+        id: reviewDialog.id,
+        status: reviewDialog.status,
+        adminRemark: remark
       })).unwrap();
 
-      toast.success(`Claim request successfully ${reviewDialog.status}.`);
+      toast.success(t('myClaims.reviewSuccess', { status: reviewDialog.status }));
       handleCloseReview();
       // Reload current page
       dispatch(fetchClaims({ page, limit: 9 }));
     } catch (err) {
-      toast.error(err || 'Failed to submit claim review.');
+      toast.error(t('myClaims.reviewError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -102,13 +104,13 @@ export const MyClaims = () => {
   const handleResolveItem = async (targetItemId, itemType, canReview) => {
     let confirmMsg;
     if (itemType === 'Found Item') {
-      confirmMsg = canReview 
-        ? 'Have you verified the owner and physically handed over the item?' 
-        : 'Have you physically received your item from the finder?';
+      confirmMsg = canReview
+        ? t('detail.confirmHandoverQuestion')
+        : t('detail.confirmReceivedQuestion');
     } else {
       confirmMsg = canReview
-        ? 'Have you physically received your item from the finder?'
-        : 'Have you verified the owner and physically handed over the item?';
+        ? t('detail.confirmReceivedQuestion')
+        : t('detail.confirmHandoverQuestion');
     }
     if (window.confirm(confirmMsg)) {
       try {
@@ -117,10 +119,10 @@ export const MyClaims = () => {
         } else {
           await lostItemService.resolveLostItem(targetItemId);
         }
-        toast.success('Item successfully marked as resolved!');
+        toast.success(t('detail.resolvedSuccess'));
         dispatch(fetchClaims({ page, limit: 9 }));
       } catch (err) {
-        toast.error(err?.response?.data?.message || err?.message || 'Failed to resolve item.');
+        toast.error(t('detail.resolveError'));
       }
     }
   };
@@ -129,10 +131,10 @@ export const MyClaims = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
         <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
-          My Ownership Claims
+          {t('myClaims.title')}
         </h1>
         <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
-          Monitor your claims, or review claims made by others on items you found
+          {t('myClaims.subtitle')}
         </p>
       </div>
 
@@ -140,8 +142,8 @@ export const MyClaims = () => {
         <Loader fullPage />
       ) : claims.length === 0 ? (
         <EmptyState
-          title="No claims filed yet"
-          description="Submit claim requests for found property by clicking the claim button on verified matches."
+          title={t('myClaims.emptyTitle')}
+          description={t('myClaims.emptyDesc')}
         />
       ) : (
         <>
@@ -150,11 +152,11 @@ export const MyClaims = () => {
               const targetItem = claim.foundItemId || claim.lostItemId;
               const targetUserId = typeof targetItem?.userId === 'object' ? targetItem.userId._id : targetItem?.userId;
               const isFounder = targetUserId === user?._id;
-              
+
               return (
-                <ClaimCard 
-                  key={claim._id} 
-                  claim={claim} 
+                <ClaimCard
+                  key={claim._id}
+                  claim={claim}
                   canReview={isFounder}
                   onReview={handleOpenReview}
                   onShareContact={handleShareContact}
@@ -180,22 +182,22 @@ export const MyClaims = () => {
         <Modal
           isOpen={!!reviewDialog}
           onClose={handleCloseReview}
-          title={reviewDialog.status === 'approved' ? 'Connect & Share Contacts' : 'Reject Claim Request'}
+          title={reviewDialog.status === 'approved' ? t('myClaims.approveTitle') : t('myClaims.rejectTitle')}
           size="md"
         >
           <form onSubmit={handleSubmitReview} className="space-y-4 pt-2">
             <p className="text-sm text-surface-500 dark:text-surface-400">
-              {reviewDialog.status === 'approved' 
-                ? 'This will share your contact details with the claimant so you can talk and verify the item. The item will be placed in the "Handover" stage but will NOT be closed yet.' 
-                : 'Reject this claim. This will notify the claimant that the claim has been declined. The item will remain available.'
+              {reviewDialog.status === 'approved'
+                ? t('myClaims.approveDesc')
+                : t('myClaims.rejectDesc')
               }
             </p>
 
-            <Textarea 
-              label="Remark / Message to Claimant"
-              placeholder={reviewDialog.status === 'approved' 
-                ? 'Optional: Specify instructions or a preferred time to meet and hand over the item.' 
-                : 'Specify reason for rejection (e.g., "Provided details do not match the found item characteristics.")'
+            <Textarea
+              label={t('myClaims.remarkLabel')}
+              placeholder={reviewDialog.status === 'approved'
+                ? t('myClaims.approvePlaceholder')
+                : t('myClaims.rejectPlaceholder')
               }
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
@@ -204,20 +206,20 @@ export const MyClaims = () => {
             />
 
             <div className="flex gap-2 justify-end border-t border-surface-100 dark:border-surface-800 pt-4 mt-6">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={handleCloseReview}
                 disabled={isSubmitting}
                 type="button"
               >
-                Cancel
+                {t('myClaims.cancel')}
               </Button>
-              <Button 
+              <Button
                 variant={reviewDialog.status === 'approved' ? 'success' : 'danger'}
                 type="submit"
                 loading={isSubmitting}
               >
-                {reviewDialog.status === 'approved' ? 'Connect & Verify' : 'Reject'}
+                {reviewDialog.status === 'approved' ? t('myClaims.connectVerify') : t('myClaims.reject')}
               </Button>
             </div>
           </form>
@@ -229,7 +231,7 @@ export const MyClaims = () => {
         <FeedbackModal
           isOpen={!!feedbackDialog}
           onClose={() => setFeedbackDialog(null)}
-          defaultSubject={`Feedback on my claim for "${feedbackDialog.foundItemId?.itemName || feedbackDialog.lostItemId?.itemName || 'Item'}"`}
+          defaultSubject={t('myClaims.feedbackSubject', { item: feedbackDialog.foundItemId?.itemName || feedbackDialog.lostItemId?.itemName || t('myClaims.itemFallback') })}
         />
       )}
 

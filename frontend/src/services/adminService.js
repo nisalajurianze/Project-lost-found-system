@@ -9,6 +9,11 @@ const adminService = {
   /**
    * Get compiler dashboard stats.
    */
+  getAIHealth: async () => {
+    const res = await api.get('/admin/ai-health');
+    return res.data.data;
+  },
+
   getStats: async () => {
     const res = await api.get('/admin/stats');
     return res.data.data;
@@ -47,7 +52,7 @@ const adminService = {
   },
 
   /**
-   * Hard delete user account.
+   * Privacy-safe account anonymisation and closure.
    */
   deleteUser: async (id) => {
     const res = await api.delete(`/admin/users/${id}`);
@@ -56,4 +61,4 @@ const adminService = {
 };
 
 export default adminService;
-// 
+//

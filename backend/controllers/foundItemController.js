@@ -1,451 +1,191 @@
-// ============================================
-// Found Item Controller
-// Handles creation, listing, updating, and deleting of Found Items
-// ============================================
-
+import mongoose from 'mongoose';
 import FoundItem from '../models/FoundItem.js';
-import Category from '../models/Category.js';
+import Category, { normalizeCategoryName } from '../models/Category.js';
 import Match from '../models/Match.js';
 import ClaimRequest from '../models/ClaimRequest.js';
+import ImageAnalysis from '../models/ImageAnalysis.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate, buildSort } from '../utils/pagination.js';
-import { getCache, setCache, deleteCache } from '../config/redis.js';
+import { deleteCache } from '../config/redis.js';
 import { uploadMultipleImages, deleteMultipleImages } from '../services/cloudinaryService.js';
-import { analyzeItemImage, generateCategoryDetails, generateKeywordsFromText } from '../services/imageAnalysisService.js';
-import { runMatchingForItem } from '../services/aiMatchingService.js';
+import { enqueueItemProcessing } from '../services/outboxService.js';
+import { resolveItemHandover, cancelItemHandover } from '../services/itemWorkflowService.js';
+import { itemView } from '../utils/serializers.js';
+import { publicLocationView, resolveLocation } from '../services/locationIntelligenceService.js';
 
-/**
- * Report a found item.
- * Uploads images, runs image analysis in background, and triggers matching.
- */
+const cacheKeys = ['foundItems:*', 'cache:/api/found-items*'];
+const parseTags = (value) => [...new Set((Array.isArray(value) ? value : String(value || '').split(','))
+  .map((entry) => String(entry).normalize('NFKC').trim().toLowerCase()).filter(Boolean).slice(0, 20))];
+const parseList = (value, max = 12) => [...new Set((Array.isArray(value) ? value : String(value || '').split(','))
+  .map((entry) => String(entry).normalize('NFKC').trim()).filter(Boolean).slice(0, max))];
+const buildLocationIntelligence = (value) => {
+  const resolved = resolveLocation(value);
+  const view = publicLocationView(resolved);
+  return {
+    canonicalId: view?.id || '',
+    canonicalName: view?.canonicalName || '',
+    area: view?.area || '',
+    verificationStatus: view?.verificationStatus || '',
+    sensitivity: view?.sensitivity || '',
+    confidence: view?.confidence || 0,
+    needsReview: !view || view.confidence < 65,
+  };
+};
+const activeCategory = (name) => Category.findOne({ normalizedName: normalizeCategoryName(name), isActive: true });
+
 const createFoundItem = asyncHandler(async (req, res) => {
-  const { itemName, category, description, foundLocation, foundDate, storedAt, tags, contactPreference, contactVisibility } = req.body;
-  const userId = req.user._id;
-
-  // Verify category exists or auto-create it (case-insensitive check first)
-  let categoryExists = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') }, isActive: true });
-  if (!categoryExists) {
-    // Attempt auto-creation with AI using existing categories context
-    try {
-      const existingCats = await Category.find({ isActive: true }).select('name').lean();
-      const existingNames = existingCats.map(c => c.name);
-
-      const details = await generateCategoryDetails(category, existingNames);
-      const correctedName = details.correctedName || category;
-
-      // Check again with the corrected name
-      categoryExists = await Category.findOne({ name: { $regex: new RegExp(`^${correctedName}$`, 'i') }, isActive: true });
-      
-      if (!categoryExists) {
-        categoryExists = await Category.create({
-          name: correctedName,
-          icon: details.icon,
-          description: details.description,
-          isActive: true,
-          itemCount: 0
-        });
-        
-        // Clear redis cache for categories since we created a new one
-        const { deleteCache } = await import('../config/redis.js');
-        await deleteCache('categories:all');
-      }
-    } catch (e) {
-      throw ApiError.badRequest(`Failed to create new category '${category}'.`);
-    }
-  }
-
-  // Use the exact database name so that items are grouped properly
-  const finalCategoryName = categoryExists.name;
-
-  // Parse tags
-  let parsedTags = [];
-  if (tags) {
-    parsedTags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim());
-  }
-
-  // Upload images
-  let images = [];
-  if (req.files && req.files.length > 0) {
-    images = await uploadMultipleImages(req.files, 'found-items');
-  }
-
-  // Create found item
-  const foundItem = await FoundItem.create({
-    userId,
-    itemName,
-    category: finalCategoryName,
-    description,
-    foundLocation,
-    foundDate,
-    storedAt: storedAt || '',
-    contactPreference: contactPreference || 'both',
-    contactVisibility: contactVisibility || 'request_only',
-    tags: parsedTags,
-    images,
-    status: 'available'
-  });
-
-  // Increment item count in category
-  categoryExists.itemCount = (categoryExists.itemCount || 0) + 1;
-  await categoryExists.save();
-
-  // Invalidate cache
-  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
-
-  // Run AI analysis and AI Matching in background
-  // Background processing
-  (async () => {
-    try {
-      let analysisResult = null;
-      if (images.length > 0) {
-        analysisResult = await analyzeItemImage('FoundItem', foundItem._id, images[0].url, itemName, description);
-      } else {
-        analysisResult = await analyzeItemImage('FoundItem', foundItem._id, '', itemName, description);
-      }
-
-      // Generate Keywords from Text (Translates Singlish/Sinhala -> English)
-      const textKeywords = await generateKeywordsFromText(itemName, description);
-      
-      // Combine text keywords with image labels and colors
-      let finalKeywords = [...textKeywords];
-      if (analysisResult) {
-        const imgLabels = analysisResult.labels ? analysisResult.labels.map(l => l.toLowerCase()) : [];
-        const imgColors = analysisResult.colors ? analysisResult.colors.map(c => c.toLowerCase()) : [];
-        finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
-      }
-
-      if (finalKeywords.length > 0) {
-        foundItem.aiKeywords = finalKeywords;
-        await foundItem.save();
-      }
-
-      await runMatchingForItem(foundItem, 'FoundItem');
-    } catch (err) {
-      console.error(`❌ Background processing failed for FoundItem ${foundItem._id}:`, err);
-    }
-  })();
-
-  ApiResponse.created(foundItem, 'Found item reported successfully. AI matching triggered.').send(res);
+  const category = await activeCategory(req.body.category);
+  if (!category) throw ApiError.badRequest('Select an active category from the category list.');
+  const images = await uploadMultipleImages(req.files || [], 'found-items');
+  const session = await mongoose.startSession();
+  let item;
+  try {
+    await session.withTransaction(async () => {
+      [item] = await FoundItem.create([{
+        userId: req.user._id,
+        itemName: req.body.itemName,
+        category: category.name,
+        description: req.body.description,
+        foundLocation: req.body.foundLocation,
+        locationIntelligence: buildLocationIntelligence(req.body.foundLocation),
+        brand: req.body.brand || '',
+        model: req.body.model || '',
+        colors: parseList(req.body.colors, 6),
+        material: req.body.material || '',
+        uniqueFeatures: parseList(req.body.uniqueFeatures, 12),
+        foundDate: req.body.foundDate,
+        storedAt: req.body.storedAt || '',
+        contactPreference: req.body.contactPreference || 'both',
+        contactVisibility: req.body.contactVisibility || 'request_only',
+        tags: parseTags(req.body.tags),
+        images,
+        status: 'available',
+      }], { session });
+      await enqueueItemProcessing('FoundItem', item._id, item.createdAt.getTime(), session);
+    });
+  } catch (error) {
+    await deleteMultipleImages(images);
+    throw error;
+  } finally { await session.endSession(); }
+  await deleteCache(cacheKeys);
+  return ApiResponse.created(itemView(item, req.user), 'Found item reported successfully. Processing was queued reliably.').send(res);
 });
 
-/**
- * Get all found items (with pagination, search, and filters).
- */
 const getFoundItems = asyncHandler(async (req, res) => {
-  const cacheKey = `foundItems:${JSON.stringify(req.query)}`;
-  
-  // Try Cache
-  const cachedData = await getCache(cacheKey);
-  if (cachedData) {
-    return ApiResponse.ok(cachedData, 'Found items retrieved from cache.').send(res);
-  }
-
-  const filter = { isDeleted: { $ne: true } };
-
-  // 1. Text Search
-  if (req.query.search) {
-    filter.$text = { $search: req.query.search };
-  }
-
-  // 2. Category Filter
-  if (req.query.category) {
-    filter.category = req.query.category;
-  }
-
-  // 3. Status Filter (default to available/matched/in_progress for public display)
-  if (req.query.status) {
-    if (req.query.status !== 'all') {
-      filter.status = req.query.status;
-    }
-  } else {
-    filter.status = { $in: ['available', 'matched', 'in_progress'] };
-  }
-
-  // 4. Date Range Filter
+  const filter = { isDeleted: { $ne: true }, isArchived: { $ne: true } };
+  if (req.query.search) filter.$text = { $search: String(req.query.search).slice(0, 200) };
+  if (req.query.category) filter.category = String(req.query.category).slice(0, 100);
+  const privileged = req.user && (req.user.role === 'admin' || String(req.query.userId) === String(req.user._id));
+  if (privileged && req.query.status === 'all') delete filter.status;
+  else if (privileged && ['available', 'matched', 'in_progress', 'claimed'].includes(req.query.status)) filter.status = req.query.status;
+  else filter.status = { $in: ['available', 'matched', 'in_progress'] };
   if (req.query.startDate || req.query.endDate) {
     filter.foundDate = {};
-    if (req.query.startDate) {
-      filter.foundDate.$gte = new Date(req.query.startDate);
-    }
-    if (req.query.endDate) {
-      filter.foundDate.$lte = new Date(req.query.endDate);
-    }
+    if (req.query.startDate) filter.foundDate.$gte = new Date(req.query.startDate);
+    if (req.query.endDate) filter.foundDate.$lte = new Date(req.query.endDate);
   }
-
-  // 5. User Specific Filter (for "My Found Listings")
   if (req.query.userId) {
+    if (!req.user || (req.user.role !== 'admin' && String(req.user._id) !== String(req.query.userId))) throw ApiError.forbidden('You may only filter reports by your own account.');
     filter.userId = req.query.userId;
+    delete filter.isArchived;
   }
-
-  // Get total count
   const totalDocs = await FoundItem.countDocuments(filter);
   const pagination = paginate(req.query, totalDocs);
-
-  // Sorting
-  const allowedSort = { foundDate: 1, createdAt: 1, itemName: 1 };
-  const sort = buildSort(req.query.sort, allowedSort, { createdAt: -1 });
-
-  // Execute query
-  const items = await FoundItem.find(filter)
-    .populate('userId', 'fullName profileImage')
-    .sort(sort)
-    .skip(pagination.skip)
-    .limit(pagination.limit)
-    .lean();
-
-  const responsePayload = { items, pagination };
-  
-  // Save to cache (5 minutes)
-  await setCache(cacheKey, responsePayload, 300);
-
-  ApiResponse.ok(responsePayload, 'Found items retrieved successfully.').send(res);
+  const sort = buildSort(req.query.sort, { foundDate: 1, createdAt: 1, itemName: 1 }, { createdAt: -1 });
+  const items = await FoundItem.find(filter).populate('userId', 'fullName email phone profileImage').sort(sort).skip(pagination.skip).limit(pagination.limit).lean();
+  return ApiResponse.ok({ items: items.map((entry) => itemView(entry, req.user)), pagination }, 'Found items retrieved successfully.').send(res);
 });
 
-/**
- * Get found item by ID.
- */
 const getFoundItemById = asyncHandler(async (req, res) => {
-  const item = await FoundItem.findOne({ _id: req.params.id, isDeleted: { $ne: true } })
-    .populate('userId', 'fullName email phone profileImage studentId')
-    .lean();
-
-  if (!item) {
-    throw ApiError.notFound('Found item not found.');
-  }
-
-  ApiResponse.ok(item, 'Found item retrieved successfully.').send(res);
+  const item = await FoundItem.findOne({ _id: req.params.id, isDeleted: { $ne: true } }).populate('userId', 'fullName email phone profileImage').lean();
+  if (!item) throw ApiError.notFound('Found item not found.');
+  const canViewArchived = req.user && (req.user.role === 'admin' || String(item.userId?._id) === String(req.user._id));
+  if (item.isArchived && !canViewArchived) throw ApiError.notFound('Found item not found.');
+  return ApiResponse.ok(itemView(item, req.user), 'Found item retrieved successfully.').send(res);
 });
 
-/**
- * Update found item.
- */
 const updateFoundItem = asyncHandler(async (req, res) => {
-  const { itemName, category, description, foundLocation, foundDate, storedAt, status, tags, contactPreference, contactVisibility, deletedImages } = req.body;
   const item = await FoundItem.findById(req.params.id);
+  if (!item || item.isDeleted) throw ApiError.notFound('Found item not found.');
+  if (String(item.userId) !== String(req.user._id) && req.user.role !== 'admin') throw ApiError.forbidden('You are not authorised to edit this item.');
+  if (!['available', 'matched'].includes(item.status)) throw ApiError.conflict('A report cannot be edited during or after a handover.');
 
-  if (!item || item.isDeleted) {
-    throw ApiError.notFound('Found item not found.');
+  let category;
+  if (req.body.category !== undefined) {
+    category = await activeCategory(req.body.category);
+    if (!category) throw ApiError.badRequest('Select an active category from the category list.');
   }
-
-  // Auth: user must be owner or admin
-  const isOwner = item.userId.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === 'admin';
-  if (!isOwner && !isAdmin) {
-    throw ApiError.forbidden('You are not authorised to edit this item.');
-  }
-
-  // Update text fields
-  if (itemName) item.itemName = itemName;
-  if (category && category !== item.category) {
-    let categoryExists = await Category.findOne({ name: category, isActive: true });
-    if (!categoryExists) {
-      try {
-        const details = await generateCategoryDetails(category);
-        categoryExists = await Category.create({
-          name: category,
-          icon: details.icon,
-          description: details.description,
-          isActive: true,
-          itemCount: 0
-        });
-      } catch (e) {
-        throw ApiError.badRequest(`Failed to create new category '${category}'.`);
-      }
-    }
-    
-    // Decrement from old, increment in new
-    await Category.updateOne({ name: item.category, itemCount: { $gt: 0 } }, { $inc: { itemCount: -1 } });
-    await Category.updateOne({ name: category }, { $inc: { itemCount: 1 } });
-    item.category = category;
-  }
-  if (description) item.description = description;
-  if (foundLocation) item.foundLocation = foundLocation;
-  if (foundDate) item.foundDate = new Date(foundDate);
-  if (storedAt !== undefined) item.storedAt = storedAt;
-  if (status && status !== item.status) {
-    item.status = status;
-    if (status === 'claimed' || status === 'closed') {
-      item.resolvedAt = new Date();
-    }
-  }
-  if (contactPreference) item.contactPreference = contactPreference;
-  if (contactVisibility) item.contactVisibility = contactVisibility;
-  if (tags) {
-    item.tags = Array.isArray(tags) ? tags : tags.split(',').map((t) => t.trim());
-  }
-
-  // Handle deletions of images
-  let imagesLeft = [...item.images];
-  if (deletedImages) {
-    const imagesToDelete = Array.isArray(deletedImages) ? deletedImages : [deletedImages];
-    const toDeletePublicIds = item.images
-      .filter((img) => imagesToDelete.includes(img.url))
-      .map((img) => img.publicId);
-    
-    await deleteMultipleImages(toDeletePublicIds.map(id => ({ publicId: id })));
-    imagesLeft = item.images.filter((img) => !imagesToDelete.includes(img.url));
-  }
-
-  // Handle new images
-  let newImages = [];
-  if (req.files && req.files.length > 0) {
-    const spaceLeft = 5 - imagesLeft.length;
-    if (spaceLeft <= 0) {
-      throw ApiError.badRequest('Maximum 5 images allowed. Delete some to upload new ones.');
-    }
-    const filesToUpload = req.files.slice(0, spaceLeft);
-    newImages = await uploadMultipleImages(filesToUpload, 'found-items');
-  }
-
-  item.images = [...imagesLeft, ...newImages];
-  await item.save();
-
-  // Rematching
-  (async () => {
-    try {
-      let analysisResult = null;
-      if (newImages.length > 0) {
-        analysisResult = await analyzeItemImage('FoundItem', item._id, newImages[0].url, item.itemName, item.description);
-      }
-      
-      const textKeywords = await generateKeywordsFromText(item.itemName, item.description);
-      let finalKeywords = [...textKeywords];
-      
-      if (analysisResult) {
-        const imgLabels = analysisResult.labels ? analysisResult.labels.map(l => l.toLowerCase()) : [];
-        const imgColors = analysisResult.colors ? analysisResult.colors.map(c => c.toLowerCase()) : [];
-        finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
-      } else {
-        // Fetch existing analysis if no new image was added
-        const ImageAnalysis = (await import('../models/ImageAnalysis.js')).default;
-        const existingAnalysis = await ImageAnalysis.findOne({ itemId: item._id, itemType: 'FoundItem' });
-        if (existingAnalysis) {
-          const imgLabels = existingAnalysis.labels ? existingAnalysis.labels.map(l => l.toLowerCase()) : [];
-          const imgColors = existingAnalysis.colors ? existingAnalysis.colors.map(c => c.toLowerCase()) : [];
-          finalKeywords = [...new Set([...finalKeywords, ...imgLabels, ...imgColors])];
-        }
-      }
-
-      if (finalKeywords.length > 0) {
-        item.aiKeywords = finalKeywords;
-        await item.save();
-      }
-
-      await runMatchingForItem(item, 'FoundItem');
-    } catch (err) {
-      console.error('❌ Background processing on update failed:', err);
-    }
-  })();
-
-  // Invalidate cache
-  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
-
-  ApiResponse.ok(item, 'Found item updated successfully. Rematching completed.').send(res);
+  const requestedDeletes = new Set((Array.isArray(req.body.deletedImages) ? req.body.deletedImages : req.body.deletedImages ? [req.body.deletedImages] : []).map(String));
+  const imagesToDelete = item.images.filter((image) => requestedDeletes.has(image.url));
+  const imagesLeft = item.images.filter((image) => !requestedDeletes.has(image.url));
+  if (imagesLeft.length + (req.files?.length || 0) > 5) throw ApiError.badRequest('Maximum 5 images allowed.');
+  const newImages = await uploadMultipleImages(req.files || [], 'found-items');
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const current = await FoundItem.findById(item._id).session(session);
+      if (!current || current.isDeleted || !['available', 'matched'].includes(current.status)) throw ApiError.conflict('The report changed while it was being edited.');
+      if (req.body.itemName !== undefined) current.itemName = req.body.itemName;
+      if (category) current.category = category.name;
+      if (req.body.description !== undefined) current.description = req.body.description;
+      if (req.body.foundLocation !== undefined) current.foundLocation = req.body.foundLocation;
+      if (req.body.foundLocation !== undefined) current.locationIntelligence = buildLocationIntelligence(req.body.foundLocation);
+      if (req.body.brand !== undefined) current.brand = req.body.brand;
+      if (req.body.model !== undefined) current.model = req.body.model;
+      if (req.body.colors !== undefined) current.colors = parseList(req.body.colors, 6);
+      if (req.body.material !== undefined) current.material = req.body.material;
+      if (req.body.uniqueFeatures !== undefined) current.uniqueFeatures = parseList(req.body.uniqueFeatures, 12);
+      if (req.body.foundDate !== undefined) current.foundDate = new Date(req.body.foundDate);
+      if (req.body.storedAt !== undefined) current.storedAt = req.body.storedAt;
+      if (req.body.contactPreference !== undefined) current.contactPreference = req.body.contactPreference;
+      if (req.body.contactVisibility !== undefined) current.contactVisibility = req.body.contactVisibility;
+      if (req.body.tags !== undefined) current.tags = parseTags(req.body.tags);
+      current.images = [...imagesLeft, ...newImages];
+      await current.save({ session });
+      await enqueueItemProcessing('FoundItem', current._id, Date.now(), session);
+      item.set(current.toObject());
+    });
+  } catch (error) {
+    await deleteMultipleImages(newImages);
+    throw error;
+  } finally { await session.endSession(); }
+  await deleteMultipleImages(imagesToDelete);
+  await deleteCache(cacheKeys);
+  return ApiResponse.ok(itemView(item, req.user), 'Found item updated successfully. Processing was queued reliably.').send(res);
 });
 
-/**
- * Delete a found item. (Hard or soft delete depending on logic, here we do soft delete for safety)
- */
 const deleteFoundItem = asyncHandler(async (req, res) => {
   const item = await FoundItem.findById(req.params.id);
-
-  if (!item || item.isDeleted) {
-    throw ApiError.notFound('Found item not found.');
-  }
-
-  const isOwner = item.userId.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === 'admin';
-  if (!isOwner && !isAdmin) {
-    throw ApiError.forbidden('You are not authorised to delete this item.');
-  }
-
-  // Soft delete
-  item.isDeleted = true;
-  item.status = 'claimed'; // Mark claimed/closed
-  await item.save();
-
-  // Decrement category count
-  await Category.updateOne({ name: item.category, itemCount: { $gt: 0 } }, { $inc: { itemCount: -1 } });
-
-  // Delete matches
-  await Match.deleteMany({ foundItemId: item._id });
-
-  // Invalidate cache
-  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
-
-  ApiResponse.noContent('Found item deleted successfully.').send(res);
+  if (!item || item.isDeleted) throw ApiError.notFound('Found item not found.');
+  if (String(item.userId) !== String(req.user._id) && req.user.role !== 'admin') throw ApiError.forbidden('You are not authorised to delete this item.');
+  if (item.status === 'in_progress') throw ApiError.conflict('Cancel the active handover before deleting this report.');
+  const images = [...item.images];
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      await FoundItem.updateOne({ _id: item._id, isDeleted: { $ne: true } }, { $set: { isDeleted: true, isArchived: true, images: [] } }, { session });
+      await Match.updateMany({ foundItemId: item._id, status: { $ne: 'rejected' } }, { $set: { status: 'rejected' } }, { session });
+      await ClaimRequest.updateMany({ foundItemId: item._id, status: 'pending' }, { $set: { status: 'rejected', adminRemark: 'The report was deleted.', reviewedAt: new Date(), reviewedBy: req.user._id } }, { session });
+      await ImageAnalysis.deleteMany({ itemId: item._id, itemType: 'FoundItem' }).session(session);
+    });
+  } finally { await session.endSession(); }
+  await deleteMultipleImages(images);
+  await deleteCache(cacheKeys);
+  return ApiResponse.ok(null, 'Found item deleted successfully.').send(res);
 });
 
-/**
- * Resolve a found item (Mark as Done).
- */
 const resolveFoundItem = asyncHandler(async (req, res) => {
-  const foundItem = await FoundItem.findById(req.params.id);
-
-  if (!foundItem || foundItem.isDeleted) {
-    throw ApiError.notFound('Found item not found');
-  }
-
-  if (foundItem.status !== 'in_progress') {
-    throw ApiError.badRequest('Item must be connected (in progress) before resolving.');
-  }
-
-  const isOwner = foundItem.userId.toString() === req.user._id.toString();
-  const isConnectedUser = foundItem.connectedUserId && foundItem.connectedUserId.toString() === req.user._id.toString();
-
-  if (!isOwner && !isConnectedUser && req.user.role !== 'admin') {
-    throw ApiError.forbidden('Not authorized to resolve this item');
-  }
-
-  foundItem.status = 'claimed';
-  foundItem.resolvedAt = new Date();
-  await foundItem.save();
-
-  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
-
-  ApiResponse.ok(foundItem, 'Item resolved successfully').send(res);
+  const item = await resolveItemHandover('FoundItem', req.params.id, req.user);
+  await deleteCache(cacheKeys);
+  return ApiResponse.ok(item, 'Item handover resolved successfully.').send(res);
 });
 
-/**
- * Cancel a found item connection (No, not resolved).
- */
 const cancelConnectionFoundItem = asyncHandler(async (req, res) => {
-  const foundItem = await FoundItem.findById(req.params.id);
-
-  if (!foundItem || foundItem.isDeleted) {
-    throw ApiError.notFound('Found item not found');
-  }
-
-  if (foundItem.status !== 'in_progress') {
-    throw ApiError.badRequest('Item must be connected to cancel the connection.');
-  }
-
-  const isOwner = foundItem.userId.toString() === req.user._id.toString();
-  const isConnectedUser = foundItem.connectedUserId && foundItem.connectedUserId.toString() === req.user._id.toString();
-
-  if (!isOwner && !isConnectedUser && req.user.role !== 'admin') {
-    throw ApiError.forbidden('Not authorized to cancel this connection');
-  }
-
-  foundItem.status = 'available';
-  foundItem.connectedUserId = null;
-  foundItem.connectedAt = null;
-  foundItem.reminderSent = false;
-  await foundItem.save();
-
-  await deleteCache(['foundItems:*', 'cache:/api/found-items*']);
-
-  ApiResponse.ok(foundItem, 'Connection cancelled. Item is available again.').send(res);
+  const item = await cancelItemHandover('FoundItem', req.params.id, req.user, req.body?.reason);
+  await deleteCache([...cacheKeys, 'lostItems:*', 'cache:/api/lost-items*']);
+  return ApiResponse.ok(item, 'Handover cancelled and reports reopened.').send(res);
 });
 
-export {
-  createFoundItem,
-  getFoundItems,
-  getFoundItemById,
-  updateFoundItem,
-  deleteFoundItem,
-  resolveFoundItem,
-  cancelConnectionFoundItem
-};
+export { createFoundItem, getFoundItems, getFoundItemById, updateFoundItem, deleteFoundItem, resolveFoundItem, cancelConnectionFoundItem };

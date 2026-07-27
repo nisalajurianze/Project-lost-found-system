@@ -77,6 +77,13 @@ const getRedisClient = () => redisClient;
  */
 const isRedisConnected = () => isRedisAvailable;
 
+const closeRedis = async () => {
+  if (!redisClient) return;
+  try { await redisClient.quit(); } catch { redisClient.disconnect(); }
+  redisClient = null;
+  isRedisAvailable = false;
+};
+
 // ── Cache helper utilities ──────────────────────────────────────────────
 
 /**
@@ -122,11 +129,13 @@ const deleteCache = async (keys) => {
     const keyList = Array.isArray(keys) ? keys : [keys];
     for (const pattern of keyList) {
       if (pattern.includes('*')) {
-        // Glob-based deletion
-        const matchedKeys = await redisClient.keys(pattern);
-        if (matchedKeys.length > 0) {
-          await redisClient.del(...matchedKeys);
-        }
+        // Non-blocking glob deletion using SCAN instead of KEYS.
+        let cursor = '0';
+        do {
+          const [nextCursor, matchedKeys] = await redisClient.scan(cursor, 'MATCH', pattern, 'COUNT', 200);
+          cursor = nextCursor;
+          if (matchedKeys.length > 0) await redisClient.unlink(...matchedKeys);
+        } while (cursor !== '0');
       } else {
         await redisClient.del(pattern);
       }
@@ -140,6 +149,7 @@ export {
   initRedis,
   getRedisClient,
   isRedisConnected,
+  closeRedis,
   getCache,
   setCache,
   deleteCache,

@@ -9,10 +9,12 @@ import { fetchMatches, confirmOrRejectMatch } from '../../redux/slices/matchSlic
 import MatchCard from '../../components/cards/MatchCard';
 import Loader from '../../components/common/Loader';
 import EmptyState from '../../components/common/EmptyState';
+import { useLanguage } from '../../i18n/LanguageContext';
 import toast from 'react-hot-toast';
 
 export const MyMatches = () => {
   const dispatch = useDispatch();
+  const { t, language } = useLanguage();
   const { matches, isLoading } = useSelector((state) => state.matches);
 
   const [activeTab, setActiveTab] = useState('suggested');
@@ -24,18 +26,18 @@ export const MyMatches = () => {
   const handleConfirm = async (id) => {
     try {
       await dispatch(confirmOrRejectMatch({ id, status: 'confirmed' })).unwrap();
-      toast.success('Match confirmed! File a claim request.');
+      toast.success(t('myMatches.confirmedSuccess'));
     } catch (err) {
-      toast.error(err || 'Failed to confirm match.');
+      toast.error(err || t('myMatches.confirmError'));
     }
   };
 
   const handleReject = async (id) => {
     try {
       await dispatch(confirmOrRejectMatch({ id, status: 'rejected' })).unwrap();
-      toast.success('Match rejected.');
+      toast.success(t('myMatches.rejectedSuccess'));
     } catch (err) {
-      toast.error(err || 'Failed to reject match.');
+      toast.error(err || t('myMatches.rejectError'));
     }
   };
 
@@ -43,17 +45,17 @@ export const MyMatches = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="page-header">
         <h1 className="page-title text-3xl font-extrabold font-display text-surface-900 dark:text-white">
-          AI Recommendations
+          {t('myMatches.title')}
         </h1>
         <p className="page-subtitle text-sm text-surface-500 dark:text-surface-400 mt-1">
-          Review potential matches detected by our campus-wide scan
+          {t('myMatches.subtitle')}
         </p>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-4 border-b border-surface-200 dark:border-surface-800 pb-px">
         {['suggested', 'confirmed'].map((tab) => (
-          <button
+          <button type="button"
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`pb-3 text-sm font-semibold border-b-2 transition-all capitalize ${
@@ -62,7 +64,7 @@ export const MyMatches = () => {
                 : 'border-transparent text-surface-500 hover:text-surface-800 dark:hover:text-white'
             }`}
           >
-            {tab} Matches
+            {t('myMatches.tab', { tab: t(`myMatches.${tab}`) })}
           </button>
         ))}
       </div>
@@ -72,11 +74,13 @@ export const MyMatches = () => {
         <Loader fullPage />
       ) : matches.length === 0 ? (
         <EmptyState
-          title={`No ${activeTab} matches found`}
+          title={t('myMatches.emptyTitle', {
+            tab: language === 'en' ? t(`myMatches.${activeTab}`).toLowerCase() : t(`myMatches.${activeTab}`),
+          })}
           description={
             activeTab === 'suggested'
-              ? 'Our matching engine runs automatically in the background. You will receive an alert as soon as matching items appear.'
-              : 'You have not confirmed any recommendations yet.'
+              ? t('myMatches.emptySuggestedDesc')
+              : t('myMatches.emptyConfirmedDesc')
           }
         />
       ) : (

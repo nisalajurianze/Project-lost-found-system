@@ -1,19 +1,16 @@
-// ============================================
-// Contact Page Component
-// Campus support details and feedback forms
-// ============================================
-
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import Input from '../../components/common/Input';
 import Textarea from '../../components/common/Textarea';
 import Button from '../../components/common/Button';
+import { useLanguage } from '../../i18n/LanguageContext';
 import toast from 'react-hot-toast';
 import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
 import settingService from '../../services/settingService';
 import feedbackService from '../../services/feedbackService';
 
 export const Contact = () => {
+  const { t } = useLanguage();
   const { user } = useSelector((state) => state.auth);
   const [name, setName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -22,50 +19,39 @@ export const Contact = () => {
   const [contactDetails, setContactDetails] = useState(null);
 
   useEffect(() => {
-    const fetchContactInfo = async () => {
-      try {
-        const res = await settingService.getPublicSetting('contact_details');
-        if (res && res.data) {
-          setContactDetails(res.data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch contact details:', err);
-      }
-    };
-    fetchContactInfo();
+    let active = true;
+    settingService.getPublicSetting('contact_details')
+      .then((response) => { if (active && response?.data) setContactDetails(response.data); })
+      .catch((error) => console.error('Failed to fetch contact details:', error));
+    return () => { active = false; };
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // If not logged in, we only simulate sending (for public UX)
+  useEffect(() => {
+    setName(user?.fullName || '');
+    setEmail(user?.email || '');
+  }, [user]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!user) {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        toast.success('Your message has been sent! We will contact you soon.');
-        setName('');
-        setEmail('');
-        setMessage('');
-      }, 1000);
+      toast.error(t('contact.signInRequired'));
       return;
     }
 
-    // If logged in, send actual feedback to backend
     setIsLoading(true);
     try {
       await feedbackService.createFeedback({
-        subject: `Contact Form Message from ${name}`,
-        message: message,
-        rating: 5, // Default rating for contact queries
-        category: 'general'
+        subject: t('contact.subject', { name }),
+        message,
+        rating: 5,
+        category: 'general',
       });
-      toast.success('Your message has been sent successfully to the admins!');
-      setName(user?.fullName || '');
-      setEmail(user?.email || '');
+      toast.success(t('contact.sent'));
+      setName(user.fullName || '');
+      setEmail(user.email || '');
       setMessage('');
-    } catch (err) {
-      toast.error(err?.response?.data?.message || err.message || 'Failed to send message.');
+    } catch (error) {
+      toast.error(t('contact.failed'));
     } finally {
       setIsLoading(false);
     }
@@ -73,122 +59,66 @@ export const Contact = () => {
 
   const contactInfos = [
     {
-      title: 'University Office',
-      desc: contactDetails?.office || 'Student Affairs Office, Admin Building, 2nd Floor',
-      icon: <FiMapPin className="text-xl text-primary-500" />,
-      href: contactDetails?.office ? `https://maps.google.com/?q=${encodeURIComponent(contactDetails.office)}` : undefined
+      title: t('contact.office'),
+      desc: contactDetails?.office || t('contact.officeMissing'),
+      icon: <FiMapPin className="text-xl text-primary-500" aria-hidden="true" />,
+      href: contactDetails?.office ? `https://maps.google.com/?q=${encodeURIComponent(contactDetails.office)}` : undefined,
+      external: true,
     },
     {
-      title: 'Email Address',
-      desc: contactDetails?.email || 'support-lostfound@university.edu',
-      icon: <FiMail className="text-xl text-cyan-500" />,
-      href: `mailto:${contactDetails?.email || 'support-lostfound@university.edu'}`
+      title: t('contact.emailTitle'),
+      desc: contactDetails?.email || t('contact.emailMissing'),
+      icon: <FiMail className="text-xl text-cyan-500" aria-hidden="true" />,
+      href: contactDetails?.email ? `mailto:${contactDetails.email}` : undefined,
     },
     {
-      title: 'Telephone Line',
-      desc: contactDetails?.phone || '+94 55 2226262 (Ext: 1104)',
-      icon: <FiPhone className="text-xl text-emerald-500" />,
-      href: `tel:${contactDetails?.phone || '+94552226262'}`
-    }
+      title: t('contact.phoneTitle'),
+      desc: contactDetails?.phone || t('contact.phoneMissing'),
+      icon: <FiPhone className="text-xl text-emerald-500" aria-hidden="true" />,
+      href: contactDetails?.phone ? `tel:${contactDetails.phone}` : undefined,
+    },
   ];
 
   return (
     <div className="flex-1 py-12 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">
       <div className="page-container max-w-5xl mx-auto">
-        
-        {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold font-display text-surface-900 dark:text-white">
-            Contact Support
-          </h1>
-          <p className="text-base text-surface-500 dark:text-surface-400 mt-2">
-            Get in touch with the Student Affairs Office or send system feedback
-          </p>
+          <h1 className="text-4xl font-extrabold font-display text-surface-900 dark:text-white">{t('contact.title')}</h1>
+          <p className="text-base text-surface-500 dark:text-surface-400 mt-2">{t('contact.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* Support Details */}
-          <div className="md:col-span-1 flex flex-col gap-6">
-            {contactInfos.map((info, index) => {
+          <section className="md:col-span-1 flex flex-col gap-6" aria-label={t('contact.title')}>
+            {contactInfos.map((info) => {
               const CardComponent = info.href ? 'a' : 'div';
-              const cardProps = info.href ? { href: info.href, target: info.title === 'University Office' ? '_blank' : undefined, rel: "noopener noreferrer" } : {};
-              
+              const cardProps = info.href ? { href: info.href, target: info.external ? '_blank' : undefined, rel: info.external ? 'noopener noreferrer' : undefined } : {};
               return (
-                <CardComponent 
-                  key={index} 
-                  {...cardProps}
-                  className={`card p-5 bg-white dark:bg-surface-800 border border-surface-200/50 dark:border-surface-800 flex items-start gap-4 ${info.href ? 'hover:border-primary-500/30 cursor-pointer transition-colors block' : ''}`}
-                >
-                  <div className="p-3 bg-surface-50 dark:bg-surface-800 rounded-xl flex-shrink-0">
-                    {info.icon}
-                  </div>
+                <CardComponent key={info.title} {...cardProps} className={`card p-5 bg-white dark:bg-surface-800 border border-surface-200/50 dark:border-surface-800 flex items-start gap-4 ${info.href ? 'hover:border-primary-500/30 cursor-pointer transition-colors block' : ''}`}>
+                  <div className="p-3 bg-surface-50 dark:bg-surface-800 rounded-xl flex-shrink-0">{info.icon}</div>
                   <div>
-                    <h4 className="text-sm font-bold text-surface-950 dark:text-white">
-                      {info.title}
-                    </h4>
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mt-1 leading-relaxed">
-                      {info.desc}
-                    </p>
+                    <h2 className="text-base font-bold text-surface-950 dark:text-white">{info.title}</h2>
+                    <p className="text-sm text-surface-500 dark:text-surface-400 mt-1 leading-relaxed">{info.desc}</p>
                   </div>
                 </CardComponent>
               );
             })}
-          </div>
+          </section>
 
-          {/* Quick Query Form */}
-          <div className="md:col-span-2 glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl">
-            <h3 className="text-lg font-bold font-display text-surface-900 dark:text-white mb-6">
-              Send a Quick Message
-            </h3>
-            
+          <section className="md:col-span-2 glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl" aria-labelledby="contact-form-title">
+            <h2 id="contact-form-title" className="text-lg font-bold font-display text-surface-900 dark:text-white mb-6">{t('contact.formTitle')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Your Name"
-                  name="name"
-                  placeholder="e.g. Dineth"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-                <Input
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  placeholder="e.g. student@student.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Input label={t('contact.name')} name="name" autoComplete="name" placeholder={t('contact.namePlaceholder')} value={name} onChange={(event) => setName(event.target.value)} required />
+                <Input label={t('auth.email')} name="email" type="email" autoComplete="email" placeholder={t('auth.emailPlaceholder')} value={email} onChange={(event) => setEmail(event.target.value)} required />
               </div>
-
-              <Textarea
-                label="Your Message"
-                name="message"
-                placeholder="What can we help you with?"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-              />
-
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full sm:w-auto"
-                isLoading={isLoading}
-              >
-                Send Message
-              </Button>
+              <Textarea label={t('contact.message')} name="message" placeholder={t('contact.messagePlaceholder')} value={message} onChange={(event) => setMessage(event.target.value)} required />
+              <Button type="submit" variant="primary" className="w-full sm:w-auto" isLoading={isLoading}>{t('contact.send')}</Button>
             </form>
-          </div>
-
+          </section>
         </div>
-
       </div>
     </div>
   );
 };
 
 export default Contact;
-

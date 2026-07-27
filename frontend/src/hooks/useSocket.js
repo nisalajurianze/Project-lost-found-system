@@ -8,66 +8,74 @@ import { useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import socketService from '../services/socketService';
 import { addSocketNotification } from '../redux/slices/notificationSlice';
+import { useLanguage } from '../i18n/LanguageContext';
+
+const NOTIFICATION_BATCH_DELAY_MS = 500;
 
 export const useSocket = (user) => {
   const dispatch = useDispatch();
+  const { t } = useLanguage();
 
   useEffect(() => {
-    if (!user || !user._id) {
+    if (!user?._id) {
       socketService.disconnectSocket();
-      return;
+      return undefined;
     }
 
-    // Connect to Socket.IO server
-    console.log(`🔌 Initializing socket client for user: ${user.fullName}`);
-    socketService.connectSocket(user._id, user.role);
+    // Authentication is cookie-based. Browser notification permission is
+    // requested only after an explicit user action in the dashboard/settings.
+    socketService.connectSocket();
 
-    // Request browser notification permission
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission();
-    }
-
-    // Subscribe to notification channel with batching/debouncing (PERF-010)
     let notificationBuffer = [];
     let timeoutId = null;
 
-    socketService.onNotification((notification) => {
+    const flushNotifications = () => {
+      notificationBuffer.forEach((notification) => dispatch(addSocketNotification(notification)));
+      notificationBuffer = [];
+      timeoutId = null;
+    };
+
+    socketService.onNotification((notification = {}) => {
       notificationBuffer.push(notification);
 
-      // Show beautiful toast notification inside the app
-      toast.success(
-        `${notification.title || 'New Update'}\n${notification.message}`,
-        { icon: '🔔', duration: 6000 }
-      );
-      
-      // Trigger native browser push notification if permitted and document is hidden
-      // or just show it anyway for important alerts
-      if ('Notification' in window && Notification.permission === 'granted') {
+      const title = notification.title || t('notifications.realtimeFallbackTitle');
+      const message = notification.message || '';
+
+      // Exactly one in-app toast is emitted here. Redux reducers remain pure.
+      toast.success(message ? `${title}\n${message}` : title, {
+        icon: '🔔',
+        duration: 6000,
+      });
+
+      // Native alerts are useful only while the document is not visible and
+      // only after the user has explicitly granted permission elsewhere.
+      if (
+        typeof document !== 'undefined'
+        && document.hidden
+        && 'Notification' in window
+        && Notification.permission === 'granted'
+      ) {
         try {
-          new Notification(notification.title || 'Smart L&F Update', {
-            body: notification.message,
-            icon: '/favicon.ico' // Or any suitable logo path
+          new Notification(title, {
+            body: message,
+            icon: '/favicon.ico',
+            tag: notification._id || notification.id || undefined,
           });
-        } catch (err) {
-          console.warn('Native notification failed:', err);
+        } catch {
+          // In-app notification remains available; native delivery is optional.
         }
       }
 
-      if (!timeoutId) {
-        timeoutId = setTimeout(() => {
-          notificationBuffer.forEach(n => dispatch(addSocketNotification(n)));
-          notificationBuffer = [];
-          timeoutId = null;
-        }, 500); // Process buffer every 500ms
-      }
+      if (!timeoutId) timeoutId = window.setTimeout(flushNotifications, NOTIFICATION_BATCH_DELAY_MS);
     });
 
-    // Cleanup on unmount or user change
     return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      notificationBuffer = [];
       socketService.offNotification();
       socketService.disconnectSocket();
     };
-  }, [user, dispatch]);
+  }, [user?._id, dispatch, t]);
 
   return socketService;
 };

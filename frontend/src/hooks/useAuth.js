@@ -18,7 +18,7 @@ export const useAuth = () => {
   const { user, isAuthenticated, isLoading, error } = useSelector((state) => state.auth);
 
   const register = useCallback((userData) => dispatch(registerUser(userData)).unwrap(), [dispatch]);
-  
+
   const login = useCallback((credentials) => dispatch(loginUser(credentials)).unwrap(), [dispatch]);
 
   const logout = useCallback(() => dispatch(logoutUser()), [dispatch]);

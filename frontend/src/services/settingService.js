@@ -11,6 +11,11 @@ const settingService = {
     return response.data;
   },
 
+  getSetting: async (key) => {
+    const response = await api.get(`/settings/${key}`);
+    return response.data;
+  },
+
   /**
    * Update a setting by key (Admin only)
    * @param {string} key - Setting key
@@ -18,8 +23,8 @@ const settingService = {
    * @param {string} description - Optional description
    * @returns {Promise<Object>} The updated setting
    */
-  updateSetting: async (key, value, description = '') => {
-    const response = await api.put(`/settings/${key}`, { value, description });
+  updateSetting: async (key, value, description = '', isPublic = false) => {
+    const response = await api.put(`/settings/${key}`, { value, description, isPublic });
     return response.data;
   }
 };
