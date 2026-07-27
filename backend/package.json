@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "check": "find . -path './node_modules' -prune -o -name '*.js' -print0 | xargs -0 -n1 node --check",
+    "check": "node scripts/checkSyntax.mjs",
     "test": "node --test tests/*.test.js",
     "seed:defaults": "node scripts/seedDefaults.js",
     "admin:bootstrap": "node scripts/bootstrapAdmin.js",
