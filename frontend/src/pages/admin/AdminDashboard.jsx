@@ -13,7 +13,7 @@ import {
   Grid,
   BrainCircuit,
   Wifi,
-  TriangleAlert,
+  AlertTriangle,
   Clock3,
   ListChecks,
   ShieldAlert,
@@ -142,7 +142,7 @@ const AdminDashboard = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="urgent-attention-title" className="flex items-center gap-2 text-xl font-bold text-amber-950 dark:text-amber-100">
-              <TriangleAlert className="h-5 w-5" aria-hidden="true" /> {t('admin.urgentTitle')}
+              <AlertTriangle className="h-5 w-5" aria-hidden="true" /> {t('admin.urgentTitle')}
             </h2>
             <p className="mt-1 text-sm text-amber-800/80 dark:text-amber-200/70">{t('admin.urgentDesc')}</p>
           </div>
@@ -183,7 +183,7 @@ const AdminDashboard = () => {
           <p className="mt-1 text-sm text-surface-500">{t('admin.averageLatency', { value: aiHealth?.averageLatencyMs ?? 0 })}</p>
         </div>
         <div className="rounded-2xl border border-surface-200 bg-white p-4 dark:border-surface-800 dark:bg-surface-900/70">
-          <div className="flex items-center gap-2 text-sm font-semibold text-surface-600 dark:text-surface-300"><TriangleAlert className="h-5 w-5 text-amber-600" aria-hidden="true" />{t('admin.safeFallbacks')}</div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-surface-600 dark:text-surface-300"><AlertTriangle className="h-5 w-5 text-amber-600" aria-hidden="true" />{t('admin.safeFallbacks')}</div>
           <p className="mt-2 text-2xl font-bold text-surface-900 dark:text-white">{aiHealth?.fallbackUses ?? 0}</p>
           <p className="mt-1 text-sm text-surface-500">{t('admin.lastFailure', { value: aiHealth?.lastFailureCode || t('admin.noneRecorded') })}</p>
         </div>
