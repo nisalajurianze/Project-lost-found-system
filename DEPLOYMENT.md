@@ -11,7 +11,7 @@ Use HTTPS at the edge and serve the frontend and API from the same site when pos
 3. Provision MongoDB with point-in-time backups and a tested restore target.
 4. Provision authenticated Redis with persistence appropriate to the workload.
 5. Configure Cloudinary authenticated delivery for private proof evidence.
-6. Configure Resend or SMTP, Google OAuth, and VAPID as needed.
+6. Configure Resend or SMTP, and set `EMAIL_FROM` to a sender address/domain verified by that provider. Configure Google OAuth and VAPID as needed.
 7. Set `NODE_ENV=production`, HTTPS `CLIENT_URLS`, `COOKIE_SECURE=true`, and a random `JWT_ACCESS_SECRET` of at least 32 characters.
 8. Keep `REQUIRE_MONGO_REPLICA_SET`, `REQUIRE_REDIS`, `REQUIRE_CLOUDINARY`, and `REQUIRE_EMAIL_PROVIDER` enabled.
 
