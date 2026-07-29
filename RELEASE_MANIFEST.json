@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "sourceId": "fbd39a5+working-tree-2026-07-29",
+  "sourceId": "2744bd6+working-tree-2026-07-29",
   "generatedAt": null,
   "fileCountExcludingManifestFiles": 420,
-  "totalBytesExcludingManifestFiles": 5688993,
+  "totalBytesExcludingManifestFiles": 5691012,
   "files": [
     {
       "path": ".dockerignore",
@@ -697,13 +697,13 @@
     },
     {
       "path": "CURRENT_IMPLEMENTATION_STATUS.md",
-      "bytes": 5837,
-      "sha256": "a945f85422abce32b7374f84ac775e0f9aa112fb816dc860ea2331c376ea9470"
+      "bytes": 5982,
+      "sha256": "41ab79ecd97374b662b1d8b68703faf840953e094779c1509c8052aa4e64c997"
     },
     {
       "path": "DEPLOYMENT.md",
-      "bytes": 6238,
-      "sha256": "9e9cf3f9095931ec72329c90eaf8a2cb99583d37e83b2bb2c5ae4ce33c68269a"
+      "bytes": 6603,
+      "sha256": "b59e2dba8755b95adaa87d5342a52fae1e5de8a2029066b1c9944eebae22e008"
     },
     {
       "path": "docker-compose.yml",
@@ -842,8 +842,8 @@
     },
     {
       "path": "docs/implementation/DEPLOYMENT_DEEP_AUDIT_2026-07-28.md",
-      "bytes": 5034,
-      "sha256": "885f4037c177b2bf00bc126b8c53de0fd468b065f72aa8bd51b9b57e95e6f0ed"
+      "bytes": 5244,
+      "sha256": "6d0a8588e0c188f5aa85257384a3f56c811b9793813aad47a6d6f356366a5306"
     },
     {
       "path": "docs/implementation/DESIGN_SYSTEM_SPACE_PERFORMANCE_BATCH_2026-07-26.md",
@@ -852,8 +852,8 @@
     },
     {
       "path": "docs/implementation/FULL_CODEBASE_DEEP_AUDIT_2026-07-29.md",
-      "bytes": 7921,
-      "sha256": "bacef491e9ef5239fc1cf0e91eda12296d0018e6a2db98cfb8969cb10ac0d0ba"
+      "bytes": 8284,
+      "sha256": "363fd16ed007f39ca71313fd316d4d431ace0201bf046959c1bf6c86658fc8f3"
     },
     {
       "path": "docs/latest-academic-pack/docs/academic/SOFTWARE_DESIGN_DOCUMENT.md",
@@ -1887,8 +1887,8 @@
     },
     {
       "path": "frontend/tests/deployment-compatibility.test.mjs",
-      "bytes": 3128,
-      "sha256": "124bd331face290fd487ae1d1a59e30e92d4cbf37782228642d598c1a1089c1b"
+      "bytes": 3466,
+      "sha256": "329dc81b37e970ab17d40351c8d859792f118623c8fbb13e3835dcaacdc82073"
     },
     {
       "path": "frontend/tests/design-system.test.mjs",
@@ -1982,8 +1982,8 @@
     },
     {
       "path": "frontend/vercel.json",
-      "bytes": 573,
-      "sha256": "27bd26dbc019b1c9dad24b34f10d49cb02e338ebbf0b64193a12471bef0c4af1"
+      "bytes": 861,
+      "sha256": "5d417e1a21be78616b569faa90c2b8b8fd355935a9c7946d1c3a4ef494192b49"
     },
     {
       "path": "frontend/vite.config.js",
@@ -2017,8 +2017,8 @@
     },
     {
       "path": "PACKAGE_VERIFICATION.md",
-      "bytes": 2783,
-      "sha256": "b21809d6e6ad585ce6255e5b4373c8e48f976bb2e1f3379f0da7db34e7ccf2e3"
+      "bytes": 2991,
+      "sha256": "0b04575fd1cc092b51daa1e616eca7ff16295517d77a3823cc1d7504d41bcf6f"
     },
     {
       "path": "PRODUCTION_CERTIFICATION_STATUS.md",
@@ -2082,8 +2082,8 @@
     },
     {
       "path": "task.md",
-      "bytes": 1641,
-      "sha256": "8658068041d3ee1ae9c1dea4ede33dc336f3fc8eb64e22c5853e07261df927f8"
+      "bytes": 1743,
+      "sha256": "f6a64a272736d2e856c4bd2bcdad1c5c2b4f74f3fdccb586159f56ed22bb3c5b"
     },
     {
       "path": "UNIVERSITY_PROJECT_REPORT.md",

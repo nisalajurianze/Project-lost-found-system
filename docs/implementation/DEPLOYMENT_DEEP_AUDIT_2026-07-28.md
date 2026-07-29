@@ -14,6 +14,7 @@ This audit covers the Vercel frontend build failure, Railway backend startup val
 | Vercel runtime and headers | Frontend requests Node 22, keeps SPA routing, and emits baseline security headers without blocking the app's camera or microphone workflows. |
 | Legacy auth artifacts | Removed the unused plaintext refresh-token helper and unused browser token-storage constant. |
 | Split Vercel/Railway password login | Production cookies default to `SameSite=None; Secure`; login confirms `/auth/me` before authenticated state is accepted and reports blocked-cookie failure clearly in English, Sinhala, and Tamil. |
+| Vercel API/Socket routing | Ordered same-origin `/api/*` and Socket.IO polling rewrites proxy to the verified Railway origin before the SPA fallback; this prevents API requests from receiving `index.html`. |
 | Untrusted frontend navigation | Same-origin internal-path validation now rejects absolute, scheme-relative, backslash, encoded-separator, and control-character paths before router navigation. |
 | API query and reminder correctness | Added explicit list/admin/location/claim validation and marks resolution reminders sent only after delivery succeeds for every participant. |
 

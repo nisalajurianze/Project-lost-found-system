@@ -46,6 +46,8 @@ The recommended split-host deployment uses two HTTPS subdomains under the same r
 
 This keeps cookie requests same-site while retaining separate hosting. Using default `*.vercel.app` and `*.up.railway.app` domains makes authentication cross-site and can be affected by browser third-party-cookie restrictions.
 
+The current Vercel deployment therefore keeps the browser on same-origin `/api` and `/socket.io` paths. Ordered external rewrites in `frontend/vercel.json` proxy those paths to the Railway backend before the SPA fallback. Do not move the catch-all rewrite above the API or Socket.IO rules; doing so returns `index.html` for API requests and breaks authentication.
+
 ### Vercel project settings
 
 Set the project root directory to `frontend` and use:

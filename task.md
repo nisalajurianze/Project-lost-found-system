@@ -10,6 +10,7 @@
 - [x] Refresh the deep-audit report, SBOM/license inventory, release manifest, and source hashes
 - [x] Reconcile the 2026-07-28 deployment audit with current 2026-07-29 source, test, CI, and provider evidence
 - [x] Refresh exact clean-install audits, move upload handling to `multer@2.2.0`, and remove the desktop footer/assistant collision
+- [x] Repair Vercel-to-Railway same-origin API and Socket.IO polling rewrites before the SPA fallback
 
 ## Required before production sign-off
 

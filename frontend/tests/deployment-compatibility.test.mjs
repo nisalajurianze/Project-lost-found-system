@@ -60,9 +60,19 @@ test('all named Lucide imports exist in the installed package', async (t) => {
   assert.deepEqual(missing, []);
 });
 
-test('Vercel config keeps SPA routing and baseline browser security headers', () => {
+test('Vercel config proxies API and realtime polling before SPA routing', () => {
   const config = JSON.parse(fs.readFileSync(path.join(frontendRoot, 'vercel.json'), 'utf8'));
-  assert.equal(config.rewrites?.[0]?.destination, '/index.html');
+  assert.deepEqual(config.rewrites?.slice(0, 2), [
+    {
+      source: '/api/:path*',
+      destination: 'https://project-lost-found-system-production.up.railway.app/api/:path*',
+    },
+    {
+      source: '/socket.io/:path*',
+      destination: 'https://project-lost-found-system-production.up.railway.app/socket.io/:path*',
+    },
+  ]);
+  assert.equal(config.rewrites?.at(-1)?.destination, '/index.html');
   const names = new Set(config.headers?.flatMap((rule) => rule.headers || []).map((header) => header.key));
   for (const required of ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Permissions-Policy']) {
     assert.equal(names.has(required), true, `Missing ${required}`);

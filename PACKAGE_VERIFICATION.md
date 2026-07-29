@@ -19,6 +19,7 @@
 | Documentation/OpenAPI/required pack | PASS | JSON/YAML, relative links, required documents, and the 31-capability matrix validate |
 | Release hygiene/import/secret/symlink scan | PASS | Populated `.env`, secret patterns, broken imports, symlinks, junk, and stale build directories are excluded or rejected |
 | Compose | CONFIG PASS | Interpolation passes with verification-only dummy secrets; Docker Desktop is unavailable for current-tree stack execution |
+| Vercel/Railway routing | SOURCE PASS | `/api/*` and Socket.IO polling proxy to the verified Railway origin before the SPA catch-all; live production verification remains pending deployment of this commit |
 | Existing PR CI | HISTORICAL PASS | All reported checks pass on `fbd39a5`; the newer working-tree changes are not covered until committed and pushed |
 
 ## Existing ZIP evidence

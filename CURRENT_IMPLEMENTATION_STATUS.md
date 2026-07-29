@@ -38,6 +38,7 @@
 - unified Lost / Found / Both search with filter chips, list/grid modes, URL state and bounded saved searches
 - attention-first student dashboard and database-backed administrator operational dashboard
 - notification preference centre that retains in-app audit records while gating optional push/workflow email; browser permission is requested only after an explicit user action, realtime reducers remain pure and hidden-tab native alerts do not duplicate the in-app toast
+- ordered Vercel external rewrites keep `/api` and Socket.IO polling same-origin while forwarding to the live Railway service before SPA routing
 - privacy-minimised browser-local assistant history with explicit clear/delete controls
 - modular core/dashboard/motion/accessibility styles plus browser-local preferences for text scale, contrast, reduced motion and low-effects mode
 - English/Sinhala/Tamil coverage for principal student, public, authentication, support and administrator workflows, including audit evidence, aggregate analytics, feedback response controls, handover-resolution verification and shared dashboard/profile/accessibility controls; raw technical/server exception text is not rendered in user-facing toast failures
