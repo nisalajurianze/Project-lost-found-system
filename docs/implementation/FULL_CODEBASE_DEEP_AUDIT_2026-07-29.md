@@ -2,7 +2,7 @@
 
 ## Release stance
 
-The current working tree is a locally verified release candidate, not a production-certified release. The frontend and backend build/test gates pass, public desktop/mobile routes render cleanly, and the confirmed defects below are remediated. Live Railway/Vercel, authenticated-role, provider, replica-set, and rollback evidence remain required before production sign-off.
+The current working tree is a locally verified release candidate, not a production-certified release. The frontend and backend build/test gates pass, public desktop/mobile routes render cleanly, and the confirmed defects below are remediated. The Vercel same-origin API and Socket.IO path is live; exact Railway backend-revision proof, authenticated-role, provider, recovery, and rollback evidence remain required before production sign-off.
 
 ## Scope and architecture traced
 
@@ -42,17 +42,18 @@ The current working tree is a locally verified release candidate, not a producti
 | Backend syntax | Passed: 123 JavaScript files |
 | Backend tests | Passed: 61; skipped: 1 replica-set refresh-race integration test |
 | Frontend lint | Passed with zero warnings |
-| Frontend tests | Passed: 101/101 |
+| Frontend tests | Passed: 102/102 |
 | Frontend production build | Passed: Vite 8.1.3, 2,781 modules transformed |
 | Public browser routes | Passed on five sampled desktop routes plus mobile home: no framework overlay, page error, horizontal overflow, undersized sampled mobile target, or footer/assistant collision after correction |
 | Mobile target recheck | Passed: listing date inputs and corrected shared controls render at 44 px minimum |
-| Current committed PR checks | PR #4 is open/clean/mergeable; CodeQL, secret scan, frontend, backend, Mongo transaction, container/auth smoke, and release hygiene checks are successful for commit `fbd39a5` |
+| Merged deployment checks | PRs #4-#6 merged to `main`; CodeQL, secret scan, frontend, backend, Mongo transaction, container/auth smoke, and release hygiene checks passed before merge |
+| Live Vercel routing | Passed: public SPA routes, Railway-backed API/CSRF responses, and Socket.IO Engine.IO polling handshake are served without SPA fallback HTML |
 
 ## Remaining risks and external gates
 
-1. The fixes in this audit are working-tree changes and are not yet committed, pushed, or included in PR #4. Railway will not deploy them until the selected deployment branch receives a commit.
-2. Docker Desktop is not running locally, so the updated tree did not receive a local container-stack or Mongo replica-set execution. The skipped refresh-race test needs a replica set; the current PR CI result applies only to its existing committed head.
-3. Live Railway readiness still requires real MongoDB, Redis, Cloudinary, email sender, environment, health-check, and log evidence. Live Vercel needs the final frontend build plus correct API/socket origins and cross-site cookie validation if default provider domains are used.
+1. The final desktop-navbar target increment remains a working-tree change until its exact-commit CI and merge complete.
+2. Docker Desktop is not running locally, so the updated tree did not receive a local container-stack or Mongo replica-set execution. The skipped refresh-race test still needs a replica set; CI supplies the available integration/container evidence.
+3. Live Railway readiness reports MongoDB replica-set, Redis, Cloudinary, and email configuration healthy. A changed validation behavior marker has not yet proved that Railway deployed the latest backend revision, and provider logs are unavailable locally.
 4. Authenticated user/admin browser journeys, email delivery, image-provider behavior, push, sockets, AI providers, backup/restore, and rollback were not exercised without credentials/provider access.
 5. The main frontend entry is 866.08 kB (217.52 kB gzip). Route chunks are split, but the shared bundle should be watched on low-end/mobile networks before adding more global dependencies.
 6. User statistics and the reminder scan still materialize all matching records for an account/job run. They are correct today but need cursor/batch redesign before high-volume operation; a naive limit could starve failed reminders and was not introduced.
@@ -60,4 +61,4 @@ The current working tree is a locally verified release candidate, not a producti
 
 ## Deployment decision
 
-Safe to commit and send through CI as the next release-candidate update. Do not describe the system as fully production-ready until the new commit passes CI and the Railway/Vercel/provider/authenticated-browser gates above have current evidence.
+Safe to commit and send the final navbar increment through CI. Do not describe the system as fully production-ready until the exact final commit and ZIP pass the remaining Railway-revision, provider, authenticated-browser, recovery, and institutional gates above.

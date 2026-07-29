@@ -23,7 +23,7 @@ This audit covers the Vercel frontend build failure, Railway backend startup val
 - Backend syntax: passed for 123 JavaScript files.
 - Backend tests: 61 passed; 1 replica-set refresh-race integration test skipped.
 - Frontend lint: passed.
-- Frontend tests: 101/101 passed.
+- Frontend tests: 102/102 passed.
 - Frontend Vite 8.1.3 production build: passed with 2,781 modules transformed.
 - Installed Lucide named-export verification: passed with `lucide-react@0.545.0`.
 - Public desktop/mobile browser sweep: passed on five sampled desktop routes plus mobile home without framework overlays, page errors, horizontal overflow, undersized sampled mobile targets, or footer/assistant collisions.
@@ -36,15 +36,16 @@ This audit covers the Vercel frontend build failure, Railway backend startup val
 
 ## GitHub and provider boundary
 
-- PR #4 is open from `fix/vercel-build-and-email-config` to `main` at committed head `fbd39a5`.
-- All reported checks on `fbd39a5` pass, including frontend/backend, Mongo integration, container/auth smoke, release hygiene, CodeQL, and secret scan.
-- The 2026-07-29 deep-audit and login changes are still uncommitted working-tree changes after `fbd39a5`; they are not yet covered by those CI results and cannot trigger Railway or Vercel.
+- PRs #4-#6 merged the release hardening and same-origin API/Socket.IO corrections to `main` after frontend/backend, Mongo integration, container/auth smoke, release hygiene, CodeQL, and secret-scan checks passed.
+- Vercel production serves the updated frontend, Railway-backed `/api/health`, readiness, categories, items and CSRF endpoints, plus a valid Engine.IO polling handshake at `/socket.io/` instead of SPA HTML.
+- Railway readiness reports the production MongoDB replica set, Redis, Cloudinary, and email configuration healthy. The latest backend validation revision still needs exact-deployment proof from changed endpoint behavior or provider logs.
+- The final desktop-navbar 44 px target correction is currently an uncommitted working-tree increment and needs exact-commit CI before merge.
 
 ## Target-environment actions still required
 
-1. Commit and push the current working tree, then require the full CI/security workflow to pass on that exact commit.
-2. Railway: set a provider-verified `EMAIL_FROM`, configure `/api/health/ready`, and verify MongoDB replica-set, authenticated Redis, Cloudinary, email, readiness, and logs.
-3. Vercel: use `frontend` as root, Node 22.x, `npm ci`, `npm run build`, and `dist`; set full `VITE_API_URL` and `VITE_SOCKET_URL` values for split hosting.
+1. Commit and push the final navbar increment, then require the full CI/security workflow to pass on that exact commit.
+2. Railway: prove the exact latest backend revision is deployed and retain provider logs/configuration evidence for the healthy MongoDB replica-set, authenticated Redis, Cloudinary, and email checks.
+3. Vercel: retain the verified `frontend` root, Node 22.x, clean install/build settings, and ordered same-origin API/Socket.IO rewrites.
 4. Prefer same-site custom domains such as `app.yourdomain.com` and `api.yourdomain.com`. Default Vercel/Railway domains depend on cross-site cookies and can be blocked by browser third-party-cookie policy.
 5. Run authenticated user/admin, email, image, socket, push, AI-provider, backup/restore, rollback, browser/mobile, accessibility, and institutional approval checks before production certification.
 

@@ -44,3 +44,11 @@ test('desktop footer reserves the fixed assistant action area', () => {
   assert.match(read('src/components/layout/Footer.jsx'), /md:pr-44/);
   assert.match(read('src/components/common/AIChatbot.jsx'), /sm:bottom-6 sm:right-6/);
 });
+
+test('desktop navigation keeps primary links and actions at 44px minimum height', () => {
+  const navbar = read('src/components/layout/Navbar.jsx');
+  assert.match(navbar, /inline-flex min-h-11 items-center text-sm font-medium/);
+  assert.match(navbar, /inline-flex min-h-11 items-center px-1 text-sm font-semibold/);
+  assert.match(navbar, /btn btn-primary btn-sm min-h-11/);
+  assert.ok((navbar.match(/flex min-h-11 min-w-11 items-center justify-center/g)?.length || 0) >= 5);
+});
