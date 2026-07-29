@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense, lazy } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -14,26 +14,7 @@ import AdminRoute from './routes/AdminRoute';
 // Hooks
 import useAuth from './hooks/useAuth';
 import useSocket from './hooks/useSocket';
-
-// Custom lazy loading wrapper to handle chunk load errors (e.g. after a new deployment)
-const lazyWithRetry = (componentImport) =>
-  lazy(async () => {
-    try {
-      return await componentImport();
-    } catch (error) {
-      if (
-        error.name === 'TypeError' ||
-        error.message.includes('Failed to fetch dynamically imported module') ||
-        error.message.includes('Importing a module script failed')
-      ) {
-        // A new deployment likely changed the chunk hashes. Refresh to get the latest version.
-        window.location.reload();
-        // Return a promise that never resolves so React doesn't crash while reloading
-        return new Promise(() => {});
-      }
-      throw error;
-    }
-  });
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
 // Public Pages (Lazy Loaded)
 const Home = lazyWithRetry(() => import('./pages/public/Home'));
@@ -224,4 +205,3 @@ const App = () => {
 };
 
 export default App;
-

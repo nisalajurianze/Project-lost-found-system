@@ -6,11 +6,11 @@ import Notification from '../models/Notification.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import {
-  detectLanguage,
   expandKeywords,
   inferIntent,
   isPersonalQuery,
   normalizeText,
+  resolveConversationLanguage,
   resolveSearchMessage,
   scoreCandidate,
 } from '../services/chatSearchService.js';
@@ -67,6 +67,7 @@ const publicItem = (item, itemType, scored) => ({
   confidence: scored.confidence,
   reasons: scored.reasons,
   url: itemType === 'FoundItem' ? `/found-items/${item._id}` : `/lost-items/${item._id}`,
+  claimUrl: itemType === 'FoundItem' ? `/found-items/${item._id}?claim=1` : `/lost-items/${item._id}?claim=1`,
 });
 
 const candidateQuery = (statuses, terms) => {
@@ -115,7 +116,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   if (!incoming) return ApiResponse.ok({ text: 'Please say something.', quickReplies: ['Lost an item', 'Found an item'], items: [] }).send(res);
   if (incoming.length > 500) return ApiResponse.ok({ text: 'Please keep the message under 500 characters.', quickReplies: [], items: [] }).send(res);
 
-  const language = detectLanguage(incoming);
+  const language = resolveConversationLanguage(incoming, history);
   const greetingOnly = /^(hi|hello|hey|ආයුබෝවන්|வணக்கம்)[!.\s]*$/iu.test(incoming);
   if (greetingOnly) {
     return ApiResponse.ok({

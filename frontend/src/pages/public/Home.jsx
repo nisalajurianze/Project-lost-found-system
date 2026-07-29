@@ -74,7 +74,7 @@ export const Home = () => {
   const ListingSection = ({ title, description, path, items, type, background = '' }) => (
     <section className={`border-t border-surface-200/50 py-16 dark:border-surface-800/50 ${background}`}>
       <div className="page-container mx-auto max-w-6xl">
-        <div className="mb-8 flex items-end justify-between gap-4"><div><h2 className="text-2xl font-bold text-surface-900 dark:text-white">{title}</h2><p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{description}</p></div><Link to={path} className="text-sm font-semibold text-primary-600 dark:text-primary-300">{t('common.viewAll')} →</Link></div>
+        <div className="mb-8 flex items-end justify-between gap-4"><div><h2 className="text-2xl font-bold text-surface-900 dark:text-white">{title}</h2><p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{description}</p></div><Link to={path} className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm font-semibold text-primary-600 dark:text-primary-300">{t('common.viewAll')} →</Link></div>
         {isLoading ? <div className="grid gap-6 md:grid-cols-3">{[1,2,3].map((key) => <div key={key} className="h-64 animate-pulse rounded-2xl bg-surface-200 dark:bg-surface-800" />)}</div> : <div className="grid gap-6 md:grid-cols-3">{items.slice(0,3).map((item) => <ListingCard key={item._id} item={item} type={type} t={t} />)}</div>}
       </div>
     </section>

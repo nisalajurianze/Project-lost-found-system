@@ -87,6 +87,19 @@ if matrix_path.exists():
     for item in capabilities:
         if item.get('status') not in allowed:
             errors.append(f"AI capability {item.get('id')} has invalid status {item.get('status')}")
+        source_entries = item.get('source', [])
+        evidence_entries = item.get('evidence', [])
+        if not source_entries:
+            errors.append(f"AI capability {item.get('id')} has no source links")
+        for source in source_entries:
+            if not isinstance(source, str) or not (ROOT / source).exists():
+                errors.append(f"AI capability {item.get('id')} has missing source path {source}")
+        evidence_paths = [entry for entry in evidence_entries if isinstance(entry, str) and entry.startswith(('backend/', 'frontend/', 'docs/'))]
+        if not evidence_paths:
+            errors.append(f"AI capability {item.get('id')} has no repository evidence path")
+        for evidence in evidence_paths:
+            if not (ROOT / evidence).exists():
+                errors.append(f"AI capability {item.get('id')} has missing evidence path {evidence}")
 
 if errors:
     print(f'Document verification failed with {len(errors)} issue(s):', file=sys.stderr)

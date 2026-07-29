@@ -1,10 +1,10 @@
 # Software Bill of Materials
 
-**Generated:** 2026-07-29T01:53:56.000Z
+**Generated:** 2026-07-29T04:40:41.000Z
 
 This release includes a machine-readable CycloneDX 1.5 inventory generated from the committed npm lockfiles. It is a lockfile inventory, not evidence that a clean target-environment install or live vulnerability scan passed.
 
-- Unique package/version/scope components: **558**
+- Unique package/version/scope components: **552**
 - Packages with an unknown lockfile licence field: **3**
 - Machine-readable SBOM: [SBOM.cdx.json](SBOM.cdx.json)
 - Machine-readable licence inventory: [DEPENDENCY_LICENSES.json](DEPENDENCY_LICENSES.json)
@@ -13,7 +13,7 @@ This release includes a machine-readable CycloneDX 1.5 inventory generated from 
 
 | Licence expression | Lockfile entries |
 |---|---:|
-| MIT | 533 |
+| MIT | 526 |
 | Apache-2.0 | 28 |
 | ISC | 22 |
 | MPL-2.0 | 13 |

@@ -20,7 +20,7 @@ import {
   createLostItemValidator,
   updateLostItemValidator,
   mongoIdParam,
-  paginationQuery,
+  lostItemQueryValidator,
   handoverCancellationValidator
 } from '../utils/validators.js';
 
@@ -28,7 +28,7 @@ import {
 const router = express.Router();
 
 // Publicly viewable items
-router.get('/', optionalAuth, paginationQuery, validate, getLostItems);
+router.get('/', optionalAuth, lostItemQueryValidator, validate, getLostItems);
 router.get('/:id', optionalAuth, mongoIdParam, validate, getLostItemById);
 
 // Protected items reporting/management

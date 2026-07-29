@@ -40,8 +40,8 @@ const processItems = async (Model, modelName, routeType, cutoff) => {
       });
     }));
 
-    const attempted = results.some((result) => result.status === 'fulfilled');
-    if (attempted) {
+    const deliveredToAll = results.length > 0 && results.every((result) => result.status === 'fulfilled');
+    if (deliveredToAll) {
       item.reminderSent = true;
       await item.save();
       sent += 1;

@@ -20,5 +20,5 @@ test('location governance requires human review and keeps version history', () =
   assert.match(controller, /refreshApprovedLocations/);
   assert.match(controller, /ACTIVE_STATUSES/);
   assert.match(routes, /authorize\('admin'\)/);
-  assert.match(routes, /protect, submitLocationSuggestion/);
+  assert.match(routes, /protect, locationSuggestionValidator, validate, submitLocationSuggestion/);
 });

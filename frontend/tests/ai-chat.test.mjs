@@ -21,6 +21,8 @@ test('assistant exposes structured results, explanations and pagination', () => 
   assert.match(source, /assistant\.whyAppeared/);
   assert.match(source, /assistant\.showMore/);
   assert.match(source, /message\.meta\.notice/);
+  assert.match(source, /item\.claimUrl/);
+  assert.match(source, /detail\.thisMine/);
 });
 
 test('assistant supports live announcements, focus management and multilingual voice selection', () => {
@@ -29,6 +31,13 @@ test('assistant supports live announcements, focus management and multilingual v
   assert.match(source, /si-LK/);
   assert.match(source, /ta-LK/);
   assert.match(source, /min-h-11/);
+});
+
+test('assistant follows the mobile visual viewport when the on-screen keyboard opens', () => {
+  assert.match(source, /window\.visualViewport/);
+  assert.match(source, /viewport\?\.addEventListener\('resize', syncViewport\)/);
+  assert.match(source, /offsetTop/);
+  assert.match(source, /height: `\$\{mobileViewport\.height\}px`/);
 });
 
 test('assistant creates a reviewable report draft and hands it to the shared wizard', () => {

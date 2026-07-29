@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const excluded = new Set(['.git', 'node_modules', 'dist', 'build', 'coverage', '.tmp', 'tmp', '_renders']);
+const excludedFiles = new Set(['RELEASE_MANIFEST.json', 'FILE_HASHES_SHA256.txt']);
 const sourceExtensions = new Set(['.js', '.jsx', '.mjs']);
 const textExtensions = new Set(['.js', '.jsx', '.mjs', '.json', '.md', '.yml', '.yaml', '.html', '.css', '.env', '.example', '.txt', '.csv']);
 const files = [];
@@ -13,6 +14,7 @@ const relative = (value) => path.relative(root, value).replaceAll(path.sep, '/')
 const walk = (directory) => {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     if (excluded.has(entry.name)) continue;
+    if (excludedFiles.has(entry.name)) continue;
     const absolute = path.join(directory, entry.name);
     const stat = fs.lstatSync(absolute);
     if (stat.isSymbolicLink()) {

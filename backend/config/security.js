@@ -37,8 +37,12 @@ export const accessMaxAgeMs = durationMs(accessExpire, 15 * 60 * 1_000);
 export const refreshDays = Math.min(90, Math.max(1, Number(process.env.REFRESH_TOKEN_DAYS || 7)));
 export const cookieSecure = asBool(process.env.COOKIE_SECURE, isProduction);
 export const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
-const requestedSameSite = String(process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
-export const cookieSameSite = ['strict', 'lax', 'none'].includes(requestedSameSite) ? requestedSameSite : 'lax';
+export const resolveCookieSameSite = (value, production = isProduction) => {
+  const fallback = production ? 'none' : 'lax';
+  const requested = String(value || fallback).toLowerCase();
+  return ['strict', 'lax', 'none'].includes(requested) ? requested : fallback;
+};
+export const cookieSameSite = resolveCookieSameSite(process.env.COOKIE_SAME_SITE);
 export const allowBearerAuth = asBool(process.env.ALLOW_BEARER_AUTH, false);
 export const jobsEnabled = asBool(process.env.JOBS_ENABLED, true);
 export const requireRedis = asBool(process.env.REQUIRE_REDIS, isProduction);

@@ -499,6 +499,34 @@ const paginationQuery = [
     .withMessage('Limit must be between 1 and 50'),
 ];
 
+const itemListQueryValidator = (statuses, sortableFields) => [
+  query('search').optional().isString().trim().isLength({ max: 200 }).withMessage('Search is too long'),
+  query('category').optional().isString().trim().isLength({ max: 100 }).withMessage('Category is too long'),
+  query('status').optional().isIn([...statuses, 'all']).withMessage('Invalid item status'),
+  query('userId').optional().isMongoId().withMessage('Invalid user ID'),
+  query('startDate').optional().isISO8601().withMessage('Invalid start date'),
+  query('endDate').optional().isISO8601().withMessage('Invalid end date'),
+  query('sort').optional().isString().isLength({ max: 100 }).custom((value) => {
+    const allowed = new Set(sortableFields);
+    const fields = value.split(',').map((entry) => entry.trim()).filter(Boolean);
+    if (fields.length === 0 || fields.some((field) => !allowed.has(field.replace(/^-/, '')))) {
+      throw new Error('Invalid sort field');
+    }
+    return true;
+  }),
+  ...paginationQuery,
+];
+
+const lostItemQueryValidator = itemListQueryValidator(
+  ['pending', 'matched', 'in_progress', 'claimed', 'closed'],
+  ['lostDate', 'createdAt', 'itemName']
+);
+
+const foundItemQueryValidator = itemListQueryValidator(
+  ['available', 'matched', 'in_progress', 'claimed'],
+  ['foundDate', 'createdAt', 'itemName']
+);
+
 
 const itemIdParam = [
   param('itemId').isMongoId().withMessage('Invalid item ID format'),
@@ -562,7 +590,38 @@ const matchQueryValidator = [
 const claimQueryValidator = [
   query('status').optional().isIn(['pending', 'approved', 'rejected']).withMessage('Invalid claim status'),
   query('role').optional().isIn(['claimant', 'reporter']).withMessage('Invalid claim role filter'),
+  query('claimantId').optional().isMongoId().withMessage('Invalid claimant ID'),
   ...paginationQuery,
+];
+
+const locationStatuses = ['community-suggested', 'map-source-verified', 'field-verified', 'university-approved', 'temporarily-closed', 'archived'];
+
+const locationResolveQueryValidator = [
+  query('q').isString().trim().isLength({ min: 1, max: 240 }).withMessage('Location query must be between 1 and 240 characters'),
+];
+
+const locationSuggestionValidator = [
+  body('canonicalName').isString().trim().isLength({ min: 3, max: 180 }).withMessage('Canonical name must be between 3 and 180 characters'),
+  body('area').isString().trim().isLength({ min: 2, max: 140 }).withMessage('Area must be between 2 and 140 characters'),
+  body('sensitivity').optional().isIn(['public', 'zone-only', 'restricted']).withMessage('Invalid location sensitivity'),
+  body('sourceReference').optional().isString().isLength({ max: 500 }).withMessage('Source reference is too long'),
+  body('note').optional().isString().isLength({ max: 500 }).withMessage('Review note is too long'),
+];
+
+const locationListQueryValidator = [
+  query('status').optional().isIn(locationStatuses).withMessage('Invalid location status'),
+  query('search').optional().isString().trim().isLength({ max: 180 }).withMessage('Search is too long'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+];
+
+const locationReviewValidator = [
+  param('id').isMongoId().withMessage('Invalid location knowledge ID'),
+  body('verificationStatus').isIn(locationStatuses).withMessage('Invalid location status'),
+  body('canonicalName').optional().isString().trim().isLength({ min: 3, max: 180 }).withMessage('Canonical name must be between 3 and 180 characters'),
+  body('area').optional().isString().trim().isLength({ min: 2, max: 140 }).withMessage('Area must be between 2 and 140 characters'),
+  body('aliases').optional().custom((value) => validateList(value, { maxItems: 30, maxLength: 120, label: 'alias' })),
+  body('sensitivity').optional().isIn(['public', 'zone-only', 'restricted']).withMessage('Invalid location sensitivity'),
+  body('note').optional().isString().isLength({ max: 500 }).withMessage('Review note is too long'),
 ];
 
 const deleteAccountValidator = [
@@ -572,6 +631,12 @@ const deleteAccountValidator = [
 const adminUserQueryValidator = [
   query('role').optional().isIn(['user', 'admin']).withMessage('Invalid role'),
   query('search').optional().isString().isLength({ max: 100 }).withMessage('Search is too long'),
+  ...paginationQuery,
+];
+
+const adminLogQueryValidator = [
+  query('adminId').optional().isMongoId().withMessage('Invalid administrator ID'),
+  query('action').optional().isString().trim().isLength({ max: 200 }).withMessage('Action is too long'),
   ...paginationQuery,
 ];
 
@@ -608,6 +673,8 @@ export {
   updateCategoryValidator,
   mongoIdParam,
   paginationQuery,
+  lostItemQueryValidator,
+  foundItemQueryValidator,
   itemIdParam,
   notificationQueryValidator,
   notificationPreferencesValidator,
@@ -617,7 +684,12 @@ export {
   claimQuestionParams,
   deleteAccountValidator,
   adminUserQueryValidator,
+  adminLogQueryValidator,
   feedbackQueryValidator,
   feedbackResponseValidator,
   handoverCancellationValidator,
+  locationResolveQueryValidator,
+  locationSuggestionValidator,
+  locationListQueryValidator,
+  locationReviewValidator,
 };

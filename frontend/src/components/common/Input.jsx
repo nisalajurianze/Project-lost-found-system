@@ -36,14 +36,14 @@ export const Input = React.forwardRef(({
           type={inputType}
           id={name}
           name={name}
-          className={`input-base ${isPassword ? 'pr-10' : ''} ${error ? 'input-error' : ''}`}
+          className={`input-base ${isPassword ? 'pr-12' : ''} ${error ? 'input-error' : ''}`}
           required={required}
           {...props}
         />
         {isPassword && (
           <button
             type="button"
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 focus:outline-none"
+            className="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 focus:outline-none"
             onClick={() => setShowPassword(!showPassword)}
             aria-label={showPassword ? hidePasswordLabel : showPasswordLabel}
           >

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isSafeEmailFrom } from '../config/security.js';
+import { isSafeEmailFrom, resolveCookieSameSite } from '../config/security.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const backendRoot = path.resolve(here, '..');
@@ -29,4 +29,11 @@ test('backend container healthcheck follows the runtime PORT variable', () => {
   const dockerfile = fs.readFileSync(path.join(backendRoot, 'Dockerfile'), 'utf8');
   assert.match(dockerfile, /process\.env\.PORT \|\| 5000/);
   assert.doesNotMatch(dockerfile, /fetch\('http:\/\/127\.0\.0\.1:5000\/api\/health\/ready'/);
+});
+
+test('cookie same-site defaults support local and split-provider login safely', () => {
+  assert.equal(resolveCookieSameSite(undefined, false), 'lax');
+  assert.equal(resolveCookieSameSite(undefined, true), 'none');
+  assert.equal(resolveCookieSameSite('strict', true), 'strict');
+  assert.equal(resolveCookieSameSite('invalid', true), 'none');
 });

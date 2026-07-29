@@ -127,6 +127,8 @@ export const resolveSearchMessage = (message, history = []) => {
   return current;
 };
 
+export const resolveConversationLanguage = (message, history = []) => detectLanguage(resolveSearchMessage(message, history));
+
 const editDistance = (left, right, limit = 2) => {
   if (Math.abs(left.length - right.length) > limit) return limit + 1;
   const previous = Array.from({ length: right.length + 1 }, (_, index) => index);

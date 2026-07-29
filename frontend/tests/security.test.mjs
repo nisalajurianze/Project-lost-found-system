@@ -21,6 +21,17 @@ test('API client uses cookie credentials and CSRF without persistent tokens', ()
   assert.doesNotMatch(api, /localStorage/);
 });
 
+test('password login confirms the secure cookie session before authenticating locally', () => {
+  const auth = read('src/services/authService.js');
+  const slice = read('src/redux/slices/authSlice.js');
+  const login = read('src/pages/public/Login.jsx');
+  assert.match(auth, /post\('\/auth\/login'/);
+  assert.match(auth, /get\('\/auth\/me'/);
+  assert.match(auth, /AUTH_SESSION_UNAVAILABLE/);
+  assert.match(slice, /error\.code \|\| error\.message/);
+  assert.match(login, /auth\.sessionUnavailable/);
+});
+
 test('production defaults use the same origin', () => {
   const constants = read('src/utils/constants.js');
   const env = read('.env.example');

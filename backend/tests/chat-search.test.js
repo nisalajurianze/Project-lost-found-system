@@ -5,6 +5,7 @@ import {
   detectLanguage,
   expandKeywords,
   inferIntent,
+  resolveConversationLanguage,
   resolveSearchMessage,
   scoreCandidate,
 } from '../services/chatSearchService.js';
@@ -25,6 +26,14 @@ test('show-more follow-up reuses the most recent material user query', () => {
     { role: 'ai', content: 'Six results found' },
   ]);
   assert.equal(resolved, 'black Samsung phone near library');
+});
+
+test('follow-up responses preserve the language of the material conversation context', () => {
+  const language = resolveConversationLanguage('show more', [
+    { role: 'user', content: '\u0DB8\u0D9C\u0DDA black phone \u0D91\u0D9A library \u0DC5\u0D9F \u0DB1\u0DD0\u0DAD\u0DD2 \u0DC0\u0DD4\u0DAB\u0DCF' },
+    { role: 'ai', content: 'results' },
+  ]);
+  assert.equal(language, 'si');
 });
 
 test('weighted ranking rewards matching name, colour and location', () => {

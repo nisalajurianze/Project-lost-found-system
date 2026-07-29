@@ -16,7 +16,7 @@ import { protect } from '../middlewares/authMiddleware.js';
 import { getAIProviderHealth } from '../controllers/aiController.js';
 import authorize from '../middlewares/roleMiddleware.js';
 import validate from '../middlewares/validateMiddleware.js';
-import { mongoIdParam, adminUserQueryValidator, paginationQuery } from '../utils/validators.js';
+import { mongoIdParam, adminUserQueryValidator, adminLogQueryValidator } from '../utils/validators.js';
 
 const router = express.Router();
 
@@ -30,6 +30,6 @@ router.get('/users', adminUserQueryValidator, validate, getUsers);
 router.put('/users/:id/status', mongoIdParam, validate, updateUserStatus);
 router.put('/users/:id/role', mongoIdParam, validate, updateUserRole);
 router.delete('/users/:id', mongoIdParam, validate, deleteUser);
-router.get('/logs', paginationQuery, validate, getAdminLogs);
+router.get('/logs', adminLogQueryValidator, validate, getAdminLogs);
 
 export default router;

@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-26",
+  "generated": "2026-07-29",
   "capabilities": [
     {
       "id": 1,
@@ -110,7 +110,8 @@
         "frontend/src/components/common/AIChatbot.jsx"
       ],
       "evidence": [
-        "Browser speech-recognition UAT"
+        "frontend/tests/ai-chat.test.mjs",
+        "Browser speech-recognition UAT remains required"
       ]
     },
     {
@@ -141,12 +142,13 @@
     {
       "id": 12,
       "capability": "Confidence calibration",
-      "status": "implemented",
+      "status": "field-data-dependent",
       "source": [
         "backend/services/matchScoringService.js"
       ],
       "evidence": [
-        "backend/tests/ai-matching.test.js"
+        "backend/tests/ai-matching.test.js",
+        "Meaningful statistical calibration requires sufficient verified historical outcomes"
       ]
     },
     {
@@ -190,6 +192,7 @@
         "backend/services/imageAnalysisService.js"
       ],
       "evidence": [
+        "frontend/tests/image-redaction.test.mjs",
         "Live provider moderation tests pending"
       ]
     },
@@ -215,9 +218,11 @@
       "status": "provider-dependent",
       "source": [
         "backend/services/imageAnalysisService.js",
-        "category auto-create workflow"
+        "backend/controllers/categoryController.js",
+        "frontend/src/components/common/ReportItemWizard.jsx"
       ],
       "evidence": [
+        "frontend/tests/full-plan-acceptance.test.mjs",
         "Provider and admin workflow UAT"
       ]
     },
@@ -240,7 +245,7 @@
       "status": "implemented",
       "source": [
         "backend/services/reportQualityService.js",
-        "claim questions"
+        "backend/services/claimVerificationService.js"
       ],
       "evidence": [
         "backend/tests/report-intelligence.test.js"
@@ -265,10 +270,11 @@
       "status": "implemented",
       "source": [
         "backend/controllers/adminController.js",
-        "admin dashboards/queues"
+        "frontend/src/pages/admin/AdminDashboard.jsx"
       ],
       "evidence": [
-        "backend/tests/dashboard-source.test.js"
+        "backend/tests/dashboard-source.test.js",
+        "frontend/tests/dashboard.test.mjs"
       ]
     },
     {
@@ -323,6 +329,8 @@
         "backend/services/emailService.js"
       ],
       "evidence": [
+        "backend/tests/notification-preferences.test.js",
+        "frontend/tests/notification-preferences.test.mjs",
         "Live email/push delivery pending"
       ]
     },
@@ -332,7 +340,8 @@
       "status": "implemented",
       "source": [
         "backend/models/AIDecisionFeedback.js",
-        "admin review UI"
+        "backend/controllers/aiFeedbackController.js",
+        "frontend/src/pages/admin/AIFeedbackReview.jsx"
       ],
       "evidence": [
         "backend/tests/report-intelligence.test.js",
@@ -357,7 +366,7 @@
       "status": "implemented",
       "source": [
         "backend/services/aiProviderService.js",
-        "admin AI health UI"
+        "frontend/src/pages/admin/AdminDashboard.jsx"
       ],
       "evidence": [
         "backend/tests/ai-provider.test.js"
@@ -368,10 +377,16 @@
       "capability": "AI governance/safety controls",
       "status": "implemented",
       "source": [
-        "serializers, risk/feedback policies, provider schema validation"
+        "backend/utils/serializers.js",
+        "backend/services/claimRiskService.js",
+        "backend/models/AIDecisionFeedback.js",
+        "backend/services/aiProviderService.js"
       ],
       "evidence": [
-        "security and focused AI tests"
+        "backend/tests/security.test.js",
+        "backend/tests/claim-risk.test.js",
+        "backend/tests/report-intelligence.test.js",
+        "frontend/tests/ai-governance.test.mjs"
       ]
     },
     {
@@ -380,7 +395,8 @@
       "status": "field-data-dependent",
       "source": [
         "backend/data/seuslLocations.js",
-        "LocationKnowledge governance"
+        "backend/models/LocationKnowledge.js",
+        "backend/controllers/locationKnowledgeController.js"
       ],
       "evidence": [
         "backend/tests/location-governance.test.js",

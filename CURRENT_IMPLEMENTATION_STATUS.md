@@ -1,9 +1,9 @@
 # Current Implementation Status
 
-**Package date:** 2026-07-26
-**GitHub writes:** None; safe branch creation remains blocked by GitHub integration HTTP 403
-**Local branch:** `agent/deep-chatbot-search-ui`
-**Classification:** Hardened university public-release candidate; target-environment and institutional certification still pending
+**Package date:** 2026-07-29
+**GitHub state:** PR #4 is open from `fix/vercel-build-and-email-config` to `main`; its committed head is `fbd39a5` and all reported checks pass
+**Local state:** The 2026-07-29 deep-audit and login fixes are working-tree changes after `fbd39a5`; they are not yet in PR #4 or a provider deployment
+**Classification:** Locally verified university public-release candidate; target-environment and institutional certification still pending
 
 ## Physically implemented source
 
@@ -48,14 +48,17 @@ The package physically includes the public/legal review drafts, manuals, SRS, de
 
 ## Current verified local evidence
 
-- Frontend static/unit/security tests: **84 passed, 0 failed**
-- Frontend TypeScript JSX/JS parser: **136/136 files passed**
-- Backend JavaScript syntax: **PASS**
-- Backend dependency-free test sweep: **45 passed, 1 MongoDB replica-set test skipped, 1 `nodemailer` import dependency-blocked**
-- Isolated clean `npm ci`: **environment-blocked by repeated package-registry HTTP 503 responses; npm cache was empty**
+- Frontend static/unit/security tests: **101 passed, 0 failed**
+- Frontend ESLint and Vite 8.1.3 production build: **PASS**
+- Public desktop/mobile route sweep and mocked successful/blocked-cookie login journeys: **PASS**
+- Backend JavaScript syntax: **123 files passed**
+- Backend test sweep: **61 passed, 1 MongoDB replica-set integration test skipped**
+- Production dependency audit: **backend 0 vulnerabilities on `multer@2.2.0`; frontend high/critical gate passes with 2 accepted moderate React Router advisories, application-level navigation hardening, regression coverage, and a rejected v7.18.2 probe that introduced two high findings**
+- Existing PR head clean-install, frontend/backend, Mongo integration, container/auth smoke, CodeQL, secret-scan and release-hygiene checks: **PASS**
+- Current working-tree Compose interpolation and release-hygiene checks: **PASS**; local Docker runtime execution is unavailable because Docker Desktop is not running
 - Documentation/OpenAPI/required-pack validation: **PASS**
 - Release hygiene/import/secret/symlink scan: **PASS**
 
 ## Certification boundary
 
-This source is not labelled production-certified. Clean dependency installs, full backend replica-set integration, frontend lint/build, Docker/Compose, live providers, HTTPS/browser/mobile UAT, WCAG review, backup/restore, security scans, load/failure testing, credential rotation evidence and university privacy/security/administrative sign-off remain target-environment or user-owned gates. See `REMAINING_PLAN.md` and `PRODUCTION_CERTIFICATION_STATUS.md`.
+This source is not labelled production-certified. The current working tree must first be committed, pushed and pass CI. Live Railway/Vercel, full replica-set execution for the new commit, real providers, authenticated-role browser UAT, HTTPS/cookie topology, backup/restore, rollback, load/failure testing, credential-rotation evidence and university privacy/security/administrative sign-off remain target-environment or user-owned gates. See `REMAINING_PLAN.md` and `PRODUCTION_CERTIFICATION_STATUS.md`.

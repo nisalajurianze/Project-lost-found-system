@@ -2,7 +2,7 @@
 
 **Status:** Release-candidate review evidence; institutional/legal approval pending.
 
-The committed lockfiles were converted into [DEPENDENCY_LICENSES.json](DEPENDENCY_LICENSES.json) and [SBOM.cdx.json](SBOM.cdx.json). The inventory currently contains **558** unique package/version/scope components and **3** entries whose lockfile licence field is unknown.
+The committed lockfiles were converted into [DEPENDENCY_LICENSES.json](DEPENDENCY_LICENSES.json) and [SBOM.cdx.json](SBOM.cdx.json). The inventory currently contains **552** unique package/version/scope components and **3** entries whose lockfile licence field is unknown.
 
 ## Approval rules
 

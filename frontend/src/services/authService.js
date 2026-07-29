@@ -6,8 +6,15 @@ const authService = {
     return { ...response.data.data, message: response.data.message };
   },
   login: async (credentials) => {
-    const response = await api.post('/auth/login', credentials);
-    return { user: response.data.data.user };
+    await api.post('/auth/login', credentials);
+    try {
+      const session = await api.get('/auth/me');
+      return { user: session.data.data };
+    } catch {
+      const error = new Error('AUTH_SESSION_UNAVAILABLE');
+      error.code = 'AUTH_SESSION_UNAVAILABLE';
+      throw error;
+    }
   },
   googleLogin: async (idToken) => {
     const response = await api.post('/auth/google', { idToken });
