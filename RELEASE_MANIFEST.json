@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "sourceId": "2744bd6+working-tree-2026-07-29",
+  "sourceId": "f7d4758+working-tree-2026-07-29",
   "generatedAt": null,
   "fileCountExcludingManifestFiles": 420,
-  "totalBytesExcludingManifestFiles": 5691012,
+  "totalBytesExcludingManifestFiles": 5691434,
   "files": [
     {
       "path": ".dockerignore",
@@ -702,8 +702,8 @@
     },
     {
       "path": "DEPLOYMENT.md",
-      "bytes": 6603,
-      "sha256": "b59e2dba8755b95adaa87d5342a52fae1e5de8a2029066b1c9944eebae22e008"
+      "bytes": 6756,
+      "sha256": "658d517aff055ddadbfce28175cde9ae01c7798e0cbafae7acb97c4d0290a0fa"
     },
     {
       "path": "docker-compose.yml",
@@ -1887,8 +1887,8 @@
     },
     {
       "path": "frontend/tests/deployment-compatibility.test.mjs",
-      "bytes": 3466,
-      "sha256": "329dc81b37e970ab17d40351c8d859792f118623c8fbb13e3835dcaacdc82073"
+      "bytes": 3599,
+      "sha256": "0c09e96f66b248c2a3d389cc7ca685eb8a32e0ffb63928655b14c0145604df40"
     },
     {
       "path": "frontend/tests/design-system.test.mjs",
@@ -1982,8 +1982,8 @@
     },
     {
       "path": "frontend/vercel.json",
-      "bytes": 861,
-      "sha256": "5d417e1a21be78616b569faa90c2b8b8fd355935a9c7946d1c3a4ef494192b49"
+      "bytes": 997,
+      "sha256": "1ff923cd1064e7a7e3f3f0ff9fc65d53b6ae33bf87f20e946708f2d094c54c86"
     },
     {
       "path": "frontend/vite.config.js",

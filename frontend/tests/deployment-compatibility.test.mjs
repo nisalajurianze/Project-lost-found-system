@@ -62,10 +62,14 @@ test('all named Lucide imports exist in the installed package', async (t) => {
 
 test('Vercel config proxies API and realtime polling before SPA routing', () => {
   const config = JSON.parse(fs.readFileSync(path.join(frontendRoot, 'vercel.json'), 'utf8'));
-  assert.deepEqual(config.rewrites?.slice(0, 2), [
+  assert.deepEqual(config.rewrites?.slice(0, 3), [
     {
       source: '/api/:path*',
       destination: 'https://project-lost-found-system-production.up.railway.app/api/:path*',
+    },
+    {
+      source: '/socket.io',
+      destination: 'https://project-lost-found-system-production.up.railway.app/socket.io',
     },
     {
       source: '/socket.io/:path*',
