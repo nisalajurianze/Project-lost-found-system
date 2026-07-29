@@ -285,7 +285,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 items-center text-sm font-medium transition-colors ${
                   isActive(link.path)
                     ? 'text-primary-600 dark:text-primary-400'
                     : 'text-surface-600 hover:text-surface-900 dark:text-surface-300 dark:hover:text-white'
@@ -302,7 +302,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {/* Theme Toggle */}
             <button type="button"
               onClick={() => dispatch(toggleTheme())}
-              className="relative p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors overflow-hidden"
+              className="relative flex min-h-11 min-w-11 items-center justify-center text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors overflow-hidden"
               aria-label={t('common.theme')}
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -324,7 +324,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               <div className="relative" ref={notificationDropdownRef}>
                 <button type="button"
                   onClick={handleBellClick}
-                  className="relative p-2 text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors focus:outline-none"
+                  className="relative flex min-h-11 min-w-11 items-center justify-center text-surface-500 hover:bg-surface-100 rounded-xl dark:text-surface-400 dark:hover:bg-surface-800 transition-colors focus:outline-none"
                   aria-label={t('common.notifications')}
                 >
                   <FiBell className="text-xl" />
@@ -346,7 +346,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
                     navigate(user.role === 'admin' ? '/admin' : '/dashboard');
                     setProfileDropdownOpen(false);
                   }}
-                  className={`flex items-center gap-2 p-1 rounded-full border transition-all focus:outline-none ${
+                  className={`flex min-h-11 min-w-11 items-center justify-center gap-2 p-1 rounded-full border transition-all focus:outline-none ${
                     hasUnreadMatch
                       ? 'border-primary-500 ring-2 ring-primary-500/50 animate-pulse-glow'
                       : 'border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800 hover:ring-2 hover:ring-primary-500/50'
@@ -370,13 +370,13 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="text-sm font-semibold text-surface-700 hover:text-surface-900 dark:text-surface-200 dark:hover:text-white transition-colors"
+                  className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-surface-700 hover:text-surface-900 dark:text-surface-200 dark:hover:text-white transition-colors"
                 >
                   {t('common.login')}
                 </Link>
                 <Link
                   to="/register"
-                  className="btn btn-primary btn-sm rounded-lg"
+                  className="btn btn-primary btn-sm min-h-11 rounded-lg"
                 >
                   {t('common.signup')}
                 </Link>
