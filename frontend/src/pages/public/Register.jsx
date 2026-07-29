@@ -147,7 +147,7 @@ export const Register = () => {
           <Button type="submit" variant="primary" className="w-full mt-6" isLoading={isLoading}>{t('auth.signUp')}</Button>
         </form>
 
-        <div className="mt-6 flex items-center justify-center space-x-2" aria-label={t('auth.or')}>
+        <div className="mt-6 flex items-center justify-center space-x-2" role="separator" aria-label={t('auth.or')}>
           <span className="h-px w-full bg-surface-200 dark:bg-surface-800" />
           <span className="text-sm text-surface-500 uppercase tracking-widest font-semibold">{t('auth.or')}</span>
           <span className="h-px w-full bg-surface-200 dark:bg-surface-800" />
@@ -161,7 +161,7 @@ export const Register = () => {
 
         <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500 dark:text-surface-400">
           {t('auth.alreadyAccount')}{' '}
-          <Link to="/login" className="font-bold text-primary-500 hover:text-primary-600 dark:text-primary-400">{t('common.login')}</Link>
+          <Link to="/login" className="inline-flex min-h-11 items-center px-1 font-bold text-primary-600 hover:text-primary-700 dark:text-primary-300">{t('common.login')}</Link>
         </div>
       </div>
     </div>

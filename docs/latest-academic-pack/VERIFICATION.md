@@ -42,7 +42,7 @@
 - Startup contains no hardcoded administrator promotion.
 - Public item serializers hide private contact and connection metadata.
 - Claim evidence and both parties' contact details remain private from outsiders.
-- Explicit public contact exposes only the selected channel.
+- Legacy public-contact flags remain private until an approved participant/contact-sharing workflow unlocks access.
 - Email templates escape untrusted data and unsupported templates fail closed.
 - Notification and image-analysis unique indexes enforce one-record/idempotent semantics.
 - Container definitions require Node 22, MongoDB replica-set support, and explicit secrets.

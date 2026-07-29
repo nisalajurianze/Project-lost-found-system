@@ -58,7 +58,7 @@ const createFoundItem = asyncHandler(async (req, res) => {
         foundDate: req.body.foundDate,
         storedAt: req.body.storedAt || '',
         contactPreference: req.body.contactPreference || 'both',
-        contactVisibility: req.body.contactVisibility || 'request_only',
+        contactVisibility: 'request_only',
         tags: parseTags(req.body.tags),
         images,
         status: 'available',
@@ -140,7 +140,7 @@ const updateFoundItem = asyncHandler(async (req, res) => {
       if (req.body.foundDate !== undefined) current.foundDate = new Date(req.body.foundDate);
       if (req.body.storedAt !== undefined) current.storedAt = req.body.storedAt;
       if (req.body.contactPreference !== undefined) current.contactPreference = req.body.contactPreference;
-      if (req.body.contactVisibility !== undefined) current.contactVisibility = req.body.contactVisibility;
+      current.contactVisibility = 'request_only';
       if (req.body.tags !== undefined) current.tags = parseTags(req.body.tags);
       current.images = [...imagesLeft, ...newImages];
       await current.save({ session });

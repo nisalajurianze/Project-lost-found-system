@@ -13,11 +13,12 @@ export const itemView = (item, viewer) => {
   const output = plain(item);
   const reporter = output.userId;
   const viewerId = id(viewer);
-  const owner = id(reporter) === viewerId;
-  const connected = id(output.connectedUserId) === viewerId;
+  const owner = Boolean(viewerId) && id(reporter) === viewerId;
+  const connected = Boolean(viewerId) && id(output.connectedUserId) === viewerId;
   const admin = viewer?.role === 'admin';
-  const publicContact = output.contactVisibility === 'public';
-  const maySeeContact = owner || connected || admin || publicContact;
+  // Legacy records may still contain contactVisibility="public". Never use that
+  // flag to bypass the human-approved participant/contact-sharing workflow.
+  const maySeeContact = owner || connected || admin;
   output.userId = maySeeContact
     ? { ...minimalUser(reporter), ...(output.contactPreference !== 'phone' ? { email: reporter?.email || '' } : {}), ...(output.contactPreference !== 'email' ? { phone: reporter?.phone || '' } : {}) }
     : minimalUser(reporter);

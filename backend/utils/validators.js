@@ -16,7 +16,7 @@ const validateTags = (value) => {
 
 const contactFields = [
   body('contactPreference').optional().isIn(['email', 'phone', 'both']).withMessage('Contact preference must be email, phone, or both'),
-  body('contactVisibility').optional().isIn(['public', 'request_only']).withMessage('Invalid contact visibility'),
+  body('contactVisibility').optional().equals('request_only').withMessage('Contact details require an approved workflow'),
 ];
 
 const validateList = (value, { maxItems, maxLength, label }) => {
