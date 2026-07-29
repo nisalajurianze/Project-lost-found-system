@@ -36,18 +36,17 @@ This audit covers the Vercel frontend build failure, Railway backend startup val
 
 ## GitHub and provider boundary
 
-- PRs #4-#6 merged the release hardening and same-origin API/Socket.IO corrections to `main` after frontend/backend, Mongo integration, container/auth smoke, release hygiene, CodeQL, and secret-scan checks passed.
+- PRs #4-#7 merged the release hardening, same-origin API/Socket.IO corrections, and desktop-navbar target correction to `main` after frontend/backend, Mongo integration, container/auth smoke, release hygiene, CodeQL, and secret-scan checks passed.
 - Vercel production serves the updated frontend, Railway-backed `/api/health`, readiness, categories, items and CSRF endpoints, plus a valid Engine.IO polling handshake at `/socket.io/` instead of SPA HTML.
 - Railway readiness reports the production MongoDB replica set, Redis, Cloudinary, and email configuration healthy. The latest backend validation revision still needs exact-deployment proof from changed endpoint behavior or provider logs.
-- The final desktop-navbar 44 px target correction is currently an uncommitted working-tree increment and needs exact-commit CI before merge.
+- Production desktop and mobile navbar controls render at 44 px minimum without horizontal overflow or page errors.
 
 ## Target-environment actions still required
 
-1. Commit and push the final navbar increment, then require the full CI/security workflow to pass on that exact commit.
-2. Railway: prove the exact latest backend revision is deployed and retain provider logs/configuration evidence for the healthy MongoDB replica-set, authenticated Redis, Cloudinary, and email checks.
-3. Vercel: retain the verified `frontend` root, Node 22.x, clean install/build settings, and ordered same-origin API/Socket.IO rewrites.
-4. Prefer same-site custom domains such as `app.yourdomain.com` and `api.yourdomain.com`. Default Vercel/Railway domains depend on cross-site cookies and can be blocked by browser third-party-cookie policy.
-5. Run authenticated user/admin, email, image, socket, push, AI-provider, backup/restore, rollback, browser/mobile, accessibility, and institutional approval checks before production certification.
+1. Railway: prove the exact latest backend revision is deployed and retain provider logs/configuration evidence for the healthy MongoDB replica-set, authenticated Redis, Cloudinary, and email checks.
+2. Vercel: retain the verified `frontend` root, Node 22.x, clean install/build settings, and ordered same-origin API/Socket.IO rewrites.
+3. Prefer same-site custom domains such as `app.yourdomain.com` and `api.yourdomain.com`. Default Vercel/Railway domains depend on cross-site cookies and can be blocked by browser third-party-cookie policy.
+4. Run authenticated user/admin, email, image, socket, push, AI-provider, backup/restore, rollback, browser/mobile, accessibility, and institutional approval checks before production certification.
 
 ## Release classification
 
