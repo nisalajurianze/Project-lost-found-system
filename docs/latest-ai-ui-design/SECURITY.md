@@ -12,7 +12,7 @@ State-changing cookie-authenticated requests require a matching CSRF cookie/head
 
 ## Privacy
 
-Public item serializers expose only public report fields and a minimal reporter identity. Email, phone, student ID, connected-user metadata, and private media identifiers are removed. A reporter may deliberately expose only the selected public contact channel. Match responses never contain contact data.
+Public item serializers expose only public report fields and a minimal reporter identity. Email, phone, student ID, connected-user metadata, and private media identifiers are removed. Legacy public-contact flags cannot bypass the approved claim/contact workflow. Match responses never contain contact data.
 
 Claim proof descriptions and images are visible only to the claimant, target reporter, or administrator. Proof images use authenticated Cloudinary delivery and short-lived signed URLs.
 

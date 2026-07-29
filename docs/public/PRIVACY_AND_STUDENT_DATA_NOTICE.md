@@ -18,7 +18,7 @@ Data is processed to authenticate users, publish privacy-reduced reports, retrie
 
 ## 4. Public and private fields
 
-Public report views may show the item name, category, description, privacy-safe image, approximate location, date, status and reporter display name/profile image. Email, phone, student identifier, exact private location, original unredacted image and claim evidence are not public by default. Contact details are shared only through an approved claim/contact workflow or an explicit public-visibility choice.
+Public report views may show the item name, category, description, privacy-safe image, approximate location, date, status and reporter display name/profile image. Email, phone, student identifier, exact private location, original unredacted image and claim evidence are not public. Contact details are shared only with authorised administrators, the reporter, or participants unlocked through an approved claim/contact workflow.
 
 Assistant conversation history is optional browser-local storage. It retains only recent user/assistant text for up to seven days and does not store structured report cards, account summaries, images or evidence. The service does not receive browser-local history merely because it is saved; messages are sent to the backend only when the user submits them to the assistant. Users can delete one session or clear all local history.
 

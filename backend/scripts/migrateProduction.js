@@ -69,6 +69,10 @@ const run = async () => {
     await session.withTransaction(async () => {
       await migrateCategories(session);
       await rejectDuplicatePendingClaims(session);
+      await Promise.all([
+        LostItem.updateMany({ contactVisibility: 'public' }, { $set: { contactVisibility: 'request_only' } }, { session }),
+        FoundItem.updateMany({ contactVisibility: 'public' }, { $set: { contactVisibility: 'request_only' } }, { session }),
+      ]);
       await User.updateMany({}, {
         $unset: {
           refreshToken: 1,
@@ -100,7 +104,7 @@ const run = async () => {
     JobLock.createIndexes(),
     ImageAnalysis.createIndexes(),
   ]);
-  console.log('[migration] completed. Existing reports were preserved; duplicate pending claims were closed deterministically.');
+  console.log('[migration] completed. Existing reports were preserved; legacy public contact flags were made workflow-only; duplicate pending claims were closed deterministically.');
   await closeDB();
 };
 

@@ -35,14 +35,25 @@ test('public item view hides reporter contact and connection metadata', () => {
   assert.equal(result.connectedAt, undefined);
 });
 
-test('explicit public contact exposes only the selected channel', () => {
+test('anonymous viewers cannot match an absent connected-user identifier', () => {
+  const result = itemView({
+    userId: { _id: 'owner', fullName: 'Owner', email: 'owner@example.com', phone: '+94111111111' },
+    connectedUserId: null,
+    contactVisibility: 'request_only',
+    contactPreference: 'both',
+  }, null);
+  assert.equal(result.userId.email, undefined);
+  assert.equal(result.userId.phone, undefined);
+});
+
+test('legacy public contact flag cannot bypass approved contact sharing', () => {
   const item = {
     userId: { _id: 'owner', fullName: 'Owner', email: 'owner@example.com', phone: '+94111111111', profileImage: {} },
     contactVisibility: 'public',
     contactPreference: 'email',
   };
   const result = itemView(item, null);
-  assert.equal(result.userId.email, 'owner@example.com');
+  assert.equal(result.userId.email, undefined);
   assert.equal(result.userId.phone, undefined);
 });
 

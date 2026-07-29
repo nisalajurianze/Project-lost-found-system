@@ -28,7 +28,7 @@ export const LostItemDetail = () => {
   const { search } = useLocation();
   const dispatch = useDispatch();
   const { t } = useLanguage();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { currentItem, isLoading, error } = useSelector((state) => state.lostItems);
   const [activeImage, setActiveImage] = useState('');
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -104,8 +104,7 @@ export const LostItemDetail = () => {
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'pending' || currentItem.status === 'matched') && !isOwner && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
 
-  // Can see contact if visibility is public, or if they are the owner, or connected, or item is fully resolved, or if contact was explicitly shared
-  const canSeeContact = currentItem.contactVisibility === 'public' || isOwner || isConnectedUser || currentItem.status === 'claimed' || isContactShared;
+  const canSeeContact = user?.role === 'admin' || isOwner || isConnectedUser || isContactShared;
 
   return (
     <div className="flex-1 pt-4 pb-12 sm:pt-6 sm:pb-16 bg-surface-50 dark:bg-surface-900 transition-colors duration-300">

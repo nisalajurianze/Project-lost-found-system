@@ -52,3 +52,18 @@ test('desktop navigation keeps primary links and actions at 44px minimum height'
   assert.match(navbar, /btn btn-primary btn-sm min-h-11/);
   assert.ok((navbar.match(/flex min-h-11 min-w-11 items-center justify-center/g)?.length || 0) >= 5);
 });
+
+test('public search and authentication secondary actions expose 44px hit targets', () => {
+  const search = read('src/pages/public/SearchItems.jsx');
+  const login = read('src/pages/public/Login.jsx');
+  const register = read('src/pages/public/Register.jsx');
+  assert.match(search, /btn btn-outline btn-sm min-h-11/);
+  assert.match(search, /btn btn-primary btn-sm min-h-11/);
+  assert.doesNotMatch(search, /min-h-9/);
+  assert.match(login, /inline-flex min-h-11 items-center cursor-pointer select-none/);
+  assert.match(register, /inline-flex min-h-11 items-center px-1 font-bold/);
+  assert.match(login, /role="separator" aria-label=\{t\('auth\.or'\)\}/);
+  assert.match(register, /role="separator" aria-label=\{t\('auth\.or'\)\}/);
+  assert.match(read('src/components/layout/Footer.jsx'), /text-xs text-surface-600 dark:text-surface-400/);
+  assert.match(read('src/pages/public/Home.jsx'), /mt-1 text-sm text-surface-600 dark:text-surface-400/);
+});

@@ -61,7 +61,7 @@ const itemToForm = (item, isLost) => ({
   date: toLocalDateTime(isLost ? item?.lostDate : item?.foundDate),
   storedAt: item?.storedAt || '',
   contactPreference: item?.contactPreference || 'both',
-  contactVisibility: item?.contactVisibility || 'request_only',
+  contactVisibility: 'request_only',
 });
 
 const ReportItemWizard = ({ mode, itemId = null }) => {
@@ -512,7 +512,6 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
   ];
   const visibilityOptions = [
     { value: 'request_only', label: t('report.shareApproved') },
-    { value: 'public', label: t('report.showPublic') },
   ];
 
   if (isEdit && !isInitialised && (!hasRequestedItem || itemLoading)) return <div className="py-16 text-center text-surface-600 dark:text-surface-300" role="status">{t('report.loading')}</div>;

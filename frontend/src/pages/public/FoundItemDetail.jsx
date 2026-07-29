@@ -31,7 +31,7 @@ export const FoundItemDetail = () => {
   const { search } = useLocation();
   const dispatch = useDispatch();
   const { t } = useLanguage();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const { currentItem, isLoading, error } = useSelector((state) => state.foundItems);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
@@ -108,8 +108,7 @@ export const FoundItemDetail = () => {
   const isClaimable = (currentItem.status === 'available' || currentItem.status === 'matched') && !isFinder && !isConnectedUser && !hasClaimedSession && !hasExistingClaim;
   const isHandoverInProgress = currentItem.status === 'in_progress';
 
-  // Can see contact if visibility is public, or if they are the finder, or connected, or item is fully resolved, or if contact was explicitly shared
-  const canSeeContact = currentItem.contactVisibility === 'public' || isFinder || isConnectedUser || currentItem.status === 'claimed' || isContactShared;
+  const canSeeContact = user?.role === 'admin' || isFinder || isConnectedUser || isContactShared;
 
 
   return (

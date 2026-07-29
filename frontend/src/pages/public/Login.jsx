@@ -111,7 +111,7 @@ export const Login = () => {
               <label htmlFor="password" className="input-label mb-0">
                 {t('auth.password')}
               </label>
-              <Link to="/forgot-password" className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary-500 hover:text-primary-600 dark:text-primary-400">
+              <Link to="/forgot-password" className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-300">
                 {t('auth.forgotPassword')}
               </Link>
             </div>
@@ -129,7 +129,7 @@ export const Login = () => {
             />
           </div>
 
-          <div className="flex items-center">
+          <label htmlFor="remember-me" className="inline-flex min-h-11 items-center cursor-pointer select-none">
             <input
               id="remember-me"
               name="remember-me"
@@ -138,17 +138,17 @@ export const Login = () => {
               onChange={(event) => setRememberMe(event.target.checked)}
               className="h-4 w-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500 dark:border-surface-600 dark:bg-surface-800 dark:ring-offset-surface-900 cursor-pointer"
             />
-            <label htmlFor="remember-me" className="ml-2 block text-sm text-surface-700 dark:text-surface-300 cursor-pointer select-none">
+            <span className="ml-2 block text-sm text-surface-700 dark:text-surface-300">
               {t('auth.rememberMe')}
-            </label>
-          </div>
+            </span>
+          </label>
 
           <Button type="submit" variant="primary" className="w-full mt-4" isLoading={isLoading}>
             {t('auth.signIn')}
           </Button>
         </form>
 
-        <div className="mt-6 flex items-center justify-center space-x-2" aria-label={t('auth.or')}>
+        <div className="mt-6 flex items-center justify-center space-x-2" role="separator" aria-label={t('auth.or')}>
           <span className="h-px w-full bg-surface-200 dark:bg-surface-800" />
           <span className="text-sm text-surface-500 uppercase tracking-widest font-semibold">{t('auth.or')}</span>
           <span className="h-px w-full bg-surface-200 dark:bg-surface-800" />
@@ -169,7 +169,7 @@ export const Login = () => {
 
         <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500 dark:text-surface-400">
           {t('auth.newPlatform')}{' '}
-          <Link to="/register" className="inline-flex min-h-11 items-center px-1 font-bold text-primary-500 hover:text-primary-600 dark:text-primary-400">
+          <Link to="/register" className="inline-flex min-h-11 items-center px-1 font-bold text-primary-600 hover:text-primary-700 dark:text-primary-300">
             {t('auth.createAccount')}
           </Link>
         </div>

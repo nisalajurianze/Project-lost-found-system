@@ -22,7 +22,7 @@ export const Footer = () => {
             <Link to="/dashboard/report-found" className="inline-flex min-h-11 items-center px-1 hover:text-primary-500 transition-colors">{t('nav.reportFound')}</Link>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-surface-100 dark:border-surface-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-surface-400">
+        <div className="mt-8 pt-8 border-t border-surface-100 dark:border-surface-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-surface-600 dark:text-surface-400">
           <p>&copy; {new Date().getFullYear()} Smart Lost & Found. {t('footer.rights')}</p><p>{t('footer.note')}</p>
         </div>
       </div>
