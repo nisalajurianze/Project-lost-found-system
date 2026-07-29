@@ -17,6 +17,10 @@
       "destination": "https://project-lost-found-system-production.up.railway.app/api/:path*"
     },
     {
+      "source": "/socket.io/",
+      "destination": "https://project-lost-found-system-production.up.railway.app/socket.io/"
+    },
+    {
       "source": "/socket.io",
       "destination": "https://project-lost-found-system-production.up.railway.app/socket.io"
     },
