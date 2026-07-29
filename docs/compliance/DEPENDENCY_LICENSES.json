@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-26T11:00:12.000Z",
+  "generatedAt": "2026-07-29T04:40:41.000Z",
   "source": [
     "backend/package-lock.json",
     "frontend/package-lock.json"
   ],
-  "uniqueComponents": 558,
+  "uniqueComponents": 552,
   "licenseCounts": {
     "0BSD": 1,
     "Apache-2.0": 28,
@@ -13,7 +13,7 @@
     "BSD-3-Clause": 7,
     "CC-BY-4.0": 1,
     "ISC": 22,
-    "MIT": 533,
+    "MIT": 526,
     "MIT-0": 1,
     "MPL-2.0": 13,
     "UNKNOWN": 3

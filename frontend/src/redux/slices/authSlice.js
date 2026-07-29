@@ -7,7 +7,7 @@ export const registerUser = createAsyncThunk('auth/register', async (data, { rej
   try { return await authService.register(data); } catch (error) { return rejectWithValue(error.message); }
 });
 export const loginUser = createAsyncThunk('auth/login', async (data, { rejectWithValue }) => {
-  try { return await authService.login(data); } catch (error) { return rejectWithValue(error.message); }
+  try { return await authService.login(data); } catch (error) { return rejectWithValue(error.code || error.message); }
 });
 export const googleLoginUser = createAsyncThunk('auth/googleLogin', async (idToken, { rejectWithValue }) => {
   try { return await authService.googleLogin(idToken); } catch (error) { return rejectWithValue(error.message); }

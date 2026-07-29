@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { GoogleLogin } from '@react-oauth/google';
 import { loginUser, googleLoginUser, clearAuthError } from '../../redux/slices/authSlice';
 import { validateEmail } from '../../utils/validators';
+import { toSafeInternalPath } from '../../utils/internalNavigation';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -27,7 +28,11 @@ export const Login = () => {
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('rememberedEmail'));
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const requestedPath = location.state?.from
+    ? `${location.state.from.pathname || ''}${location.state.from.search || ''}${location.state.from.hash || ''}`
+    : '';
+  const from = toSafeInternalPath(requestedPath, '/dashboard');
+  const errorMessage = error === 'AUTH_SESSION_UNAVAILABLE' ? t('auth.sessionUnavailable') : error;
 
   useEffect(() => {
     if (isAuthenticated) navigate(from, { replace: true });
@@ -53,7 +58,7 @@ export const Login = () => {
       await dispatch(loginUser({ email, password, rememberMe })).unwrap();
       toast.success(t('auth.welcomeBack'));
     } catch (err) {
-      toast.error(t('auth.authFailed'));
+      toast.error(err === 'AUTH_SESSION_UNAVAILABLE' ? t('auth.sessionUnavailable') : t('auth.authFailed'));
     }
   };
 
@@ -70,7 +75,7 @@ export const Login = () => {
     <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-surface-100 dark:bg-surface-950 transition-colors duration-300">
       <div className="max-w-md w-full glass-card p-8 bg-white border border-surface-200 dark:border-surface-800 dark:bg-surface-900 shadow-xl">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center justify-center gap-1.5 text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
+          <Link to="/" className="inline-flex min-h-11 items-center justify-center gap-1.5 px-1 text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent">
             <img src="/logo.png" alt={t('auth.logoAlt')} className="h-8 w-8 object-contain translate-y-0.5" />
             Smart L&F
           </Link>
@@ -82,9 +87,9 @@ export const Login = () => {
           </p>
         </div>
 
-        {error && (
+        {errorMessage && (
           <div role="alert" className="p-3 bg-red-50 border border-red-200 text-sm text-red-600 dark:bg-red-950/20 dark:border-red-900/30 dark:text-red-400 rounded-lg mb-6">
-            ⚠️ {error}
+            ⚠️ {errorMessage}
           </div>
         )}
 
@@ -106,7 +111,7 @@ export const Login = () => {
               <label htmlFor="password" className="input-label mb-0">
                 {t('auth.password')}
               </label>
-              <Link to="/forgot-password" className="text-sm font-semibold text-primary-500 hover:text-primary-600 dark:text-primary-400">
+              <Link to="/forgot-password" className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-primary-500 hover:text-primary-600 dark:text-primary-400">
                 {t('auth.forgotPassword')}
               </Link>
             </div>
@@ -164,7 +169,7 @@ export const Login = () => {
 
         <div className="text-center mt-6 pt-6 border-t border-surface-100 dark:border-surface-800 text-sm text-surface-500 dark:text-surface-400">
           {t('auth.newPlatform')}{' '}
-          <Link to="/register" className="font-bold text-primary-500 hover:text-primary-600 dark:text-primary-400">
+          <Link to="/register" className="inline-flex min-h-11 items-center px-1 font-bold text-primary-500 hover:text-primary-600 dark:text-primary-400">
             {t('auth.createAccount')}
           </Link>
         </div>

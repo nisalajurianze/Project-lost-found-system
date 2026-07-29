@@ -20,7 +20,7 @@ import {
   createFoundItemValidator,
   updateFoundItemValidator,
   mongoIdParam,
-  paginationQuery,
+  foundItemQueryValidator,
   handoverCancellationValidator
 } from '../utils/validators.js';
 
@@ -28,7 +28,7 @@ import {
 const router = express.Router();
 
 // Publicly viewable found items
-router.get('/', optionalAuth, paginationQuery, validate, getFoundItems);
+router.get('/', optionalAuth, foundItemQueryValidator, validate, getFoundItems);
 router.get('/:id', optionalAuth, mongoIdParam, validate, getFoundItemById);
 
 // Protected report/management

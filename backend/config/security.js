@@ -13,6 +13,18 @@ const durationMs = (value, fallbackMs) => {
   return Math.min(24 * 60 * 60 * 1_000, Math.max(60_000, amount * factors[unit]));
 };
 
+const RESERVED_EMAIL_DOMAINS = new Set(['example.invalid', 'example.com', 'example.org', 'example.net']);
+
+export const isSafeEmailFrom = (value) => {
+  const text = String(value || '').trim();
+  if (!text || text.length > 254 || /[\r\n]/.test(text)) return false;
+  const angleMatch = text.match(/^[^<>]{0,120}<([^<>]+)>$/);
+  const mailbox = (angleMatch ? angleMatch[1] : text).trim().toLowerCase();
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailbox)) return false;
+  const domain = mailbox.split('@')[1];
+  return Boolean(domain && !RESERVED_EMAIL_DOMAINS.has(domain));
+};
+
 export const isProduction = process.env.NODE_ENV === 'production';
 export const clientOrigins = String(process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
@@ -25,8 +37,12 @@ export const accessMaxAgeMs = durationMs(accessExpire, 15 * 60 * 1_000);
 export const refreshDays = Math.min(90, Math.max(1, Number(process.env.REFRESH_TOKEN_DAYS || 7)));
 export const cookieSecure = asBool(process.env.COOKIE_SECURE, isProduction);
 export const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
-const requestedSameSite = String(process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
-export const cookieSameSite = ['strict', 'lax', 'none'].includes(requestedSameSite) ? requestedSameSite : 'lax';
+export const resolveCookieSameSite = (value, production = isProduction) => {
+  const fallback = production ? 'none' : 'lax';
+  const requested = String(value || fallback).toLowerCase();
+  return ['strict', 'lax', 'none'].includes(requested) ? requested : fallback;
+};
+export const cookieSameSite = resolveCookieSameSite(process.env.COOKIE_SAME_SITE);
 export const allowBearerAuth = asBool(process.env.ALLOW_BEARER_AUTH, false);
 export const jobsEnabled = asBool(process.env.JOBS_ENABLED, true);
 export const requireRedis = asBool(process.env.REQUIRE_REDIS, isProduction);
@@ -54,5 +70,8 @@ export const validateSecurityEnvironment = () => {
   const emailConfigured = Boolean(process.env.RESEND_API_KEY || ((process.env.SMTP_HOST || process.env.EMAIL_HOST) && (process.env.SMTP_USER || process.env.EMAIL_USER) && (process.env.SMTP_PASS || process.env.EMAIL_PASSWORD)));
   if (requireEmail && !emailConfigured) problems.push('RESEND_API_KEY or complete SMTP configuration');
   if (requireEmail && !process.env.EMAIL_FROM) problems.push('EMAIL_FROM');
+  if (requireEmail && process.env.EMAIL_FROM && !isSafeEmailFrom(process.env.EMAIL_FROM)) {
+    problems.push('EMAIL_FROM (valid non-placeholder sender address)');
+  }
   if (problems.length) throw new Error(`Missing or unsafe environment configuration: ${problems.join(', ')}`);
 };

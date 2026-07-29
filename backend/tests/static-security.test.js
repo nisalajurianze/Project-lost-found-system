@@ -80,3 +80,32 @@ test('production startup verifies transaction support', () => {
   assert.match(server, /assertTransactionSupport/);
   assert.match(db, /hello\.setName|hello\?\.setName/);
 });
+
+test('claim and location query surfaces have explicit validation', () => {
+  const validators = read('backend/utils/validators.js');
+  const routes = read('backend/routes/locationKnowledgeRoutes.js');
+  assert.match(validators, /query\('claimantId'\)\.optional\(\)\.isMongoId\(\)/);
+  assert.match(validators, /locationResolveQueryValidator/);
+  assert.match(validators, /locationReviewValidator/);
+  assert.match(routes, /locationSuggestionValidator, validate, submitLocationSuggestion/);
+  assert.match(routes, /locationReviewValidator, validate, reviewLocationKnowledge/);
+});
+
+test('item listing and administrator log filters reject malformed identifiers and dates', () => {
+  const validators = read('backend/utils/validators.js');
+  const lostRoutes = read('backend/routes/lostItemRoutes.js');
+  const foundRoutes = read('backend/routes/foundItemRoutes.js');
+  const adminRoutes = read('backend/routes/adminRoutes.js');
+  assert.match(validators, /query\('userId'\)\.optional\(\)\.isMongoId\(\)/);
+  assert.match(validators, /query\('startDate'\)\.optional\(\)\.isISO8601\(\)/);
+  assert.match(validators, /query\('adminId'\)\.optional\(\)\.isMongoId\(\)/);
+  assert.match(lostRoutes, /lostItemQueryValidator, validate, getLostItems/);
+  assert.match(foundRoutes, /foundItemQueryValidator, validate, getFoundItems/);
+  assert.match(adminRoutes, /adminLogQueryValidator, validate, getAdminLogs/);
+});
+
+test('resolution reminders are marked sent only after every participant succeeds', () => {
+  const reminder = read('backend/jobs/reminderJob.js');
+  assert.match(reminder, /results\.every\(\(result\) => result\.status === 'fulfilled'\)/);
+  assert.doesNotMatch(reminder, /results\.some\(\(result\) => result\.status === 'fulfilled'\)/);
+});

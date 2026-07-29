@@ -7,7 +7,6 @@ export const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_
 export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 export const LOCAL_STORAGE_THEME_KEY = 'smart-lf-theme-v2';
-export const LOCAL_STORAGE_TOKEN_KEY = 'smart-lf-token';
 export const LOCAL_STORAGE_USER_KEY = 'smart-lf-user';
 
 export const ITEM_STATUSES = {

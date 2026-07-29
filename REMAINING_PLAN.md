@@ -2,6 +2,8 @@
 
 This is the authoritative completion plan for turning the current hardened release candidate into the final university public-release build.
 
+**Status snapshot — 2026-07-29:** Source remediation, local tests/lint/build, public desktop/mobile browser checks, mocked login-cookie journeys and release hygiene pass. The current fixes remain uncommitted after PR #4 head `fbd39a5`. Phases 6 and 7 remain open for the exact new commit: Railway/Vercel and real-provider verification, authenticated-role UAT, backup/restore, rollback, load/failure testing, institutional sign-off and immutable release evidence.
+
 ## Completion rules
 
 - Preserve all existing working lost-and-found functions.
@@ -16,7 +18,7 @@ This is the authoritative completion plan for turning the current hardened relea
 
 ### 1.1 Deep chatbot engine
 
-> **Implementation progress — 2026-07-26:** weighted multilingual OR/fuzzy retrieval, explainable structured result cards, bounded pagination, authenticated activity summaries, mobile full-screen/desktop side-panel UI, focus management, live regions and multilingual voice selection are now physically implemented and covered by focused tests. Durable conversation memory, report-draft handoff, provider-grounded help, full database/browser/build verification and field-data-backed location intelligence remain pending.
+> **Implementation progress — 2026-07-29:** weighted multilingual OR/fuzzy retrieval, explainable structured result cards, bounded pagination, authenticated activity summaries, bounded local conversation history, report-draft handoff, mobile full-screen/desktop side-panel UI, focus management, live regions and multilingual voice selection are physically implemented and covered by tests. Local build and public-route browser checks pass; real-provider grounding, authenticated live database journeys and field-data-backed location verification remain pending.
 
 
 Implement and verify:

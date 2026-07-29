@@ -24,6 +24,7 @@ import {
   removeAssistantConversation,
   saveAssistantConversations,
 } from '../../utils/assistantHistory';
+import { isSafeInternalPath, toSafeInternalPath } from '../../utils/internalNavigation';
 
 const timestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const initialMessage = (t) => ({
@@ -79,13 +80,22 @@ const AssistantResultCard = ({ item, closeAssistant, t }) => (
         </ul>
       </div>
     )}
-    <Link
-      to={item.url}
-      onClick={closeAssistant}
-      className="flex min-h-11 items-center justify-between border-t border-surface-200 px-3 text-sm font-semibold text-primary-700 hover:bg-primary-50 dark:border-surface-700 dark:text-primary-300 dark:hover:bg-surface-700"
-    >
-      {t('assistant.viewReport')} <FiChevronRight aria-hidden="true" />
-    </Link>
+    <div className="grid grid-cols-2 border-t border-surface-200 dark:border-surface-700">
+      <Link
+        to={toSafeInternalPath(item.url, '/search')}
+        onClick={closeAssistant}
+        className="flex min-h-11 items-center justify-between border-r border-surface-200 px-3 text-sm font-semibold text-primary-700 hover:bg-primary-50 dark:border-surface-700 dark:text-primary-300 dark:hover:bg-surface-700"
+      >
+        {t('assistant.viewReport')} <FiChevronRight aria-hidden="true" />
+      </Link>
+      <Link
+        to={toSafeInternalPath(item.claimUrl, item.url)}
+        onClick={closeAssistant}
+        className="flex min-h-11 items-center justify-center px-3 text-center text-sm font-semibold text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-surface-700"
+      >
+        {t(item.itemType === 'FoundItem' ? 'detail.thisMine' : 'detail.iHaveThis')}
+      </Link>
+    </div>
   </article>
 );
 
@@ -156,6 +166,7 @@ const AIChatbot = () => {
   const [conversationId, setConversationId] = useState('');
   const [conversationHistory, setConversationHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [mobileViewport, setMobileViewport] = useState(null);
   const [historyReady, setHistoryReady] = useState(false);
   const messagesEndRef = useRef(null);
   const dialogRef = useRef(null);
@@ -294,6 +305,33 @@ const AIChatbot = () => {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setMobileViewport(null);
+      return undefined;
+    }
+    const viewport = window.visualViewport;
+    const syncViewport = () => {
+      if (!window.matchMedia('(max-width: 639px)').matches) {
+        setMobileViewport(null);
+        return;
+      }
+      setMobileViewport({
+        height: Math.round(viewport?.height || window.innerHeight),
+        top: Math.round(viewport?.offsetTop || 0),
+      });
+    };
+    syncViewport();
+    viewport?.addEventListener('resize', syncViewport);
+    viewport?.addEventListener('scroll', syncViewport);
+    window.addEventListener('orientationchange', syncViewport);
+    return () => {
+      viewport?.removeEventListener('resize', syncViewport);
+      viewport?.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('orientationchange', syncViewport);
+    };
+  }, [isOpen]);
+
   const requestAssistant = async (message, { page = 1, displayUser = true } = {}) => {
     const trimmed = String(message || '').trim();
     if (!trimmed || isLoading) return;
@@ -406,6 +444,7 @@ const AIChatbot = () => {
         aria-modal="true"
         aria-labelledby="smart-lf-assistant-title"
         className="fixed inset-0 z-[80] flex flex-col overflow-hidden bg-white shadow-2xl dark:bg-surface-900 sm:inset-y-4 sm:left-auto sm:right-4 sm:w-[min(32rem,calc(100vw-2rem))] sm:rounded-2xl sm:border sm:border-surface-200 sm:dark:border-surface-700"
+        style={mobileViewport ? { height: `${mobileViewport.height}px`, top: `${mobileViewport.top}px`, bottom: 'auto' } : undefined}
       >
         <header className="flex min-h-16 items-center justify-between gap-3 border-b border-surface-200 px-4 py-3 dark:border-surface-700">
           <div className="flex min-w-0 items-center gap-3">
@@ -469,8 +508,8 @@ const AIChatbot = () => {
                 <div className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'rounded-br-sm bg-primary-600 text-white' : 'rounded-bl-sm bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100'}`}>
                   {message.role === 'user' ? message.content : (
                     <ReactMarkdown components={{
-                      a: ({ href, children }) => href?.startsWith('/') ? (
-                        <Link to={href} onClick={closeAssistant} className="font-semibold text-primary-700 underline dark:text-primary-300">{children}</Link>
+                      a: ({ href, children }) => isSafeInternalPath(href) ? (
+                        <Link to={toSafeInternalPath(href)} onClick={closeAssistant} className="font-semibold text-primary-700 underline dark:text-primary-300">{children}</Link>
                       ) : <span>{children}</span>,
                     }}>{message.content}</ReactMarkdown>
                   )}
@@ -498,11 +537,14 @@ const AIChatbot = () => {
 
                 {message.actions?.length > 0 && (
                   <div className="mt-3 flex w-full flex-wrap gap-2">
-                    {message.actions.map((action) => (
-                      <Link key={`${action.type}-${action.url}`} to={action.url} onClick={closeAssistant} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-3 text-sm font-semibold text-surface-800 hover:border-primary-400 hover:text-primary-700 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100">
-                        {action.label}
-                      </Link>
-                    ))}
+                    {message.actions.map((action) => {
+                      const safeUrl = toSafeInternalPath(action.url, '');
+                      return safeUrl ? (
+                        <Link key={`${action.type}-${action.url}`} to={safeUrl} onClick={closeAssistant} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-3 text-sm font-semibold text-surface-800 hover:border-primary-400 hover:text-primary-700 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100">
+                          {action.label}
+                        </Link>
+                      ) : null;
+                    })}
                   </div>
                 )}
 

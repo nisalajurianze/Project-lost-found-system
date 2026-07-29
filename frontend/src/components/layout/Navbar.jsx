@@ -15,6 +15,7 @@ import { formatRelativeTime } from '../../utils/formatDate';
 import { motion, AnimatePresence } from 'framer-motion';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { toSafeInternalPath } from '../../utils/internalNavigation';
 
 export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   const isActive = (path) => location.pathname === path;
 
   const getNotificationLink = (notification) => {
-    if (notification.link) return notification.link;
+    if (notification.link) return toSafeInternalPath(notification.link, null);
     if (notification.relatedItem) {
       const { itemType, itemId } = notification.relatedItem;
       if (itemType === 'Match') return '/dashboard/my-matches';
@@ -259,7 +260,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {onMenuClick ? (
               <button type="button"
                 onClick={onMenuClick}
-                className="lg:hidden relative h-8 w-8 sm:h-10 sm:w-10 flex items-center justify-center text-primary-500 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors focus:outline-none"
+                className="lg:hidden relative min-h-11 min-w-11 flex items-center justify-center text-primary-500 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors focus:outline-none"
                 aria-label={t('common.toggleAdminMenu')}
               >
                 <FiMenu className={`absolute text-2xl transition-all duration-300 ${isMenuOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
@@ -267,11 +268,11 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               </button>
             ) : null}
 
-            <Link to="/" className={`flex items-center gap-1.5 ${onMenuClick ? 'hidden lg:flex' : ''}`}>
+            <Link to="/" className={`min-h-11 min-w-11 items-center justify-center gap-1.5 ${onMenuClick ? 'hidden lg:flex' : 'flex'}`}>
               <img src="/logo.png" alt={t('common.logoAlt')} className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
             </Link>
 
-            <Link to={onMenuClick ? "/admin" : "/"} className="flex items-center gap-1.5">
+            <Link to={onMenuClick ? "/admin" : "/"} className="flex min-h-11 items-center gap-1.5">
               <span className="text-2xl font-bold font-display tracking-tight bg-gradient-to-r from-primary-500 to-primary-300 bg-clip-text text-transparent whitespace-nowrap">
                 Smart L&F
               </span>
@@ -385,13 +386,13 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
 
             {/* Mobile Actions */}
           <div className="flex md:hidden items-center gap-2 sm:gap-3">
-            <LanguageSwitcher compact className="scale-90 origin-right" />
+            <LanguageSwitcher compact />
             {/* Mobile Notification Bell */}
             {isAuthenticated && (
               <div className="relative" ref={mobileNotificationDropdownRef}>
                 <button type="button"
                   onClick={handleBellClick}
-                  className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
+                  className="relative flex min-h-11 min-w-11 items-center justify-center text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500"
                   aria-label={t('common.notifications')}
                 >
                   <FiBell className="text-lg" />
@@ -410,7 +411,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               <div className="relative" ref={mobileProfileDropdownRef}>
                 <button type="button"
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className={`p-1 rounded-full border transition-all focus:outline-none ${
+                  className={`flex min-h-11 min-w-11 items-center justify-center p-1 rounded-full border transition-all focus:outline-none ${
                     profileDropdownOpen
                       ? 'border-primary-500 ring-2 ring-primary-500/50 bg-primary-50 dark:bg-primary-500/10'
                       : 'border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-800'
@@ -436,7 +437,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
             {!isAuthenticated && (
               <button type="button"
                 onClick={() => dispatch(toggleTheme())}
-                className="relative p-2 text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500 overflow-hidden"
+                className="relative flex min-h-11 min-w-11 items-center justify-center text-surface-500 rounded-xl dark:text-surface-400 transition-colors focus:outline-none bg-surface-100 dark:bg-surface-800 hover:text-primary-500 overflow-hidden"
                 aria-label={t('common.theme')}
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -461,4 +462,3 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
 };
 
 export default Navbar;
-

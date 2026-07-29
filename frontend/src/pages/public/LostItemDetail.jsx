@@ -5,7 +5,7 @@
 // ============================================
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchLostItemById, clearCurrentLostItem } from '../../redux/slices/lostItemSlice';
 import Loader from '../../components/common/Loader';
@@ -25,6 +25,7 @@ import { useLanguage } from '../../i18n/LanguageContext';
 export const LostItemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { search } = useLocation();
   const dispatch = useDispatch();
   const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
@@ -64,6 +65,15 @@ export const LostItemDetail = () => {
       setActiveImage('');
     }
   }, [currentItem]);
+
+  useEffect(() => {
+    if (new URLSearchParams(search).get('claim') !== '1' || !isAuthenticated || !currentItem) return;
+    const reporterId = currentItem.userId?._id || currentItem.userId;
+    const eligible = ['available', 'pending', 'matched'].includes(currentItem.status)
+      && reporterId?.toString() !== loggedInUserId?.toString()
+      && !hasClaimedSession && !hasExistingClaim;
+    if (eligible) setIsClaimModalOpen(true);
+  }, [currentItem, hasClaimedSession, hasExistingClaim, isAuthenticated, loggedInUserId, search]);
 
   if (isLoading) {
     return <Loader fullPage />;

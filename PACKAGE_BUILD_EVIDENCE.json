@@ -1,5 +1,7 @@
 {
   "schemaVersion": 1,
+  "artifactStatus": "historical 2026-07-28 package; superseded by uncommitted 2026-07-29 working-tree fixes",
+  "verifiedZipSha256": "70f928a5c0ccb362d2bd769d57f7913d1199d514fe039cbe941bc5b6e77cc5d8",
   "sourceCommit": "c0e8340163382d952461db29bb95f9a66132e9e1",
   "sourceBranch": "agent/deep-chatbot-search-ui",
   "sourceCommitTimestamp": "2026-07-26T19:56:49Z",
