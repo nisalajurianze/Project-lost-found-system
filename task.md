@@ -16,8 +16,9 @@
 
 - [x] Commit, push, merge, and pass CI for the release-hardening and same-origin deployment fixes through PRs #4-#6
 - [x] Verify the live Vercel frontend serves the final SPA, Railway-backed `/api/*`, CSRF cookies, and the Socket.IO Engine.IO handshake without fallback HTML
+- [x] Merge the desktop-navbar 44 px target correction through PR #7 and verify the production desktop/mobile render
 - [ ] Verify the live Railway backend with production MongoDB replica set, Redis, Cloudinary, email, readiness, and logs
 - [ ] Confirm Railway has deployed the latest backend validation/auth commit rather than only the previously healthy service revision
 - [ ] Run authenticated user/admin, email, image, socket, push, AI-provider, backup/restore, and rollback journeys with real provider credentials
 
-Current stance: merged Vercel deployment path is live and verified; the final navbar accessibility increment and target-environment certification gates remain in progress.
+Current stance: merged Vercel deployment path and final navbar accessibility increment are live and verified; Railway revision proof and target-environment certification gates remain in progress.

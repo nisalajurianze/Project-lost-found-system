@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "sourceId": "9a50922+navbar-working-tree-2026-07-29",
+  "sourceId": "ebee948+release-evidence-2026-07-29",
   "generatedAt": null,
   "fileCountExcludingManifestFiles": 420,
-  "totalBytesExcludingManifestFiles": 5693544,
+  "totalBytesExcludingManifestFiles": 5693391,
   "files": [
     {
       "path": ".dockerignore",
@@ -842,8 +842,8 @@
     },
     {
       "path": "docs/implementation/DEPLOYMENT_DEEP_AUDIT_2026-07-28.md",
-      "bytes": 5617,
-      "sha256": "f90953026b6009a5713fe9c34e0c3cee04635ddb2c288d783de3fdf7addd37a7"
+      "bytes": 5506,
+      "sha256": "65064fabebcd0a057a7ffce401b4e61562b314efe38c4ca97ed687ec94191ad3"
     },
     {
       "path": "docs/implementation/DESIGN_SYSTEM_SPACE_PERFORMANCE_BATCH_2026-07-26.md",
@@ -852,8 +852,8 @@
     },
     {
       "path": "docs/implementation/FULL_CODEBASE_DEEP_AUDIT_2026-07-29.md",
-      "bytes": 8415,
-      "sha256": "33aeb2a4fc4ad7aafaf68b31eb09cfef433a31689cd5ff2a2046ba2865dc793f"
+      "bytes": 8302,
+      "sha256": "46f36ee4f5b1f8950629712504741d7e56f9ae2b6a20ade7650a3eeca0f0b9ad"
     },
     {
       "path": "docs/latest-academic-pack/docs/academic/SOFTWARE_DESIGN_DOCUMENT.md",
@@ -2017,8 +2017,8 @@
     },
     {
       "path": "PACKAGE_VERIFICATION.md",
-      "bytes": 3373,
-      "sha256": "57dbaa42e9480db2ee39e8a18ada3fef00bc8cc458f588019e3d0fa6310aaac1"
+      "bytes": 3303,
+      "sha256": "44a6a5cc657b92ed8b3eb95211a76c0002340b99b82eafc4840b2952a48ec577"
     },
     {
       "path": "PRODUCTION_CERTIFICATION_STATUS.md",
@@ -2082,8 +2082,8 @@
     },
     {
       "path": "task.md",
-      "bytes": 1957,
-      "sha256": "4ebe711188115c7a8c539d47dc779acd003fdb384914fba112b23a4a8bf95978"
+      "bytes": 2098,
+      "sha256": "1beb5aa5c539f05716687b75154baf7338510a12fe8b8d611e77c075ebfea67f"
     },
     {
       "path": "UNIVERSITY_PROJECT_REPORT.md",

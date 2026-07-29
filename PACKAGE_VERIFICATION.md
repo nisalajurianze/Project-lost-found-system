@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-07-29
 
-**Current working tree:** locally verified release candidate after deployment head `9a50922`; the final navbar accessibility increment is not yet committed or production-certified
+**Current source:** merged release candidate through PR #7 (`ebee948`); not production-certified
 
 **Existing deployment-fixed ZIP:** historical 2026-07-28 package; does not include the 2026-07-29 working-tree fixes
 
@@ -15,12 +15,12 @@
 | Backend JavaScript syntax | PASS | 123 JavaScript files |
 | Backend test suite | PARTIAL PASS | 61 passed; 1 MongoDB replica-set refresh-race integration test skipped |
 | Dependency audit | ACCEPTED BOUNDARY | Backend production audit: 0 vulnerabilities on `multer@2.2.0`. Frontend high/critical gate passes; 2 moderate React Router advisories remain after rejecting a v7.18.2 probe with two high findings; tested internal-navigation hardening applies |
-| Browser verification | PASS/PARTIAL | Five sampled desktop routes plus mobile home have no overlay, page error, horizontal overflow, undersized sampled mobile target, or footer/assistant collision; successful/blocked-cookie login paths pass; real authenticated user/admin and provider journeys remain external |
+| Browser verification | PASS/PARTIAL | Five sampled desktop routes plus mobile home have no overlay, page error, horizontal overflow, undersized sampled target, or footer/assistant collision. Production desktop/mobile navbar targets render at 44 px minimum; successful/blocked-cookie login paths pass; real authenticated user/admin and provider journeys remain external. |
 | Documentation/OpenAPI/required pack | PASS | JSON/YAML, relative links, required documents, and the 31-capability matrix validate |
 | Release hygiene/import/secret/symlink scan | PASS | Populated `.env`, secret patterns, broken imports, symlinks, junk, and stale build directories are excluded or rejected |
 | Compose | CONFIG PASS | Interpolation passes with verification-only dummy secrets; Docker Desktop is unavailable for current-tree stack execution |
 | Vercel/Railway routing | LIVE PASS / BACKEND REVISION PENDING | Production `/api/health`, readiness, categories, items, CSRF, and the Engine.IO polling handshake return Railway responses through Vercel rather than SPA HTML. Railway readiness reports MongoDB replica-set, Redis, Cloudinary, and email configuration healthy; deployment of the latest backend validation revision still needs a behavior marker or provider log. |
-| Merged PR CI | PASS | PRs #4-#6 merged to `main` after frontend/backend, Mongo integration, container/auth smoke, release hygiene, CodeQL, and secret-scan checks passed; this final navbar-only increment needs its own exact-commit CI run. |
+| Merged PR CI | PASS | PRs #4-#7 merged to `main` after frontend/backend, Mongo integration, container/auth smoke, release hygiene, CodeQL, and secret-scan checks passed on their exact heads. |
 
 ## Existing ZIP evidence
 
