@@ -1,6 +1,6 @@
 # Software Bill of Materials
 
-**Generated:** 2026-07-26T11:00:12.000Z
+**Generated:** 2026-07-29T01:53:56.000Z
 
 This release includes a machine-readable CycloneDX 1.5 inventory generated from the committed npm lockfiles. It is a lockfile inventory, not evidence that a clean target-environment install or live vulnerability scan passed.
 

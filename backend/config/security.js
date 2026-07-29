@@ -13,6 +13,18 @@ const durationMs = (value, fallbackMs) => {
   return Math.min(24 * 60 * 60 * 1_000, Math.max(60_000, amount * factors[unit]));
 };
 
+const RESERVED_EMAIL_DOMAINS = new Set(['example.invalid', 'example.com', 'example.org', 'example.net']);
+
+export const isSafeEmailFrom = (value) => {
+  const text = String(value || '').trim();
+  if (!text || text.length > 254 || /[\r\n]/.test(text)) return false;
+  const angleMatch = text.match(/^[^<>]{0,120}<([^<>]+)>$/);
+  const mailbox = (angleMatch ? angleMatch[1] : text).trim().toLowerCase();
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailbox)) return false;
+  const domain = mailbox.split('@')[1];
+  return Boolean(domain && !RESERVED_EMAIL_DOMAINS.has(domain));
+};
+
 export const isProduction = process.env.NODE_ENV === 'production';
 export const clientOrigins = String(process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
@@ -54,5 +66,8 @@ export const validateSecurityEnvironment = () => {
   const emailConfigured = Boolean(process.env.RESEND_API_KEY || ((process.env.SMTP_HOST || process.env.EMAIL_HOST) && (process.env.SMTP_USER || process.env.EMAIL_USER) && (process.env.SMTP_PASS || process.env.EMAIL_PASSWORD)));
   if (requireEmail && !emailConfigured) problems.push('RESEND_API_KEY or complete SMTP configuration');
   if (requireEmail && !process.env.EMAIL_FROM) problems.push('EMAIL_FROM');
+  if (requireEmail && process.env.EMAIL_FROM && !isSafeEmailFrom(process.env.EMAIL_FROM)) {
+    problems.push('EMAIL_FROM (valid non-placeholder sender address)');
+  }
   if (problems.length) throw new Error(`Missing or unsafe environment configuration: ${problems.join(', ')}`);
 };

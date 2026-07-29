@@ -1,6 +1,7 @@
-# Goal: Full project verification and repair
+# Goal: Integrate latest deployment-fixed snapshot
 
-- [x] Inspect repository state, manifests, deployment config, tests, and known failure surface
-- [/] Fix reproducible code/config issues, starting with the Vercel build blocker
-- [ ] Run frontend/backend tests, lint, builds, and targeted smoke checks; iterate on failures
-- [ ] Report changed files, verification evidence, and external blockers
+- [x] Compare current branch with supplied snapshot
+- [x] Review deployment and source deltas; preserve current branch fixes
+- [x] Integrate compatible changes
+- [x] Run tests, lint, builds, and deployment checks
+- [x] Report results and external deployment requirements
