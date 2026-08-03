@@ -31,6 +31,7 @@ const getModels = (vision = false) => splitValues(
 );
 
 const aiEnabled = () => ['1', 'true', 'yes'].includes(String(process.env.AI_ENABLED || '').toLowerCase());
+const jsonResponseFormatEnabled = () => ['1', 'true', 'yes'].includes(String(process.env.AI_USE_RESPONSE_FORMAT || '').toLowerCase());
 const aiConfigured = ({ vision = false } = {}) => aiEnabled() && getApiKeys().length > 0 && getModels(vision).length > 0;
 
 const providerUrl = () => {
@@ -113,8 +114,8 @@ const requestAIJson = async (messages, {
           body: JSON.stringify({
             model,
             messages,
-            response_format: { type: 'json_object' },
             temperature,
+            ...(jsonResponseFormatEnabled() ? { response_format: { type: 'json_object' } } : {}),
           }),
           signal: AbortSignal.timeout(timeoutMs),
         });

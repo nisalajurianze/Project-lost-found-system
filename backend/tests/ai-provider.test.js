@@ -10,6 +10,7 @@ test('provider client fails over across configured key slots with bounded attemp
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
   let calls = 0;
+  const bodies = [];
   try {
     process.env.AI_ENABLED = 'true';
     process.env.AI_API_KEYS = 'bad-key,good-key';
@@ -19,6 +20,7 @@ test('provider client fails over across configured key slots with bounded attemp
     resetAiProviderStateForTests();
     global.fetch = async (_url, options) => {
       calls += 1;
+      bodies.push(JSON.parse(options.body));
       if (options.headers.Authorization === 'Bearer bad-key') return { ok: false, status: 503 };
       return {
         ok: true,
@@ -32,6 +34,7 @@ test('provider client fails over across configured key slots with bounded attemp
       validator: (value) => value.value === 'ok',
     });
     assert.equal(calls, 2);
+    assert.equal(bodies.some((body) => 'response_format' in body), false);
     assert.equal(response.data.value, 'ok');
     assert.equal(response.meta.keySlot, 2);
     assert.equal(response.meta.attempts, 2);
@@ -39,6 +42,39 @@ test('provider client fails over across configured key slots with bounded attemp
     assert.equal(status.successes, 1);
     assert.equal(status.models['test-model'].failures, 1);
     assert.equal(status.models['test-model'].successes, 1);
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
+test('provider JSON response format is opt-in for OpenAI-compatible model support', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  let body;
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'test-key';
+    process.env.AI_CHAT_MODEL = 'test-model';
+    process.env.AI_API_URL = 'https://example.test/chat';
+    process.env.AI_USE_RESPONSE_FORMAT = 'true';
+    resetAiProviderStateForTests();
+    global.fetch = async (_url, options) => {
+      body = JSON.parse(options.body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '{"value":"ok"}' } }] }),
+      };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: 'test' }], {
+      validator: (value) => value.value === 'ok',
+    });
+    assert.equal(response.data.value, 'ok');
+    assert.deepEqual(body.response_format, { type: 'json_object' });
   } finally {
     global.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
