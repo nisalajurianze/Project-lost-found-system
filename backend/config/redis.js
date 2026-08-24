@@ -31,14 +31,9 @@ const initRedis = async () => {
       enableOfflineQueue: false,
     });
 
-    // Attempt the actual connection
-    await redisClient.connect();
-    isRedisAvailable = true;
-    console.log('✅ Redis connected successfully.');
-
-    // Monitor connection events
+    // Monitor connection events before connecting
     redisClient.on('error', (err) => {
-      console.error(`❌ Redis error: ${err.message}`);
+      console.warn(`⚠️  Redis error: ${err.message}`);
       isRedisAvailable = false;
     });
 
@@ -55,6 +50,11 @@ const initRedis = async () => {
       isRedisAvailable = false;
       console.warn('⚠️  Redis connection closed.');
     });
+
+    // Attempt the actual connection
+    await redisClient.connect();
+    isRedisAvailable = true;
+    console.log('✅ Redis connected successfully.');
 
     return redisClient;
   } catch (error) {
