@@ -36,8 +36,10 @@ export const LostItemDetail = () => {
   const [hasExistingClaim, setHasExistingClaim] = useState(false);
   const [isContactShared, setIsContactShared] = useState(false);
 
+  const isValidId = /^[0-9a-fA-F]{24}$/.test(String(id || ''));
+
   useEffect(() => {
-    if (isAuthenticated && id) {
+    if (isAuthenticated && isValidId) {
       import('../../services/claimService').then((module) => {
         module.default.checkClaim(id).then((data) => {
           setHasExistingClaim(data.hasClaim);
@@ -47,16 +49,18 @@ export const LostItemDetail = () => {
         }).catch(() => {});
       });
     }
-  }, [isAuthenticated, id]);
+  }, [isAuthenticated, id, isValidId]);
   const loggedInUserId = useSelector((state) => state.auth.user?._id);
 
   useEffect(() => {
-    dispatch(fetchLostItemById(id));
+    if (isValidId) {
+      dispatch(fetchLostItemById(id));
+    }
 
     return () => {
       dispatch(clearCurrentLostItem());
     };
-  }, [dispatch, id]);
+  }, [dispatch, id, isValidId]);
 
   useEffect(() => {
     if (currentItem?.images && currentItem.images.length > 0) {

@@ -37,14 +37,15 @@ export const NotificationCard = ({ notification, onRead, onDelete }) => {
     // Determine redirection if there is a related item reference
     const ref = notification.relatedItem;
     if (ref && ref.itemId) {
+      const targetId = typeof ref.itemId === 'object' && ref.itemId !== null ? (ref.itemId._id || ref.itemId.id) : ref.itemId;
       if (ref.itemType === 'Match') {
         navigate('/dashboard/my-matches');
       } else if (ref.itemType === 'ClaimRequest') {
         navigate('/dashboard/claims');
-      } else if (ref.itemType === 'LostItem') {
-        navigate(`/lost-items/${ref.itemId}`);
-      } else if (ref.itemType === 'FoundItem') {
-        navigate(`/found-items/${ref.itemId}`);
+      } else if (ref.itemType === 'LostItem' && targetId) {
+        navigate(`/lost-items/${targetId}`);
+      } else if (ref.itemType === 'FoundItem' && targetId) {
+        navigate(`/found-items/${targetId}`);
       }
     }
   };

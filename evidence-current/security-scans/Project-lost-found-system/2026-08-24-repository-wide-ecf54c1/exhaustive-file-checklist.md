@@ -101,84 +101,84 @@ Search hits are review priority markers, not findings or completed reviews.
 | `frontend/src/utils/internalNavigation.js` | network |
 | `frontend/src/utils/lazyWithRetry.js` | code-exec, network, browser-html-url |
 
-- [ ] `backend\config\cloudinary.js`
-- [ ] `backend\config\db.js`
-- [ ] `backend\config\redis.js`
+- [x] `backend\config\cloudinary.js`
+- [x] `backend\config\db.js`
+- [x] `backend\config\redis.js`
 - [x] `backend\config\security.js`
-- [ ] `backend\config\socket.js`
+- [x] `backend\config\socket.js`
 - [x] `backend\data\seuslLocations.js`
-- [ ] `backend\controllers\adminController.js`
+- [x] `backend\controllers\adminController.js`
 - [x] `backend\controllers\aiChatController.js`
 - [x] `backend\controllers\aiController.js`
-- [ ] `backend\controllers\aiFeedbackController.js`
+- [x] `backend\controllers\aiFeedbackController.js`
 - [x] `backend\controllers\authController.js`
-- [ ] `backend\controllers\categoryController.js`
+- [x] `backend\controllers\categoryController.js`
 - [x] `backend\controllers\claimController.js`
-- [ ] `backend\controllers\feedbackController.js`
+- [x] `backend\controllers\feedbackController.js`
 - [x] `backend\controllers\foundItemController.js`
 - [x] `backend\controllers\locationKnowledgeController.js`
 - [x] `backend\controllers\lostItemController.js`
 - [x] `backend\controllers\matchController.js`
 - [x] `backend\controllers\notificationController.js`
-- [ ] `backend\controllers\statsController.js`
-- [ ] `backend\controllers\systemSettingController.js`
+- [x] `backend\controllers\statsController.js`
+- [x] `backend\controllers\systemSettingController.js`
 - [x] `backend\controllers\userController.js`
 - [x] `backend\cron\autoCleanCron.js`
 - [x] `backend\jobs\cleanupJob.js`
 - [x] `backend\jobs\reminderJob.js`
 - [x] `backend\middlewares\authMiddleware.js`
-- [ ] `backend\middlewares\cacheMiddleware.js`
+- [x] `backend\middlewares\cacheMiddleware.js`
 - [x] `backend\middlewares\csrfMiddleware.js`
-- [ ] `backend\middlewares\errorMiddleware.js`
+- [x] `backend\middlewares\errorMiddleware.js`
 - [x] `backend\middlewares\rateLimitMiddleware.js`
-- [ ] `backend\middlewares\roleMiddleware.js`
+- [x] `backend\middlewares\roleMiddleware.js`
 - [x] `backend\middlewares\sanitizeMiddleware.js`
-- [ ] `backend\middlewares\uploadMiddleware.js`
+- [x] `backend\middlewares\uploadMiddleware.js`
 - [x] `backend\middlewares\validateMiddleware.js`
-- [ ] `backend\models\AdminLog.js`
-- [ ] `backend\models\AIDecisionFeedback.js`
-- [ ] `backend\models\Category.js`
+- [x] `backend\models\AdminLog.js`
+- [x] `backend\models\AIDecisionFeedback.js`
+- [x] `backend\models\Category.js`
 - [x] `backend\models\ClaimRequest.js`
-- [ ] `backend\models\Feedback.js`
+- [x] `backend\models\Feedback.js`
 - [x] `backend\models\FoundItem.js`
-- [ ] `backend\models\ImageAnalysis.js`
-- [ ] `backend\models\JobLock.js`
+- [x] `backend\models\ImageAnalysis.js`
+- [x] `backend\models\JobLock.js`
 - [x] `backend\models\LocationKnowledge.js`
 - [x] `backend\models\LostItem.js`
 - [x] `backend\models\Match.js`
 - [x] `backend\models\Notification.js`
-- [ ] `backend\models\OutboxEvent.js`
+- [x] `backend\models\OutboxEvent.js`
 - [x] `backend\models\RefreshSession.js`
-- [ ] `backend\models\SystemSetting.js`
+- [x] `backend\models\SystemSetting.js`
 - [x] `backend\models\User.js`
-- [ ] `backend\routes\adminRoutes.js`
-- [ ] `backend\routes\aiFeedbackRoutes.js`
+- [x] `backend\routes\adminRoutes.js`
+- [x] `backend\routes\aiFeedbackRoutes.js`
 - [x] `backend\routes\aiRoutes.js`
 - [x] `backend\routes\authRoutes.js`
-- [ ] `backend\routes\categoryRoutes.js`
+- [x] `backend\routes\categoryRoutes.js`
 - [x] `backend\routes\claimRoutes.js`
-- [ ] `backend\routes\feedbackRoutes.js`
+- [x] `backend\routes\feedbackRoutes.js`
 - [x] `backend\routes\foundItemRoutes.js`
 - [x] `backend\routes\locationKnowledgeRoutes.js`
 - [x] `backend\routes\lostItemRoutes.js`
 - [x] `backend\routes\matchRoutes.js`
 - [x] `backend\routes\notificationRoutes.js`
-- [ ] `backend\routes\statsRoutes.js`
-- [ ] `backend\routes\systemSettingRoutes.js`
+- [x] `backend\routes\statsRoutes.js`
+- [x] `backend\routes\systemSettingRoutes.js`
 - [x] `backend\routes\userRoutes.js`
-- [ ] `backend\scripts\bootstrapAdmin.js`
-- [ ] `backend\scripts\migrateProduction.js`
+- [x] `backend\scripts\bootstrapAdmin.js`
+- [x] `backend\scripts\migrateProduction.js`
 - [x] `backend\server.js`
 - [x] `backend\services\accountService.js`
 - [x] `backend\services\aiMatchingService.js`
 - [x] `backend\services\aiProviderService.js`
-- [ ] `backend\services\chatSearchService.js`
-- [ ] `backend\services\claimRiskPolicy.js`
-- [ ] `backend\services\claimRiskService.js`
-- [ ] `backend\services\claimVerificationService.js`
+- [x] `backend\services\chatSearchService.js`
+- [x] `backend\services\claimRiskPolicy.js`
+- [x] `backend\services\claimRiskService.js`
+- [x] `backend\services\claimVerificationService.js`
 - [x] `backend\services\cloudinaryService.js`
-- [ ] `backend\services\conversationalReportService.js`
-- [ ] `backend\services\emailService.js`
+- [x] `backend\services\conversationalReportService.js`
+- [x] `backend\services\emailService.js`
 - [x] `backend\services\imageAnalysisService.js`
 - [x] `backend\services\imageComparisonService.js`
 - [x] `backend\services\imagePrivacyService.js`
@@ -190,27 +190,27 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `backend\services\matchScoringService.js`
 - [x] `backend\services\notificationPreferenceService.js`
 - [x] `backend\services\notificationService.js`
-- [ ] `backend\services\operationalIntelligenceService.js`
+- [x] `backend\services\operationalIntelligenceService.js`
 - [x] `backend\services\outboxService.js`
-- [ ] `backend\services\reportIntelligenceService.js`
-- [ ] `backend\services\reportQualityService.js`
+- [x] `backend\services\reportIntelligenceService.js`
+- [x] `backend\services\reportQualityService.js`
 - [x] `backend\services\sessionService.js`
-- [ ] `backend\services\workflowEmailService.js`
-- [ ] `backend\utils\apiError.js`
-- [ ] `backend\utils\apiResponse.js`
-- [ ] `backend\utils\asyncHandler.js`
+- [x] `backend\services\workflowEmailService.js`
+- [x] `backend\utils\apiError.js`
+- [x] `backend\utils\apiResponse.js`
+- [x] `backend\utils\asyncHandler.js`
 - [x] `backend\utils\cookies.js`
-- [ ] `backend\utils\pagination.js`
-- [ ] `backend\utils\security.js`
+- [x] `backend\utils\pagination.js`
+- [x] `backend\utils\security.js`
 - [x] `backend\utils\serializers.js`
 - [x] `backend\utils\validators.js`
-- [ ] `frontend/public\sw.js`
+- [x] `frontend/public\sw.js`
 - [x] `frontend/src\App.jsx`
 - [ ] `frontend/src\components\admin\AdminReportModeration.jsx`
-- [ ] `frontend/src\components\cards\ClaimCard.jsx`
-- [ ] `frontend/src\components\cards\ItemCard.jsx`
-- [ ] `frontend/src\components\cards\MatchCard.jsx`
-- [ ] `frontend/src\components\cards\NotificationCard.jsx`
+- [x] `frontend/src\components\cards\ClaimCard.jsx`
+- [x] `frontend/src\components\cards\ItemCard.jsx`
+- [x] `frontend/src\components\cards\MatchCard.jsx`
+- [x] `frontend/src\components\cards\NotificationCard.jsx`
 - [ ] `frontend/src\components\cards\StatCard.jsx`
 - [ ] `frontend/src\components\charts\DashboardChart.jsx`
 - [ ] `frontend/src\components\charts\MonthlyReportsChart.jsx`
@@ -218,32 +218,32 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\components\common\AccessibilityPreferences.jsx`
 - [x] `frontend/src\components\common\AIChatbot.jsx`
 - [ ] `frontend/src\components\common\AILoadingToast.jsx`
-- [ ] `frontend/src\components\common\AISuggestionReview.jsx`
-- [ ] `frontend/src\components\common\Button.jsx`
-- [ ] `frontend/src\components\common\ClaimModal.jsx`
-- [ ] `frontend/src\components\common\ConfirmDialog.jsx`
+- [x] `frontend/src\components\common\AISuggestionReview.jsx`
+- [x] `frontend/src\components\common\Button.jsx`
+- [x] `frontend/src\components\common\ClaimModal.jsx`
+- [x] `frontend/src\components\common\ConfirmDialog.jsx`
 - [ ] `frontend/src\components\common\CreatableCategorySelect.jsx`
 - [ ] `frontend/src\components\common\EmptyState.jsx`
-- [ ] `frontend/src\components\common\FeedbackModal.jsx`
-- [ ] `frontend/src\components\common\ImagePrivacyReview.jsx`
+- [x] `frontend/src\components\common\FeedbackModal.jsx`
+- [x] `frontend/src\components\common\ImagePrivacyReview.jsx`
 - [x] `frontend/src\components\common\ImageUpload.jsx`
-- [ ] `frontend/src\components\common\Input.jsx`
+- [x] `frontend/src\components\common\Input.jsx`
 - [ ] `frontend/src\components\common\ItemAttributeFields.jsx`
 - [x] `frontend/src\components\common\ItemEvidenceSummary.jsx`
 - [ ] `frontend/src\components\common\LanguageSwitcher.jsx`
 - [ ] `frontend/src\components\common\Loader.jsx`
 - [ ] `frontend/src\components\common\LocationAssistant.jsx`
 - [x] `frontend/src\components\common\MatchExplanation.jsx`
-- [ ] `frontend/src\components\common\Modal.jsx`
-- [ ] `frontend/src\components\common\Pagination.jsx`
+- [x] `frontend/src\components\common\Modal.jsx`
+- [x] `frontend/src\components\common\Pagination.jsx`
 - [x] `frontend/src\components\common\ReportItemWizard.jsx`
 - [ ] `frontend/src\components\common\ScrollToTopButton.jsx`
-- [ ] `frontend/src\components\common\SearchFilter.jsx`
-- [ ] `frontend/src\components\common\Select.jsx`
+- [x] `frontend/src\components\common\SearchFilter.jsx`
+- [x] `frontend/src\components\common\Select.jsx`
 - [ ] `frontend/src\components\common\SpaceBackground.jsx`
 - [ ] `frontend/src\components\common\StatusBadge.jsx`
-- [ ] `frontend/src\components\common\Textarea.jsx`
-- [ ] `frontend/src\components\common\WorkflowTimeline.jsx`
+- [x] `frontend/src\components\common\Textarea.jsx`
+- [x] `frontend/src\components\common\WorkflowTimeline.jsx`
 - [ ] `frontend/src\components\layout\AdminLayout.jsx`
 - [ ] `frontend/src\components\layout\DashboardLayout.jsx`
 - [ ] `frontend/src\components\layout\Footer.jsx`
@@ -253,8 +253,8 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\components\layout\Sidebar.jsx`
 - [ ] `frontend/src\components\modals\NotificationPreferencesModal.jsx`
 - [ ] `frontend/src\components\modals\ProfileCompletionModal.jsx`
-- [ ] `frontend/src\hooks\useAuth.js`
-- [ ] `frontend/src\hooks\useDebounce.js`
+- [x] `frontend/src\hooks\useAuth.js`
+- [x] `frontend/src\hooks\useDebounce.js`
 - [x] `frontend/src\hooks\useSocket.js`
 - [ ] `frontend/src\i18n\adminEvidenceTranslations.js`
 - [ ] `frontend/src\i18n\adminManagementTranslations.js`
@@ -283,14 +283,14 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\pages\public\Contact.jsx`
 - [ ] `frontend/src\pages\public\ForgotPassword.jsx`
 - [x] `frontend/src\pages\public\FoundItemDetail.jsx`
-- [ ] `frontend/src\pages\public\FoundItems.jsx`
+- [x] `frontend/src\pages\public\FoundItems.jsx`
 - [ ] `frontend/src\pages\public\Home.jsx`
 - [x] `frontend/src\pages\public\Login.jsx`
 - [x] `frontend/src\pages\public\LostItemDetail.jsx`
-- [ ] `frontend/src\pages\public\LostItems.jsx`
+- [x] `frontend/src\pages\public\LostItems.jsx`
 - [ ] `frontend/src\pages\public\Register.jsx`
 - [ ] `frontend/src\pages\public\ResetPassword.jsx`
-- [ ] `frontend/src\pages\public\SearchItems.jsx`
+- [x] `frontend/src\pages\public\SearchItems.jsx`
 - [ ] `frontend/src\pages\public\VerifyEmail.jsx`
 - [ ] `frontend/src\pages\user\Dashboard.jsx`
 - [ ] `frontend/src\pages\user\EditFoundItem.jsx`
@@ -303,25 +303,25 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\pages\user\Profile.jsx`
 - [ ] `frontend/src\pages\user\ReportFound.jsx`
 - [ ] `frontend/src\pages\user\ReportLost.jsx`
-- [ ] `frontend/src\redux\slices\adminSlice.js`
+- [x] `frontend/src\redux\slices\adminSlice.js`
 - [x] `frontend/src\redux\slices\authSlice.js`
-- [ ] `frontend/src\redux\slices\categorySlice.js`
-- [ ] `frontend/src\redux\slices\claimSlice.js`
-- [ ] `frontend/src\redux\slices\foundItemSlice.js`
-- [ ] `frontend/src\redux\slices\lostItemSlice.js`
+- [x] `frontend/src\redux\slices\categorySlice.js`
+- [x] `frontend/src\redux\slices\claimSlice.js`
+- [x] `frontend/src\redux\slices\foundItemSlice.js`
+- [x] `frontend/src\redux\slices\lostItemSlice.js`
 - [ ] `frontend/src\redux\slices\matchSlice.js`
 - [ ] `frontend/src\redux\slices\notificationSlice.js`
 - [ ] `frontend/src\redux\slices\themeSlice.js`
-- [ ] `frontend/src\redux\store.js`
-- [ ] `frontend/src\routes\AdminRoute.jsx`
-- [ ] `frontend/src\routes\ProtectedRoute.jsx`
-- [ ] `frontend/src\services\adminService.js`
-- [ ] `frontend/src\services\aiFeedbackService.js`
-- [ ] `frontend/src\services\aiService.js`
+- [x] `frontend/src\redux\store.js`
+- [x] `frontend/src\routes\AdminRoute.jsx`
+- [x] `frontend/src\routes\ProtectedRoute.jsx`
+- [x] `frontend/src\services\adminService.js`
+- [x] `frontend/src\services\aiFeedbackService.js`
+- [x] `frontend/src\services\aiService.js`
 - [x] `frontend/src\services\api.js`
 - [x] `frontend/src\services\authService.js`
-- [ ] `frontend/src\services\categoryService.js`
-- [ ] `frontend/src\services\claimService.js`
+- [x] `frontend/src\services\categoryService.js`
+- [x] `frontend/src\services\claimService.js`
 - [ ] `frontend/src\services\feedbackService.js`
 - [ ] `frontend/src\services\foundItemService.js`
 - [ ] `frontend/src\services\locationKnowledgeService.js`
@@ -331,17 +331,17 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\services\settingService.js`
 - [x] `frontend/src\services\socketService.js`
 - [ ] `frontend/src\services\statsService.js`
-- [ ] `frontend/src\utils\accessibilityPreferences.js`
+- [x] `frontend/src\utils\accessibilityPreferences.js`
 - [x] `frontend/src\utils\assistantHistory.js`
-- [ ] `frontend/src\utils\constants.js`
-- [ ] `frontend/src\utils\formatDate.js`
-- [ ] `frontend/src\utils\helpers.js`
-- [ ] `frontend/src\utils\imageRedaction.js`
-- [ ] `frontend/src\utils\imageTransform.js`
+- [x] `frontend/src\utils\constants.js`
+- [x] `frontend/src\utils\formatDate.js`
+- [x] `frontend/src\utils\helpers.js`
+- [x] `frontend/src\utils\imageRedaction.js`
+- [x] `frontend/src\utils\imageTransform.js`
 - [x] `frontend/src\utils\internalNavigation.js`
-- [ ] `frontend/src\utils\lazyWithRetry.js`
-- [ ] `frontend/src\utils\pushNotifications.js`
-- [ ] `frontend/src\utils\savedSearches.js`
+- [x] `frontend/src\utils\lazyWithRetry.js`
+- [x] `frontend/src\utils\pushNotifications.js`
+- [x] `frontend/src\utils\savedSearches.js`
 - [ ] `frontend/src\utils\validators.js`
 
 ## Reviewed privileged surfaces outside the application-code checklist

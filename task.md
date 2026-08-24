@@ -30,15 +30,15 @@
 
 Current stance: the exact source revision, Railway/Vercel routing, core live auth/privacy/readiness/realtime paths, and bounded chat/storage provider probes are verified. Optional AI remains disabled, vision is not configured, and institution-controlled delivery, recovery, UAT, accessibility and approval gates remain pending; this is a hardened release candidate, not an institutionally certified production release.
 
-## 2026-08-24 repository-wide security/performance audit (`ecf54c1`)
+## 2026-08-24 repository-wide security/performance audit (started `ecf54c1`; current reviewed base `e5f410d` plus tracked worktree delta)
 
 - [x] Phase 1: Persist repository-scoped threat model
 - [/] Phase 2: Finding discovery
-  - [/] Freeze the latest target and checkpoint per-scan artifacts
-  - [ ] Save runtime inventory
-  - [ ] Save exhaustive in-scope file checklist
-  - [ ] Save high-impact coverage ledger
-  - [ ] Fully read and review every checklist file
+  - [/] Freeze the latest target and checkpoint per-scan artifacts (source is changing during audit; every delta is tracked)
+  - [x] Save runtime inventory
+  - [x] Save exhaustive in-scope file checklist
+  - [x] Save high-impact coverage ledger
+  - [/] Fully read and review every checklist file (124/242 complete at last checkpoint)
 - [ ] Phase 3: Validate every candidate and close every ledger row
 - [ ] Phase 4: Attack-path and severity analysis
 - [ ] Phase 5: Security/performance verification and final report

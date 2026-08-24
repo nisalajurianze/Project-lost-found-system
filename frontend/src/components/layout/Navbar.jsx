@@ -89,10 +89,11 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
     if (notification.link) return toSafeInternalPath(notification.link, null);
     if (notification.relatedItem) {
       const { itemType, itemId } = notification.relatedItem;
+      const targetId = typeof itemId === 'object' && itemId !== null ? (itemId._id || itemId.id) : itemId;
       if (itemType === 'Match') return '/dashboard/my-matches';
-      if (itemType === 'LostItem') return `/lost-items/${itemId}`;
-      if (itemType === 'FoundItem') return `/found-items/${itemId}`;
       if (itemType === 'ClaimRequest') return '/dashboard/claims';
+      if (itemType === 'LostItem' && targetId) return `/lost-items/${targetId}`;
+      if (itemType === 'FoundItem' && targetId) return `/found-items/${targetId}`;
     }
     return null;
   };

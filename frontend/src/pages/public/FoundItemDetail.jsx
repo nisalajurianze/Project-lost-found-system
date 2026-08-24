@@ -41,8 +41,10 @@ export const FoundItemDetail = () => {
   const [hasExistingClaim, setHasExistingClaim] = useState(false);
   const [isContactShared, setIsContactShared] = useState(false);
 
+  const isValidId = /^[0-9a-fA-F]{24}$/.test(String(id || ''));
+
   useEffect(() => {
-    if (isAuthenticated && id) {
+    if (isAuthenticated && isValidId) {
       import('../../services/claimService').then((module) => {
         module.default.checkClaim(id).then((data) => {
           setHasExistingClaim(data.hasClaim);
@@ -52,15 +54,17 @@ export const FoundItemDetail = () => {
         }).catch(() => {});
       });
     }
-  }, [isAuthenticated, id]);
+  }, [isAuthenticated, id, isValidId]);
 
   useEffect(() => {
-    dispatch(fetchFoundItemById(id));
+    if (isValidId) {
+      dispatch(fetchFoundItemById(id));
+    }
 
     return () => {
       dispatch(clearCurrentFoundItem());
     };
-  }, [dispatch, id]);
+  }, [dispatch, id, isValidId]);
 
   useEffect(() => {
     if (currentItem?.images && currentItem.images.length > 0) {

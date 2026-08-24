@@ -609,9 +609,9 @@ const locationSuggestionValidator = [
 ];
 
 const locationListQueryValidator = [
-  query('status').optional().isIn(locationStatuses).withMessage('Invalid location status'),
-  query('search').optional().isString().trim().isLength({ max: 180 }).withMessage('Search is too long'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('status').optional({ checkFalsy: true }).isIn(locationStatuses).withMessage('Invalid location status'),
+  query('search').optional({ checkFalsy: true }).isString().trim().isLength({ max: 180 }).withMessage('Search is too long'),
+  query('limit').optional({ checkFalsy: true }).isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
 ];
 
 const locationReviewValidator = [
@@ -625,31 +625,31 @@ const locationReviewValidator = [
 ];
 
 const deleteAccountValidator = [
-  body('password').optional().isString().isLength({ min: 1, max: 128 }).withMessage('Password is invalid'),
+  body('password').optional({ checkFalsy: true }).isString().isLength({ min: 1, max: 128 }).withMessage('Password is invalid'),
 ];
 
 const adminUserQueryValidator = [
-  query('role').optional().isIn(['user', 'admin']).withMessage('Invalid role'),
-  query('search').optional().isString().isLength({ max: 100 }).withMessage('Search is too long'),
+  query('role').optional({ checkFalsy: true }).isIn(['user', 'admin']).withMessage('Invalid role'),
+  query('search').optional({ checkFalsy: true }).isString().isLength({ max: 100 }).withMessage('Search is too long'),
   ...paginationQuery,
 ];
 
 const adminLogQueryValidator = [
-  query('adminId').optional().isMongoId().withMessage('Invalid administrator ID'),
-  query('action').optional().isString().trim().isLength({ max: 200 }).withMessage('Action is too long'),
+  query('adminId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid administrator ID'),
+  query('action').optional({ checkFalsy: true }).isString().trim().isLength({ max: 200 }).withMessage('Action is too long'),
   ...paginationQuery,
 ];
 
 const feedbackQueryValidator = [
-  query('category').optional().isIn(['general', 'bug_report', 'feature_request', 'complaint', 'praise']).withMessage('Invalid feedback category'),
-  query('rating').optional().isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
-  query('status').optional().isIn(['pending', 'reviewed', 'resolved']).withMessage('Invalid feedback status'),
+  query('category').optional({ checkFalsy: true }).isIn(['general', 'bug_report', 'feature_request', 'complaint', 'praise']).withMessage('Invalid feedback category'),
+  query('rating').optional({ checkFalsy: true }).isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+  query('status').optional({ checkFalsy: true }).isIn(['pending', 'reviewed', 'resolved']).withMessage('Invalid feedback status'),
   ...paginationQuery,
 ];
 
 const feedbackResponseValidator = [
-  body('adminResponse').optional().trim().isLength({ max: 1000 }).withMessage('Response cannot exceed 1000 characters'),
-  body('status').optional().isIn(['pending', 'reviewed', 'resolved']).withMessage('Invalid feedback status'),
+  body('adminResponse').optional({ checkFalsy: true }).trim().isLength({ max: 1000 }).withMessage('Response cannot exceed 1000 characters'),
+  body('status').optional({ checkFalsy: true }).isIn(['pending', 'reviewed', 'resolved']).withMessage('Invalid feedback status'),
 ];
 
 export {

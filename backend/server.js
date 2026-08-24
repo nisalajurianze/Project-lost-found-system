@@ -60,6 +60,7 @@ const startServer = async () => {
     hsts: { maxAge: 31_536_000, includeSubDomains: true, preload: true },
     contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] } },
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));
   app.use(cors({
     origin(origin, callback) {

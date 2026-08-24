@@ -5,6 +5,16 @@
 
 import api from './api';
 
+const cleanParams = (params = {}) => {
+  const cleaned = {};
+  for (const [key, val] of Object.entries(params)) {
+    if (val !== undefined && val !== null && val !== '') {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+};
+
 const adminService = {
   /**
    * Get compiler dashboard stats.
@@ -23,7 +33,7 @@ const adminService = {
    * Get list of users (Admin only).
    */
   getUsers: async (params = {}) => {
-    const res = await api.get('/admin/users', { params });
+    const res = await api.get('/admin/users', { params: cleanParams(params) });
     return res.data.data; // { users, pagination }
   },
 
@@ -47,7 +57,7 @@ const adminService = {
    * Get admin audit logs.
    */
   getAdminLogs: async (params = {}) => {
-    const res = await api.get('/admin/logs', { params });
+    const res = await api.get('/admin/logs', { params: cleanParams(params) });
     return res.data.data; // { logs, pagination }
   },
 

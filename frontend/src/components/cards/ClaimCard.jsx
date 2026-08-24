@@ -17,10 +17,11 @@ export const ClaimCard = ({ claim, onReview, onShareContact, onFeedback, onResol
   const { t } = useLanguage();
   const claimant = claim.claimantId;
   const targetItem = claim.foundItemId || claim.lostItemId;
+  const targetId = typeof targetItem === 'object' && targetItem !== null ? (targetItem._id || targetItem.id) : targetItem;
   const itemOwner = targetItem?.userId;
   const itemType = claim.foundItemId ? 'Found Item' : 'Lost Item';
   const itemTypeLabel = claim.foundItemId ? t('claimCard.foundItem') : t('claimCard.lostItem');
-  const itemUrl = claim.foundItemId ? `/found-items/${targetItem._id}` : `/lost-items/${targetItem._id}`;
+  const itemUrl = targetId ? (claim.foundItemId ? `/found-items/${targetId}` : `/lost-items/${targetId}`) : '#';
 
   if (!targetItem) return null;
 

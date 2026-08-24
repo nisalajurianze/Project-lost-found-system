@@ -306,7 +306,7 @@ The following files were fully read line-by-line: `frontend/src/components/commo
 - Affected locations: upload/body source `backend/controllers/aiController.js:14-20`; provider sink `backend/services/imageAnalysisService.js:132-144`; retry multiplier `backend/services/aiProviderService.js:80-105`.
 - Attacker-controlled source: an authenticated user can repeatedly upload up to the middleware's 5 MB image limit and request vision suggestions.
 - Broken control/sink: the route has authentication and the generic API limiter, but unlike public chat it has no endpoint-specific quota; a single request can consume multiple configured model/key attempts.
-- Impact: provider charges, outbound bandwidth, base64 memory amplification, and service degradation. The generic 300-per-15-minute IP limit is high for a billed vision operation and inherits the open proxy-trust/topology question in RP-01.
+- Impact: provider charges, outbound bandwidth, base64 memory amplification, and service degradation. At current HEAD the generic 1,000-per-15-minute IP limit is high for a billed vision operation and inherits the open proxy-trust/topology question in RP-01 (`backend/server.js:81-85`).
 - Closest controls/counterevidence: 5 MB upload limit, magic-byte checks, 2–30 second provider timeout, bounded attempts/circuit breaker, authentication, and global rate limiting. Provider-side quotas may further bound cost but are external and unverified.
 - Validation recommended: issue a bounded authenticated burst against a mock provider and verify endpoint quota, concurrency, attempt count, and response behavior without spending live provider credits.
 - Taxonomy: CWE-770, CWE-400.
@@ -384,6 +384,85 @@ The following files were fully read line-by-line: `frontend/src/utils/assistantH
 - Public contact rendering is client-gated to admin, owner/finder, connected participant, or a contact-shared claim (`frontend/src/pages/public/LostItemDetail.jsx:101-107,306-400`; `frontend/src/pages/public/FoundItemDetail.jsx:105-111,316-402`). The previously reviewed `itemView` serializer separately omits email/phone for outsiders, so changing client state alone does not reveal absent contact fields.
 - Notification titles/messages, item descriptions, tags, evidence values, and login errors render through React text contexts; no DOM/HTML execution sink appears in these files.
 - Remembered login email is stored only after the user selects the remember-me control (`frontend/src/pages/public/Login.jsx:26-28,54-58,132-144`); no password or token is persisted by this page.
+
+## Public search, directories, cards, and filter shard
+
+The following files were fully read line-by-line: `frontend/src/components/cards/ItemCard.jsx`, `frontend/src/pages/public/SearchItems.jsx`, `frontend/src/pages/public/LostItems.jsx`, `frontend/src/pages/public/FoundItems.jsx`, and `frontend/src/components/common/SearchFilter.jsx`.
+
+### LP-01/LP-02 validation update — Raw locations are exposed in bulk search cards
+
+- `ItemCard` selects raw `lostLocation` or `foundLocation` and renders it on every public result card (`frontend/src/components/cards/ItemCard.jsx:13-17,27-35`).
+- `SearchItems` requests both public collections in parallel when type is `both`, combines them, and renders each through `ItemCard` (`frontend/src/pages/public/SearchItems.jsx:138-159,484-506`). Each page can therefore expose up to twelve lost and twelve found raw location strings, and “Load more” supports enumeration of the full result set (`frontend/src/pages/public/SearchItems.jsx:92,194,515-520`).
+- This broadens LP-01/LP-02 from one-id detail disclosure to efficient anonymous collection-scale discovery. The found-item card does not show `storedAt`; that higher-risk custody-location field remains confined to the public detail sink already recorded.
+
+### SS-01 — Saved searches use one browser-wide key and may disclose prior users' search activity
+
+- Disposition: deferred pending full helper review and product sensitivity classification.
+- Instance: `cross-account-browser-storage:frontend/src/pages/public/SearchItems.jsx:120`
+- Affected locations: query/filter source `frontend/src/pages/public/SearchItems.jsx:97-121,161-179`; save/load wrappers `frontend/src/pages/public/SearchItems.jsx:181-193`; display sink `frontend/src/pages/public/SearchItems.jsx:449-481`; search-only root control `frontend/src/utils/savedSearches.js:1,51-71`.
+- Attacker-controlled source: a user can save free-text lost/found-item queries, categories, dates, types, and sort filters.
+- Broken control/sink: saved searches use the single localStorage key `lf-saved-searches-v1`; this page loads them without a user/account namespace and shows the saved title to any later guest or account using the same browser profile.
+- Impact: a subsequent shared-browser user can learn what item descriptions, categories, or date ranges a previous user searched, revealing lost-property activity or personal interests.
+- Closest apparent control/counterevidence: saving requires an explicit click; helper search evidence shows sanitization, a five-entry maximum, and a thirty-day TTL. Search filters ordinarily contain lower-sensitivity discovery metadata rather than account records.
+- Validation recommended: save a distinctive query as user A, switch to guest/user B in the same browser profile, and revisit `/search`.
+- Taxonomy: CWE-359, CWE-922.
+
+## Additional negative controls from this shard
+
+- URL-derived search filters pass through `sanitizeSearchFilters`; query/category lengths, type, dates, and sort values are constrained before API use (`frontend/src/pages/public/SearchItems.jsx:97-105`). The helper allowlists type/sort and caps query/category lengths; backend `buildSort` independently allowlists sort fields.
+- Search and category values render only through React text contexts. API error messages also render as text; no raw-HTML, script, or attribute execution sink exists in these five files.
+- Item detail destinations are constructed as same-origin route paths (`frontend/src/components/cards/ItemCard.jsx:13,22,35`). Image URLs reach only `<img src>` after the image optimization helper; no script/navigation sink is present here.
+- Client search page size is fixed at twelve; legacy directories request nine. Backend pagination caps direct API limits at fifty. The combined `both` view issues two bounded requests per page; no client-controlled unbounded page size or automatic infinite pagination is present.
+- Search request cleanup prevents superseded responses from updating current state (`frontend/src/pages/public/SearchItems.jsx:138-159`), limiting stale-query data mixing.
+- `LostItems` and `FoundItems` use bounded pagination/filter state, but current `App.jsx` routes redirect `/lost-items` and `/found-items` to unified `/search`; these two legacy components are not direct runtime routes at this revision.
+
+## Claim, match, notification, and workflow-card shard
+
+The following files were fully read line-by-line: `frontend/src/components/cards/ClaimCard.jsx`, `frontend/src/components/cards/MatchCard.jsx`, `frontend/src/components/cards/NotificationCard.jsx`, `frontend/src/components/common/ClaimModal.jsx`, and `frontend/src/components/common/WorkflowTimeline.jsx`.
+
+### PC-01 — Pending-claim contact sharing bypasses the approved-claim privacy boundary
+
+- Instance: `preapproval-contact-disclosure:frontend/src/components/cards/ClaimCard.jsx:147`
+- Affected locations: UI entrypoint `frontend/src/components/cards/ClaimCard.jsx:131-157`; route boundary `backend/routes/claimRoutes.js:42-43`; root workflow control `backend/controllers/claimController.js:269-275`; PII serializer control `backend/utils/serializers.js:42-44`; display sinks `frontend/src/components/cards/ClaimCard.jsx:58-79`.
+- Attacker-controlled source: an unverified claimant submits a pending claim; the reporter or an administrator can then press “Share contact” before deciding whether the ownership claim is valid.
+- Broken control/sink: the backend explicitly allows contact sharing only while the claim is pending and sets `isContactShared=true`. `claimView` treats that flag as equivalent to approved status for contact unlocking, exposing reporter email/phone to the still-unapproved claimant and claimant contact to the reporter.
+- Impact: a malicious or mistaken claimant can receive reporter PII before ownership approval, enabling direct social engineering, harassment, or off-platform contact and bypassing the intended approved-workflow boundary.
+- Closest apparent control/counterevidence: only the item reporter or an administrator may activate sharing; the action is explicit, persisted, notified, and auditable. This is not an unauthenticated IDOR, but it conflicts with the stated rule that contact details remain hidden until the approved workflow.
+- Validation recommended: submit a claim as user B, share contact as reporter A while status remains pending, then inspect B's claim response/card and public item response.
+- Taxonomy: CWE-359, CWE-284.
+
+### RW-01 — Rejected claims do not require a durable rejection reason at the API boundary
+
+- Disposition: secondary workflow/audit candidate.
+- Instance: `rejection-reason:backend/utils/validators.js:395`
+- Affected locations: UI review action `frontend/src/components/cards/ClaimCard.jsx:131-142`; timeline sink `frontend/src/components/common/WorkflowTimeline.jsx:31-47`; root validation control `backend/utils/validators.js:389-400`; persistence control `backend/controllers/claimController.js:207-210,259-263`.
+- Attacker-controlled source: an authorized reporter or administrator selects rejected and can call the API directly without a remark.
+- Broken control/sink: `adminRemark` is optional server-side and the controller persists an empty string. Email later substitutes “Insufficient evidence,” but that fallback is not stored as the actual reviewer reason.
+- Impact: rejected workflows can lack a durable explanation, weakening claimant transparency, dispute handling, and audit evidence. This does not itself grant unauthorized access.
+- Closest apparent control/counterevidence: current MyClaims UI requires a reason for rejection and the admin dialog marks its remark field required; competing/deleted/cancelled system rejections assign fixed reasons. HTML required fields are bypassable, so the API remains the authoritative gap.
+- Validation recommended: directly reject a pending claim with only `{status:"rejected"}` and inspect stored/API `adminRemark` plus notifications.
+- Taxonomy: CWE-778.
+
+### RW-02 — Match rejection has no reason field in UI, validation, or status mutation
+
+- Disposition: secondary workflow/audit candidate.
+- Instance: `rejection-reason:frontend/src/components/cards/MatchCard.jsx:141`
+- Affected locations: UI sink `frontend/src/components/cards/MatchCard.jsx:135-157`; validator root control `backend/utils/validators.js:404-410`; mutation control `backend/controllers/matchController.js:68-70`.
+- Attacker-controlled source: a participant or administrator can reject a suggested match with one click.
+- Broken control/sink: the request schema accepts only status and the reviewed UI supplies no reason. The match's existing `reason` field describes similarity, not the human rejection decision.
+- Impact: correction/audit evidence cannot distinguish false category, colour, location, privacy concern, or other rejection causes, reducing accountability and remediation quality. No authorization bypass is established.
+- Closest apparent control/counterevidence: the separate correction UI records one of three fixed AI-feedback decisions, but a user can reject without submitting any correction; backend authorization and audit logging remain separate controls.
+- Validation recommended: reject a suggested match and verify whether any immutable audit record captures a decision reason outside these paths.
+- Taxonomy: CWE-778.
+
+## Additional negative controls from this shard
+
+- Claim submission presents a five-step review, requires a target acknowledgement, proof text, and verification answers, and explicitly states the final decision is human (`frontend/src/components/common/ClaimModal.jsx:93-144,170-258`). The client evidence score is advisory and is not sent as an approval instruction.
+- Claim verification-question provider failure falls back to generic questions, but submission remains a pending claim requiring reporter/admin review; no automatic ownership approval occurs (`frontend/src/components/common/ClaimModal.jsx:58-81,132-139,244-257`).
+- Claim proof statements and images render only from claim objects supplied to authorized participant/admin views. Proof-image links use `target="_blank"` with `noopener noreferrer` (`frontend/src/components/cards/ClaimCard.jsx:81-114`); the previously reviewed `claimView`/private-asset path redacts outsider evidence and issues protected asset views.
+- Match confirmation and rejection require explicit human actions. A confirmed match only links the user to the claim flow; it does not mark ownership or complete handover (`frontend/src/components/cards/MatchCard.jsx:135-175`).
+- AI correction decisions are fixed values and are submitted deliberately to the feedback API; this component contains no automatic model-training loop (`frontend/src/components/cards/MatchCard.jsx:23-31,125-133`).
+- Claim, match, and notification text renders through React text contexts. Item/notification destinations are constructed as same-origin application paths; private proof anchors are provider URLs with opener/referrer protections. No raw-HTML/XSS sink appears in these five files.
 
 ## Claim, item, match, and media-model shard
 
@@ -753,3 +832,571 @@ The following files were fully read line-by-line: `backend/controllers/userContr
 - `deleteMultipleImages(media)` remains a non-strict post-commit operation whose result is ignored (`backend/services/accountService.js:145`), reinforcing the separately recorded provider-deletion retry candidate rather than creating a duplicate finding.
 - Refresh tokens are stored only as unique hashes, excluded from ordinary selection, tied to a user/family, and TTL-expired (`backend/models/RefreshSession.js:3-14`). Revoked session IP/user-agent metadata remains only until expiry unless account deletion removes it.
 - Notification preferences use a fixed field/category allowlist and ignore arbitrary object keys (`backend/services/notificationPreferenceService.js:1-21`). Boolean values default enabled unless exactly false; schema/validator typing remains the boundary for malformed stored/request values.
+
+## Email, workflow delivery, outbox model, and runtime-setting shard
+
+The following files were fully read line-by-line: `backend/services/emailService.js`, `backend/services/workflowEmailService.js`, `backend/models/OutboxEvent.js`, `backend/models/SystemSetting.js`, and `backend/utils/security.js`. `backend/models/Notification.js` was already checked, so `SystemSetting.js` was reviewed as directed.
+
+### ED-01 — SMTP transport does not require TLS on submission ports
+
+- Instance: `smtp-opportunistic-tls:backend/services/emailService.js:99`
+- Affected locations: configuration source `backend/services/emailService.js:94-99`; credential/message sink `backend/services/emailService.js:156`.
+- Source: deployment-selected SMTP host/port and a network attacker or misconfigured SMTP endpoint on a non-465 port.
+- Broken control/sink: `secure` is true only for port 465, with no visible `requireTLS`, minimum TLS version, or certificate policy for port 587/other submission ports before username/password and workflow mail are transmitted.
+- Impact: under a downgraded or plaintext SMTP connection, provider credentials, recipient addresses, workflow state, and security links may be exposed or modified in transit.
+- Closest control/counterevidence: port 465 uses implicit TLS; many reputable SMTP servers advertise and enforce STARTTLS, and Nodemailer may upgrade automatically. Exact provider negotiation must be validated before promotion.
+- Validation recommended: yes; test the configured provider with STARTTLS unavailable/stripped and require TLS explicitly for credentialed SMTP.
+- Taxonomy: CWE-319.
+
+### ED-02 — SMTP delivery ignores the computed idempotency key
+
+- Instance: `smtp-email-idempotency:backend/services/emailService.js:156`
+- Affected locations: idempotency root control `backend/services/emailService.js:148-154`; SMTP sink `backend/services/emailService.js:155-157`; workflow wrapper `backend/services/workflowEmailService.js:4-7`.
+- Source: retrying reminder/claim/match/account workflows after timeout, process crash, or uncertain SMTP delivery.
+- Broken control/sink: a stable key is computed and sent only to Resend; SMTP receives no idempotency control and no application-side delivery record prevents a retry from sending the same message again.
+- Impact: duplicate security/workflow emails can disclose repeated activity, confuse handover/claim actions, or amplify notification abuse and provider cost.
+- Closest control/counterevidence: most links/tokens remain identical and downstream jobs may dedupe before calling; SMTP itself has no standardized idempotency header. Exact retrying callers determine frequency and severity.
+- Validation recommended: yes; simulate an SMTP acceptance followed by caller-visible timeout and retry the same event key.
+- Taxonomy: CWE-362, CWE-664.
+
+### ED-03 — Missing provider is returned as an ordinary false result, indistinguishable from user suppression
+
+- Instance: `email-failure-semantics:backend/services/emailService.js:140`
+- Affected locations: fail-closed branch `backend/services/emailService.js:140-145`; wrapper passthrough `backend/services/workflowEmailService.js:4-7`.
+- Source: production/staging runtime without a configured email provider, or a provider initialization regression.
+- Broken control/sink: provider absence returns `false` instead of rejecting, exactly like missing-email or preference suppression in the wrapper. Await-only callers therefore fulfill successfully and can mark an event handled without delivery.
+- Impact: password/security/workflow notifications can be silently and permanently skipped while business state advances; reminder processing already treats a fulfilled false return as delivered-to-all in the reviewed job shard.
+- Closest control/counterevidence: initialization logs a warning and readiness configuration may require an email provider externally. A deliberate user opt-out should remain a non-error, but provider failure needs a distinct result or exception.
+- Validation recommended: yes; run each critical workflow with provider `none` and verify persisted delivery/retry state.
+- Taxonomy: CWE-703, CWE-755.
+
+### ED-04 — User-influenced item names reach message subjects without local control-character rejection
+
+- Disposition: deferred pending provider/library behavior and field-validator confirmation.
+- Instance: `email-header-injection:backend/services/emailService.js:48`
+- Affected locations: subject implementations `backend/services/emailService.js:47-77`; SMTP/Resend sinks `backend/services/emailService.js:118-132,153-157`.
+- Attacker-controlled source: report `itemName` values used by match, claim, contact, and reminder templates.
+- Broken control/sink: subjects interpolate `String(data.itemName)` directly without rejecting CR/LF or other header control characters. HTML body values are escaped, but that escape does not apply to email headers.
+- Impact: if the selected provider/library does not sanitize header values, a crafted item name could inject or corrupt message headers, add recipients, or manipulate mail presentation.
+- Closest control/counterevidence: Nodemailer and Resend commonly validate/encode header fields; report validators may reject control characters. Exact behavior must be demonstrated before promotion.
+- Validation recommended: yes; send CR/LF subject payloads through both configured provider modes and inspect raw messages/provider rejection.
+- Taxonomy: CWE-93.
+
+### ED-05 — Dead outbox events and their error text have no retention bound
+
+- Instance: `dead-outbox-retention:backend/models/OutboxEvent.js:20`
+- Affected locations: payload/error storage `backend/models/OutboxEvent.js:3-16`; TTL control `backend/models/OutboxEvent.js:20`.
+- Source: repeatedly failing item-processing events whose provider/parser/database error messages are copied into `lastError`.
+- Broken control/sink: the only TTL applies to `status: completed`; `dead` events persist indefinitely with item identifiers and up to 2,000 characters of error detail.
+- Impact: operational error content and account/report linkage can accumulate beyond intended retention and become exposed through administrative access, backups, or database compromise.
+- Closest control/counterevidence: payload contains only item type/id, completed events expire after 30 days, and error text is length-limited. Upstream code may sanitize errors and an external cleanup job may remove dead events; neither is enforced by this model.
+- Validation recommended: yes; inspect real `lastError` values and define a dead-letter retention/audit policy with a TTL or scrub step.
+- Taxonomy: CWE-200, CWE-459, CWE-532.
+
+### ED-06 — Public runtime setting can store arbitrary Mixed content without key-specific classification
+
+- Disposition: deferred pending controller/public-reader validation.
+- Instance: `public-mixed-setting:backend/models/SystemSetting.js:13`
+- Affected locations: arbitrary value root control `backend/models/SystemSetting.js:13-16`; public-classification control `backend/models/SystemSetting.js:23-27`.
+- Source: an administrator or migration writes an arbitrary nested value and marks the record public.
+- Broken control/sink: the schema does not bind known keys to types, size limits, secret classifications, or an allowlist of keys permitted to set `isPublic: true`.
+- Impact: a mistaken or compromised privileged write can expose credentials/internal configuration through a public settings reader, or store oversized/active content later consumed unsafely by frontend/config clients.
+- Closest control/counterevidence: `isPublic` defaults false, keys are tightly normalized, and admin routes/controllers may enforce a fixed allowlist plus response shaping. Validate those boundaries before promotion.
+- Validation recommended: yes; enumerate setting writers/readers and attempt to publish secret-like and oversized structured values.
+- Taxonomy: CWE-200, CWE-915.
+
+## Email/delivery negative controls and deferred checks
+
+- Every HTML text interpolation uses `escapeHtml`, and action links pass through URL parsing plus HTML-attribute escaping (`backend/services/emailService.js:4-20,22-32`). Raw HTML template selection is a fixed internal map, not caller-selected source code (`backend/services/emailService.js:34-79,135-148`).
+- `safeUrl` rejects non-HTTP(S) schemes, preventing `javascript:`/`data:` link injection. It still allows arbitrary external and plaintext HTTP origins (`backend/services/emailService.js:12-20`); caller URL provenance must be enumerated before treating that as a phishing or downgrade finding.
+- Resend uses a fixed HTTPS endpoint, a 15-second timeout, bearer authorization, JSON encoding, and provider idempotency headers (`backend/services/emailService.js:118-132,153-154`). Error responses are copied up to 200 characters into exception text; upstream logging should be checked for recipient/message-data disclosure, though the API key is not logged here.
+- Recipient validation only checks for `@` (`backend/services/emailService.js:138`), but expected recipients come from stored user accounts. Exact validators and Nodemailer/Resend address parsing remain the defense against malformed/multi-address input.
+- The outbox model constrains event type, item type, status, sizes, and unique dedupe keys and expires completed events after 30 days (`backend/models/OutboxEvent.js:3-20`), confirming the random-default dedupe candidate is a caller/control issue rather than a missing unique index.
+- Security helpers use CSPRNG tokens, SHA-256 token hashing, constant-time comparison for equal-length inputs, and a 12-128 character mixed-class password policy (`backend/utils/security.js:1-11`). Length short-circuiting is not material for the fixed-length hashed-token comparisons expected here.
+
+## Admin privilege and system-setting shard
+
+The following files were fully read line-by-line: `backend/controllers/adminController.js`, `backend/routes/adminRoutes.js`, `backend/middlewares/roleMiddleware.js`, `backend/models/AdminLog.js`, and `backend/controllers/systemSettingController.js`.
+
+### LA-STATUS-01 — Concurrent cross-deactivation can violate the last-admin invariant
+
+- Instance: `last-admin-write-skew:backend/controllers/adminController.js:210`
+- Affected locations: admin entrypoint `backend/routes/adminRoutes.js:30`; self-target guard `backend/controllers/adminController.js:213`; root control `backend/controllers/adminController.js:219-225`; transactional audit write `backend/controllers/adminController.js:226-233`.
+- Attacker/privileged boundary: when exactly two active administrators remain, administrator A deactivates B while B concurrently deactivates A.
+- Broken control/sink: each transaction can run `ensureNotLastActiveAdmin` against a snapshot that still contains two active admins and then update a different user document. The transactions need not conflict on a shared invariant/fence row.
+- Impact: both transactions can commit, leaving no active administrator and locking the institution out of protected operations.
+- Closest control/counterevidence: self-deactivation is blocked and the helper runs inside a transaction, but neither fact visibly serializes cross-target writes. Existing AC-01 records the same root-control family for self-service deletion; this is an independently reachable admin-status action.
+- Validation recommended: run two concurrent status requests against a replica set with exactly two admins.
+- Taxonomy: CWE-362, CWE-667.
+
+### LA-ROLE-01 — Concurrent cross-demotion can violate the last-admin invariant
+
+- Instance: `last-admin-write-skew:backend/controllers/adminController.js:247`
+- Affected locations: admin entrypoint `backend/routes/adminRoutes.js:31`; self-target guard `backend/controllers/adminController.js:250`; root control `backend/controllers/adminController.js:255-261`; audit write `backend/controllers/adminController.js:262-269`.
+- Attacker/privileged boundary: two remaining active admins concurrently demote each other to `user`.
+- Broken control/sink: both snapshot transactions can pass the last-admin count and write distinct target users without a shared serialization point.
+- Impact: zero remaining admin principals despite the intended guard.
+- Closest control/counterevidence: exact role allowlist, self-demotion prohibition, current-DB role checks, transactions, and session revocation all protect ordinary requests; they do not visibly prevent write skew across two targets.
+- Validation recommended: concurrent replica-set integration test.
+- Taxonomy: CWE-362, CWE-667.
+
+### LA-DELETE-01 — Concurrent cross-deletion is a separate last-admin action
+
+- Disposition: linked validation candidate for existing AC-01 root control.
+- Instance: `last-admin-write-skew:backend/controllers/adminController.js:288`
+- Affected locations: admin entrypoint `backend/routes/adminRoutes.js:32`; self-target guard and anonymization call `backend/controllers/adminController.js:288-295`; shared root control is `ensureNotLastActiveAdmin` inside the already reviewed account service.
+- Attacker/privileged boundary: two remaining admins concurrently request deletion of each other.
+- Broken control/sink: each request targets the other admin, bypassing only the self-target prohibition; if both account-service transactions observe two active admins, they update distinct user documents.
+- Impact: loss of every active administrator plus simultaneous account anonymization side effects.
+- Closest control/counterevidence: `anonymizeAccount` is transactional and contains the last-admin count, but the existing AC-01 analysis found no shared invariant write. Preserve this route as an independent protected action during validation.
+- Taxonomy: CWE-362, CWE-667.
+
+### AL-SETTING-01 — Security-relevant setting changes have no audit write
+
+- Instance: `missing-audit:backend/controllers/systemSettingController.js:103`
+- Affected locations: setting allowlist and sensitivity classification `backend/controllers/systemSettingController.js:53-68`; privileged mutation `backend/controllers/systemSettingController.js:103-135`; audit schema available at `backend/models/AdminLog.js:8-64`.
+- Privileged source: an authenticated administrator changes registration, email-verification, maintenance, contact, or claim-spam policy settings.
+- Broken control/sink: `updateSetting` validates and persists the change but does not create an `AdminLog`, record the actor, source IP, previous value, or new value.
+- Impact: disabling email verification/registration controls or weakening claim-abuse thresholds lacks an application audit trail, reducing incident attribution and detection of compromised-admin actions.
+- Closest control/counterevidence: supported keys and values are strictly allowlisted and bounded; route-level admin authorization is expected. These prevent arbitrary settings but do not provide accountability for valid high-impact changes.
+- Validation recommended: confirm no route-level audit middleware exists and exercise a setting change followed by admin-log retrieval.
+- Taxonomy: CWE-778.
+
+## Negative controls from admin privilege shard
+
+- Every admin route first loads the current user and enforces current `admin` role (`backend/routes/adminRoutes.js:23-25`; `backend/middlewares/roleMiddleware.js:18-31`). This includes dashboard statistics, provider health, user management, deletion, and audit logs (`backend/routes/adminRoutes.js:27-33`); provider-health data is not public through this router.
+- Status and role handlers reject self-target actions, validate exact boolean/role values, mutate inside Mongo transactions, and create the matching audit log in the same transaction (`backend/controllers/adminController.js:210-275`). Deactivation checks current user state during every subsequent authenticated request, and status/role changes revoke refresh sessions.
+- User search escapes regex metacharacters before constructing Mongo regexes and uses bounded validated input (`backend/controllers/adminController.js:193-207`), providing exact counterevidence against regex injection/ReDoS through this endpoint.
+- User API responses pass through the User model's sensitive-field `toJSON` transform and an additional `cleanUser` scrub (`backend/controllers/adminController.js:23-28,193-207`).
+- Admin logs have required actor/action/target typing and useful actor/time/target indexes (`backend/models/AdminLog.js:8-70`). No application mutation/delete endpoint for logs exists in the reviewed admin router. Database-level immutability, retention, and tamper evidence remain operational controls outside this schema.
+- Public settings use a fixed public-key set and additionally require persisted `isPublic: true`; private spam settings cannot be flipped public (`backend/controllers/systemSettingController.js:53-93,103-120`). Setting keys, types, ranges, nested contact fields, text lengths, and emails are explicitly normalized/allowlisted (`backend/controllers/systemSettingController.js:9-75`).
+
+## Provider configuration, readiness, Redis, and Socket.IO shard
+
+The following files were fully read line-by-line at current source HEAD `e5f410d`: `backend/config/cloudinary.js`, `backend/config/db.js`, `backend/config/redis.js`, `backend/config/socket.js`, and `backend/config/security.js`. `security.js` was re-reviewed despite already being checked in the original `ecf54c1` checklist because `ecf54c1..e5f410d` changed its production Redis requirement default.
+
+### CF-01 — Current HEAD changes production Redis readiness from required to opt-in
+
+- Instance: `redis-readiness-regression:backend/config/security.js:50`
+- Source/delta: `ecf54c1..e5f410d` changed `asBool(process.env.REQUIRE_REDIS, isProduction)` to `asBool(process.env.REQUIRE_REDIS, false)`; current root control is `backend/config/security.js:50,68`.
+- Supporting runtime locations: fallback/soft failure `backend/config/redis.js:16-17,54-65`; Socket.IO adapter omission `backend/config/socket.js:14-21`.
+- Broken control/sink: production no longer requires `REDIS_URL` unless an operator explicitly opts back in. A missing variable attempts plaintext localhost, catches failure, and continues with a null Redis client; Socket.IO silently starts without its cross-instance adapter.
+- Impact: production readiness can report an acceptable configuration while distributed cache, multi-instance realtime delivery, and any Redis-backed shared abuse controls are absent. If rate limiting depends on Redis, an attacker can distribute requests across instances to bypass a process-local limit; that downstream dependency must be verified.
+- Closest control/counterevidence: this file describes Redis as a cache and the application provides null/fallback behavior. Single-instance deployments may remain functionally safe, and Compose explicitly sets `REQUIRE_REDIS: "true"`. The current change may be an intentional hosting workaround rather than a security fix.
+- Validation recommended: yes; inspect readiness and rate-limit consumers, then test a multi-instance production deployment with `REDIS_URL` omitted. Classify Redis as required or explicitly document every safe degraded mode.
+- Taxonomy: CWE-693, CWE-754.
+
+### CF-02 — Invalid security-flag strings silently disable required-provider checks
+
+- Instance: `security-flag-fail-open:backend/config/security.js:1`
+- Affected locations: root parser `backend/config/security.js:1-4`; sensitive consumers `backend/config/security.js:40,50-53`; validation gates `backend/config/security.js:68-77`.
+- Source: mistyped or whitespace-padded environment values such as `REQUIRE_EMAIL_PROVIDER=tru` or `REQUIRE_MONGO_REPLICA_SET="true "`.
+- Broken control/sink: every non-empty value outside the exact true-word set becomes false; invalid values are not rejected and input is not trimmed. For `requireRedis`, `requireEmail`, `requireCloudinary`, and `requireTransactions`, false suppresses the corresponding readiness/environment requirement.
+- Impact: a configuration typo can silently start production without transaction guarantees or required providers, weakening atomic claim/account workflows, media privacy behavior, notifications, or shared security controls.
+- Closest control/counterevidence: invalid `COOKIE_SECURE` still fails the explicit production check; standard deployment values are normally exact. The fail-open effect remains for the provider/transaction requirement flags.
+- Validation recommended: yes; table-test empty, valid true/false, whitespace, and invalid strings. Security requirement flags should reject invalid non-empty values.
+- Taxonomy: CWE-20, CWE-693.
+
+### CF-03 — MongoDB production transport is not required to use TLS
+
+- Instance: `mongodb-transport:backend/config/db.js:9`
+- Affected locations: URI source/sink `backend/config/db.js:3-15`; environment control `backend/config/security.js:55-59`.
+- Source: a production `MONGO_URI` using plaintext `mongodb://` to a non-local database or explicitly disabling TLS.
+- Broken control/sink: validation checks only that a URI exists; `mongoose.connect` receives it without an application-level production TLS/scheme requirement.
+- Impact: database credentials, report/claim evidence, sessions, and administrative data may traverse the network without encryption if the selected Mongo deployment does not independently require TLS.
+- Closest control/counterevidence: `mongodb+srv` managed services normally negotiate TLS, and local Compose traffic is isolated on an internal network. Exact production URI/provider policy can suppress this candidate.
+- Validation recommended: yes; inspect the redacted scheme/TLS options of the deployed URI and require TLS for non-local production targets.
+- Taxonomy: CWE-319.
+
+### CF-04 — Redis production transport and authentication are not enforced
+
+- Instance: `redis-transport:backend/config/redis.js:17`
+- Affected locations: URI root control `backend/config/redis.js:16-20`; connect sink `backend/config/redis.js:54-64`; requirement control `backend/config/security.js:50,68`.
+- Source: a production `REDIS_URL` using plaintext `redis://`, omitting credentials, or pointing to an externally reachable service.
+- Broken control/sink: the application supplies no production check for `rediss://`, TLS options, or authenticated URL structure, and Redis is now optional by default.
+- Impact: cached user/report data and adapter traffic may be observed or modified in transit; an unauthenticated exposed Redis can enable cache poisoning, cross-instance event manipulation, or denial of service.
+- Closest control/counterevidence: Compose injects a required password and keeps Redis on an internal network; managed providers may enforce TLS/auth independently. Exact production URL/provider network policy is required for closure.
+- Validation recommended: yes; verify redacted scheme, auth presence, certificate validation, and network exposure.
+- Taxonomy: CWE-306, CWE-319.
+
+### CF-05 — Cookie-authenticated WebSocket transport lacks an origin allowRequest check
+
+- Instance: `cross-site-websocket-hijacking:backend/config/socket.js:13`
+- Affected locations: transport/origin root control `backend/config/socket.js:12-13`; cookie-auth sink `backend/config/socket.js:22-31`; private room joins `backend/config/socket.js:33-36`; production cookie default `backend/config/security.js:42-47`.
+- Attacker-controlled source: JavaScript on a malicious origin forces Socket.IO's WebSocket transport while the victim browser sends the `accessToken` cookie, especially when the production cookie uses `SameSite=None`.
+- Broken control/sink: only Socket.IO `cors.origin` is configured. Socket.IO's official 4.x documentation states CORS applies only to HTTP long-polling and WebSocket connections are not subject to CORS restrictions; it recommends `allowRequest` to restrict reachability. No equivalent origin check exists here.
+- Impact: cross-site WebSocket hijacking can authenticate as the victim and subscribe to their private room; for an administrator it also joins `admins`, allowing cross-origin receipt of private realtime notifications/events emitted elsewhere.
+- Closest control/counterevidence: the JWT is algorithm/issuer checked and the current user is loaded/active; SameSite Lax/Strict or provider-level origin enforcement could prevent cookie delivery; this file registers no inbound mutation events. Those controls narrow impact to realtime data unless other event handlers exist.
+- Validation recommended: yes; from a disallowed origin connect with `transports: ['websocket']` while authenticated and test private/admin event receipt.
+- Source reference: Socket.IO official CORS guide, https://socket.io/docs/v4/handling-cors/ (lines 70-79 in the 2026-06-18 page snapshot).
+- Taxonomy: CWE-346, CWE-352, CWE-441.
+
+### CF-06 — Socket authorization survives token expiry, logout, demotion, and account deactivation
+
+- Instance: `socket-authz-revocation:backend/config/socket.js:29`
+- Affected locations: one-time auth snapshot `backend/config/socket.js:22-31`; durable room membership `backend/config/socket.js:33-36`.
+- Attacker/user boundary: a connected user/admin whose access token expires or whose account is logged out, demoted, deactivated, or deleted after the handshake.
+- Broken control/sink: the token and current role/state are checked only during connection; the socket stores a role snapshot and remains in `user:*`/`admins` rooms with no expiry timer, session-version check, user-state revalidation, or revocation disconnect shown.
+- Impact: a demoted administrator can continue receiving admin realtime data and an inactive/deleted user can continue receiving account notifications for the lifetime of the socket, potentially beyond the 15-minute access-token TTL.
+- Closest control/counterevidence: natural disconnects/restarts eventually remove membership; HTTP actions still reauthenticate; this file exposes no inbound mutation events. Event emitters may separately disconnect/revalidate affected sockets, which requires caller validation.
+- Validation recommended: yes; hold a connection open across expiry/logout/demotion/deactivation and emit user/admin events.
+- Taxonomy: CWE-613, CWE-863.
+
+## Provider/config negative controls and deferred checks
+
+- Cloudinary initialization requires all three credentials, never logs credential values, forces secure delivery, and otherwise returns false with a clear 503-oriented warning (`backend/config/cloudinary.js:12-33`). Production validation still requires Cloudinary by default (`backend/config/security.js:52,69-71`).
+- Mongo startup has bounded retries, disables command buffering, and transaction support explicitly checks for a replica set (`backend/config/db.js:3-34`). Connection errors are logged verbatim at line 21; validate driver messages do not echo credential-bearing URIs before classifying this as secret logging.
+- Redis disables its offline queue, bounds retry attempts, uses SCAN/UNLINK rather than blocking KEYS, and treats cached JSON as data rather than code (`backend/config/redis.js:19-32,95-145`). Cache error logs include raw keys at lines 101/117; caller key provenance determines log-injection/privacy risk.
+- Socket JWT verification constrains HS256 and issuer, loads current user state at handshake, rejects missing/inactive/deleted users, and derives rooms only from the authenticated database user (`backend/config/socket.js:22-36`). No client-supplied room join or arbitrary event handler exists in this file.
+- Production environment validation enforces a 32-character access secret, secure cookies, HTTPS/non-local client origins, required transaction support, provider completeness, and a validated non-placeholder sender (`backend/config/security.js:55-78`). Exact `NODE_ENV=production` remains the prerequisite for production defaults.
+
+## Claim risk, verification, and state-transition shard
+
+The following files were fully read line-by-line: `backend/services/claimRiskPolicy.js`, `backend/services/claimRiskService.js`, `backend/services/claimVerificationService.js`, `backend/controllers/claimController.js`, and `backend/routes/claimRoutes.js`. The controller and router were already checked in the exhaustive list; they were re-read as producer/consumer context.
+
+### CR-01 — Claimants can inflate evidence strength with self-authored questions and length-only answers
+
+- Instance: `risk-triage-bypass:backend/services/claimVerificationService.js:32`
+- Affected locations: generated trusted-question source `backend/services/claimVerificationService.js:8-29`; unbound answer parser `backend/services/claimVerificationService.js:32-45`; scoring root control `backend/services/claimVerificationService.js:47-72`; risk consequence `backend/services/claimRiskPolicy.js:19-22,43-50`; request path `backend/controllers/claimController.js:79-90,120-134`.
+- Attacker-controlled source: an authenticated claimant supplies arbitrary `verificationAnswers[].question` and answer text, a long description, and optional proof files.
+- Broken control/sink: submitted questions are not bound to the server-generated question ids or wording. Evidence scoring awards up to 35 points solely for the number of answers at least ten characters long, 35 for description length, and 25 for file count. An attacker can manufacture easy questions/answers to reach `fair` or `strong`, avoiding the 25-point weak-evidence risk signal and possibly `requiresHumanReview` triage.
+- Impact: fraudulent claims can be down-ranked in the admin risk queue and displayed with overstated evidence quality, increasing human-review error risk.
+- Closest apparent control/counterevidence: every claim is still forced to `pending`; the risk policy is explicitly `advisory-only`; only the reporter or an admin can approve. No automatic approval or account sanction results from the score.
+- Validation recommended: submit three invented substantive answers and a long generic description, then compare evidence/risk output against the generated-question flow.
+- Taxonomy: CWE-345, CWE-807.
+
+### CR-02 — Proof-reuse detection compares provider ids, not image identity
+
+- Instance: `reused-proof-bypass:backend/services/claimRiskService.js:15`
+- Affected locations: exact-id reuse query `backend/services/claimRiskService.js:15-20`; fresh authenticated upload `backend/controllers/claimController.js:117-134`; risk penalty `backend/services/claimRiskPolicy.js:37-40`.
+- Attacker-controlled source: a claimant re-uploads the same proof image used by another account.
+- Broken control/sink: every new Cloudinary upload receives a new provider `publicId`, while the reuse query compares only exact `proofImages.publicId`. Re-uploading identical bytes under a fresh id bypasses the 40-point reused-proof signal.
+- Impact: copied ownership evidence is not flagged for human review, weakening fraud detection and admin triage.
+- Closest apparent control/counterevidence: evidence remains private, claims remain human-approved, and other history/frequency signals still apply. No content hash or perceptual-image comparison closes this specific reuse path in the reviewed chain.
+- Validation recommended: upload identical proof bytes from two accounts and confirm different ids plus `reusedProof: false`.
+- Taxonomy: CWE-354, CWE-807.
+
+### CR-03 — Pending and daily claim limits are count-before-create races
+
+- Disposition: secondary abuse/resource candidate; not an automatic-approval bypass.
+- Instance: `claim-limit-race:backend/controllers/claimController.js:100`
+- Affected locations: pending count/control `backend/controllers/claimController.js:100-102`; daily count/control `backend/controllers/claimController.js:103-105`; later upload/create sinks `backend/controllers/claimController.js:117-138`.
+- Attacker-controlled source: one authenticated user submits concurrent claims for different items before any individual create becomes visible to the other count checks.
+- Broken control/sink: count and create are not atomic and have no per-user quota row/reservation. The unique indexes prevent duplicate pending claims for the same item, not multiple concurrent claims across different items.
+- Impact: configured pending/daily limits can be exceeded, producing extra private uploads, claims, admin work, email, and notification fan-out.
+- Closest apparent control/counterevidence: global authentication/rate limiting, per-item unique pending indexes, maximum upload count/size, and post-create human review constrain impact. Treat as abuse/availability unless validation demonstrates material resource exhaustion.
+- Validation recommended: concurrent multi-item creation harness.
+- Taxonomy: CWE-362, CWE-799.
+
+### CP-01 — Shared contact access is not revoked when a claim is rejected
+
+- Instance: `post-rejection-contact-disclosure:backend/controllers/claimController.js:269`
+- Affected locations: contact-share status check and mutation `backend/controllers/claimController.js:269-280`; rejection transition `backend/controllers/claimController.js:190-211`; competing-claim rejection `backend/controllers/claimController.js:233-239`; claimant read path `backend/controllers/claimController.js:183-187`; entrypoints `backend/routes/claimRoutes.js:37,40,43`.
+- Attacker-controlled/participant source: a reporter or admin shares contact while a claim is pending, then rejects that claim or approves a competing claim.
+- Broken control/sink: `isContactShared` is set true but neither direct rejection nor automatic competing-claim rejection clears it. The share operation also uses a read-then-save without a conditional `status: pending` update, so it can race a rejection and set the flag after rejection commits.
+- Impact: a rejected claimant can plausibly retain access to reporter contact details through the authorized claim-read path, contrary to the final rejection decision.
+- Closest apparent control/counterevidence: only the reporter/admin can initiate sharing, every claim read is participant/admin scoped, and contact is never shared automatically. Validate `claimView` on rejected claims to confirm whether status independently suppresses previously shared contact.
+- Validation recommended: share, reject, then fetch as claimant; repeat with concurrent share/reject requests.
+- Taxonomy: CWE-200, CWE-359, CWE-863.
+
+## Negative controls from claim-risk/verification shard
+
+- Every claim endpoint is authenticated (`backend/routes/claimRoutes.js:30-43`). List queries scope non-admins to claims they submitted or reports they own; single-claim reads require claimant, reporter, or admin participation (`backend/controllers/claimController.js:42-46,160-187`).
+- Claim creation rejects self-claims, closed/claimed/in-progress items, and mismatched match/item/claimant triples; approval revalidates the match, reciprocal item ownership, and both item states inside the transaction (`backend/controllers/claimController.js:72-77,107-115,190-232`).
+- Claim creation constructs an explicit trusted object, forces `claimantId` from the session and `status: pending`, uploads proof images as authenticated assets, and cleans them up after create failure (`backend/controllers/claimController.js:117-140`).
+- Risk output never approves a claim, bans/suspends an account, or changes ownership. `evaluateClaimRiskSignals` labels itself `advisory-only`, and all non-low/rejected-threshold cases request human review (`backend/services/claimRiskPolicy.js:42-56`).
+- Review is a human reporter/admin action. Claim, target item, reciprocal item, and match state changes occur together in a Mongo transaction; competing pending claims are rejected in that transaction (`backend/controllers/claimController.js:190-242`). Shared item writes provide a conflict point for concurrent approvals.
+- Private proof images use five-minute signed views through the existing `claimView` serializer path; outsider proof/contact fields are redacted according to previously recorded serializer evidence (`backend/controllers/claimController.js:36-46,178-187`).
+- Verification text is normalized and bounded; sensitive-secret keywords reduce evidence score and produce a removal warning (`backend/services/claimVerificationService.js:1,32-45,65-72`). This warning is advisory and does not itself remove submitted secrets.
+
+## AI-decision and platform-feedback shard
+
+The following files were fully read line-by-line: `backend/controllers/aiFeedbackController.js`, `backend/controllers/feedbackController.js`, `backend/models/AIDecisionFeedback.js`, `backend/models/Feedback.js`, `backend/routes/aiFeedbackRoutes.js`, and the short authorization context in `backend/routes/feedbackRoutes.js`. Existing validator and validation-middleware controls were re-read as consumer context.
+
+### AF-01 — AI feedback accepts unowned, nonexistent targets and claimant-supplied algorithm identity
+
+- Instance: `unbound-ai-feedback:backend/controllers/aiFeedbackController.js:10`
+- Affected locations: user input and create sink `backend/controllers/aiFeedbackController.js:10-27`; bare target reference and non-unique compound index `backend/models/AIDecisionFeedback.js:3-30`; authenticated submit route `backend/routes/aiFeedbackRoutes.js:9`.
+- Attacker-controlled source: any authenticated user submits a syntactically valid ObjectId for another user's match/image/location/report suggestion, or a nonexistent ObjectId, together with an arbitrary decision and `algorithmVersion` string.
+- Broken control/sink: submission validates only target type, ObjectId syntax, decision enum, and string lengths. It never loads the polymorphic target, proves it exists, checks the submitter is a participant/owner, derives the algorithm version from the target, or prevents duplicate decisions.
+- Impact: an attacker can manufacture or duplicate plausible-looking correction records, misattribute feedback to an arbitrary algorithm version, and create admin-review workload. If an administrator approves records without independently reopening each target, evaluation/training data integrity can be poisoned.
+- Closest control/counterevidence: every new record is forced to `pending`; only admins can list or approve it; the immutable policy says admin-approved-dataset-only; no reviewed runtime consumer in this shard automatically trains a model. Therefore this is a feedback-integrity/human-review weakness, not proof of uncontrolled automatic training.
+- Validation recommended: submit feedback for a nonexistent id, another user's target, and repeated identical tuples; then trace every approved-feedback dataset consumer before assigning final severity.
+- Taxonomy: CWE-345, CWE-639, CWE-799.
+
+## Negative controls from AI and platform feedback
+
+- AI-feedback `targetType` and `decision` are exact allowlists; ids must be 24-hex ObjectIds; free text is bounded; `submittedBy`, `source`, and initial `status` are server-derived (`backend/controllers/aiFeedbackController.js:7-27`). These controls suppress generic mass assignment and operator injection through this endpoint.
+- AI-feedback listing/review is admin-only and review status is restricted to approved/rejected (`backend/routes/aiFeedbackRoutes.js:10-11`; `backend/controllers/aiFeedbackController.js:53-62`). No automatic approval, claim decision, account suspension, face identification, or sensitive-trait inference appears in these files.
+- Platform feedback submission is authenticated, validated, explicitly mapped to the current user, and forces `pending`; the schema bounds every text/enum/rating field (`backend/routes/feedbackRoutes.js:20`; `backend/controllers/feedbackController.js:15-26`; `backend/models/Feedback.js:8-63`).
+- Platform-feedback list/respond actions are admin-only and validated (`backend/routes/feedbackRoutes.js:22-24`). Queries are built only from allowlisted scalar category/rating/status values, so no direct NoSQL operator injection is reachable through these routes.
+- Admin responses are stored as bounded text rather than rendered or executed here (`backend/controllers/feedbackController.js:59-74`; `backend/models/Feedback.js:53-57`). Frontend rendering remains the required XSS sink review.
+
+## Bootstrap, production migration, cache, error, and upload-middleware shard
+
+The following files were fully read line-by-line: `backend/scripts/bootstrapAdmin.js`, `backend/scripts/migrateProduction.js`, `backend/middlewares/cacheMiddleware.js`, `backend/middlewares/errorMiddleware.js`, and `backend/middlewares/uploadMiddleware.js`.
+
+### BM-01 — Concurrent bootstrap executions can both pass the no-active-admin guard
+
+- Disposition: privileged operational candidate.
+- Instance: `admin-bootstrap-race:backend/scripts/bootstrapAdmin.js:22`
+- Affected locations: explicit gate/environment source `backend/scripts/bootstrapAdmin.js:12-19`; root control `backend/scripts/bootstrapAdmin.js:21-27`; admin create sink `backend/scripts/bootstrapAdmin.js:29-38`.
+- Source: two authorized or accidentally duplicated bootstrap processes run concurrently with different valid admin identities before any active administrator exists.
+- Broken control/sink: active-admin count, identity-existence checks, and admin creation are separate non-transactional operations. Both processes can observe zero active admins and create independently valid administrators.
+- Impact: an unintended extra privileged account can be created without `ALLOW_ADDITIONAL_ADMIN=YES`, defeating the one-time bootstrap invariant and complicating privileged-account attribution.
+- Closest control/counterevidence: execution requires the exact confirmation flag plus a strong operator-supplied password; existing users are never silently promoted; unique email/student-id indexes stop same-identity duplication; credentials are not printed. Exploitation requires process/environment authority.
+- Validation recommended: yes; run two synchronized first-admin bootstraps against different emails and determine whether deployment orchestration guarantees singleton execution.
+- Taxonomy: CWE-362.
+
+### BM-02 — Data migration commits before security indexes are created
+
+- Instance: `migration-index-race:backend/scripts/migrateProduction.js:90`
+- Affected locations: transaction/mutation phase `backend/scripts/migrateProduction.js:62-90`; post-commit index sinks `backend/scripts/migrateProduction.js:93-106`.
+- Source: live application writes, process failure, or index-build failure after the migration transaction commits and before every `createIndexes()` completes.
+- Broken control/sink: duplicate claims and legacy data are changed transactionally, but uniqueness/security indexes are created afterward, concurrently, outside that transaction and without a visible maintenance/write lock. A live writer can recreate a duplicate before index construction, or one failed index can leave an already-mutated database with only a subset of intended constraints.
+- Impact: duplicate pending claims, missing dedupe/session/workflow indexes, inconsistent release state, or a failed deployment whose destructive data changes already committed.
+- Closest control/counterevidence: a replica set and explicit confirmation are mandatory; duplicate claims are deterministically closed; rerunning is largely idempotent. Deployment may externally stop writes and backup/rollback may be verified, but the script does not enforce or attest those conditions.
+- Validation recommended: yes; run with concurrent claim writes and fault-inject one index build. Record maintenance-mode, backup, rollback, and post-index verification evidence.
+- Taxonomy: CWE-362, CWE-664.
+
+### BM-03 — Unclassified production errors disclose their raw message to clients
+
+- Instance: `error-detail-disclosure:backend/middlewares/errorMiddleware.js:94`
+- Affected locations: raw error copy `backend/middlewares/errorMiddleware.js:21-24`; response sink `backend/middlewares/errorMiddleware.js:90-99`.
+- Attacker-controlled source: a request that reaches an unexpected database, provider, parser, filesystem, or programmer error not replaced by one of the explicit normalization branches.
+- Broken control/sink: production hides the stack but always returns `error.message`; unknown 500 errors therefore expose dependency/provider/internal diagnostic text instead of a generic message and correlation identifier.
+- Impact: clients may learn database paths/fields, provider behavior, internal hostnames, filesystem paths, configuration state, or other details useful for follow-on attacks; some dependency messages can include sensitive values.
+- Closest control/counterevidence: common Mongoose/JWT/Multer/JSON failures are normalized and stack traces/full error objects are development-only. The leak remains for every unclassified error.
+- Validation recommended: yes; trigger representative provider/database/internal failures in production mode and inspect response bodies.
+- Taxonomy: CWE-209.
+
+### BM-04 — Multipart limits do not bound aggregate request parts/fields or concurrent memory use
+
+- Instance: `multipart-memory-exhaustion:backend/middlewares/uploadMiddleware.js:36`
+- Affected locations: memory-storage sink `backend/middlewares/uploadMiddleware.js:9-10`; limit control `backend/middlewares/uploadMiddleware.js:35-43`; exported upload entrypoints `backend/middlewares/uploadMiddleware.js:89-105`.
+- Attacker-controlled source: authenticated clients submit many concurrent multipart requests, maximum-count files, or large numbers of non-file fields/parts.
+- Broken control/sink: each request can retain up to five 5-MB file buffers in process memory, while `fields`, `fieldSize`, `parts`, and header-pair limits are not explicitly bounded. File-size/count controls therefore do not cap aggregate parser work across fields or concurrency.
+- Impact: memory/CPU exhaustion and process restart, disrupting reporting, claim, authentication-adjacent, and administrative workflows.
+- Closest control/counterevidence: applicable routes authenticate before multipart parsing; variants cap files to one/three/five; global/provider rate limits may narrow concurrency. Exact route limits and proxy body caps need validation.
+- Validation recommended: yes; load-test multipart fields/parts and concurrent 25-MB uploads under production proxy limits.
+- Taxonomy: CWE-400, CWE-770.
+
+### BM-05 — Signature-only image checks do not establish a valid, bounded image
+
+- Disposition: deferred pending Cloudinary/parser behavior validation.
+- Instance: `shallow-image-validation:backend/middlewares/uploadMiddleware.js:70`
+- Affected locations: client MIME control `backend/middlewares/uploadMiddleware.js:13-33`; signature controls `backend/middlewares/uploadMiddleware.js:61-84`.
+- Attacker-controlled source: a file containing an allowed magic prefix followed by malformed, polyglot, highly compressed, or extreme-dimension content.
+- Broken control/sink: validation checks only a few leading bytes and does not decode the image, validate full structure, bound dimensions/frame count/decompressed pixels, or reject trailing active/polyglot content.
+- Impact: downstream image-provider/parser resource exhaustion or content-type confusion if the provider stores/serves the original without safe decoding/re-encoding.
+- Closest control/counterevidence: uploads are limited to 5 MB each; reviewed Cloudinary code forces `resource_type: image`, restricts delivered dimensions, and the external provider is expected to validate/decode image formats. No local native image parser executes this buffer.
+- Validation recommended: yes; submit truncated, polyglot, decompression-bomb, and extreme-dimension samples and inspect provider delivery type/content.
+- Taxonomy: CWE-20, CWE-400, CWE-434.
+
+## Bootstrap/migration/middleware negative controls
+
+- Bootstrap has no default credential: it requires explicit confirmation, operator email/password, a 14-character mixed-class password, no existing active admin unless separately confirmed, and refuses to promote an existing user (`backend/scripts/bootstrapAdmin.js:5-39`). Success logs never print credentials.
+- Migration requires an explicit confirmation after a stated verified backup and a Mongo replica set; its data rewrites run in a transaction, force contact visibility to workflow-only, remove legacy raw token fields, deterministically reject duplicate pending claims, and classify public settings from a fixed key set (`backend/scripts/migrateProduction.js:17-90`). Backup existence and rollback viability remain external evidence rather than script-enforced controls.
+- Repository search found no application call site for exported `cacheResponse` or `invalidateCache` beyond `backend/middlewares/cacheMiddleware.js` itself. Its URL-only key at line 16 would be unsafe for user/role/language-varying responses if adopted, but no current reachable cache-auth bleed instance exists; disposition suppressed/not reachable at current HEAD.
+- Cache stores only successful GET JSON bodies, does not cache response headers/cookies, degrades on Redis failure, and uses TTLs (`backend/middlewares/cacheMiddleware.js:7-53`). Raw original URLs in cache keys can create fragmentation and may expose query secrets through Redis key error logs if a future caller caches sensitive query-string routes.
+- Upload MIME and magic-byte allowlists reject non-image schemes and empty/mismatched headers; file variants cap count and per-file bytes (`backend/middlewares/uploadMiddleware.js:13-43,45-105`). These are useful controls but not aggregate/decode validation.
+- Error responses expose stacks only in development and normalize common database, JWT, Multer, and malformed-JSON cases (`backend/middlewares/errorMiddleware.js:26-88,90-99`). Development full-error logging can contain sensitive diagnostics and should remain inaccessible outside local/dev environments.
+
+## Category and public-statistics shard
+
+The following files were fully read line-by-line: `backend/controllers/categoryController.js`, `backend/routes/categoryRoutes.js`, `backend/models/Category.js`, `backend/controllers/statsController.js`, and `backend/routes/statsRoutes.js`.
+
+### CAT-AUTH-01 — Any authenticated user can mutate the global active taxonomy
+
+- Instance: `global-taxonomy-authorization:backend/routes/categoryRoutes.js:29`
+- Affected locations: entrypoint/root authorization `backend/routes/categoryRoutes.js:28-29`; provider-generated fields and create sink `backend/controllers/categoryController.js:123-145`; public consumer `backend/routes/categoryRoutes.js:25-26`.
+- Attacker-controlled source: any authenticated account submits a unique requested category name.
+- Broken control/sink: unlike create/update/delete, `/auto-create` has no admin-role check, validator, approval state, or human moderation. AI-corrected name/icon/description are immediately persisted with `isActive: true` and appear in the public taxonomy.
+- Impact: a low-privilege user can pollute or manipulate globally visible classification data, create misleading/inappropriate categories, and degrade report/search consistency for every user.
+- Closest apparent control/counterevidence: authentication, normalized unique names, schema length limits, and provider mapping to an existing category constrain duplicates/content size. The behavior is explicitly documented in the route comment and may be an intentional product feature; validate the intended governance model and UI confirmation before final severity.
+- Validation recommended: yes; invoke the endpoint as a normal user and verify immediate public visibility without admin approval.
+- Taxonomy: CWE-862, CWE-284.
+
+### CAT-DOS-01 — Auto-create exposes unbounded AI cost and cache-aggregation amplification
+
+- Instance: `ai-resource-amplification:backend/controllers/categoryController.js:124`
+- Affected locations: unvalidated request entrypoint `backend/routes/categoryRoutes.js:29`; unbounded cleaned input and growing category list `backend/controllers/categoryController.js:123-130`; provider call `backend/controllers/categoryController.js:130`; active create/cache invalidation `backend/controllers/categoryController.js:136-145`; public full-collection aggregation on cache miss `backend/controllers/categoryController.js:15-38`.
+- Attacker-controlled source: an authenticated user repeatedly supplies unique category strings, including strings up to the global body limit because this route does not use `createCategoryValidator`.
+- Broken control/sink: provider generation happens before schema length validation and receives both the unbounded requested name and the full distinct active-category list. Every successful unique create deletes the shared public cache; the next public list request runs two whole-collection group aggregations. Repeating create/list grows provider prompt input and forces recurring database work.
+- Impact: external-AI spend, database/category spam, cache churn, and aggregation load can be amplified by one authenticated account.
+- Closest apparent control/counterevidence: the global API limiter, 1 MB JSON body limit, authentication, unique index, provider/model length checks, Redis cache, and 15-minute category cache bound individual operations. There is no route-specific quota, per-user category cap, pre-provider length validation, or pending moderation state.
+- Validation recommended: measure provider calls, category growth, cache misses, and aggregation latency under repeated unique names.
+- Taxonomy: CWE-400, CWE-770, CWE-799.
+
+## Negative controls from category/statistics shard
+
+- Manual category create/update/delete routes require both authentication and current admin role, validate ids and bounded body fields, and map explicit fields rather than spreading `req.body` (`backend/routes/categoryRoutes.js:31-34`; `backend/controllers/categoryController.js:41-100`).
+- Category normalization uses NFKC, whitespace collapse, lowercase uniqueness, schema bounds, and a unique normalized-name index (`backend/models/Category.js:3-30`). Duplicate-create races are caught by the unique index (`backend/controllers/categoryController.js:41-60,136-150`).
+- Category rename and report-category updates run in one Mongo transaction (`backend/controllers/categoryController.js:63-98`). Query selectors use server-loaded category names and fixed operators, not attacker-supplied query objects; no direct NoSQL injection path exists in these files.
+- Stored category/AI strings are bounded data returned as JSON; no HTML/template/DOM execution sink exists in this backend shard. Frontend category render contexts remain the stored-XSS closure boundary.
+- Public category caching stores one globally public taxonomy/count response, not user-specific content (`backend/controllers/categoryController.js:11-38`). Category mutations invalidate that cache.
+- Public stats expose only three aggregate counts and use a fixed global public cache key with a five-minute TTL (`backend/controllers/statsController.js:8-27`; `backend/routes/statsRoutes.js:6`). No identity, location, category, contact, claim evidence, or per-user breakdown is returned.
+
+## Search, report intelligence, and aggregate advisory shard
+
+The following files were fully read line-by-line: `backend/services/chatSearchService.js`, `backend/services/conversationalReportService.js`, `backend/services/reportIntelligenceService.js`, `backend/services/reportQualityService.js`, and `backend/services/operationalIntelligenceService.js`.
+
+No standalone security candidate was promoted from this shard. The following concrete controls and boundaries were confirmed:
+
+- Search normalization treats report/query content as bounded data, expands at most 24 terms, considers at most ten concepts, and returns a fixed maximum of four explanation strings (`backend/services/chatSearchService.js:39-45,74-113,166-212`). Fuzzy matching has a small edit-distance threshold and reviewed callers bound report field lengths, suppressing a direct regex-injection or clearly unbounded algorithmic-DoS hypothesis here.
+- Follow-up context reads at most the last ten entries and returns at most 500 characters from prior user content (`backend/services/chatSearchService.js:115-128`). No database, privileged tool, or executable prompt sink appears in this deterministic service.
+- Conversational drafts are deterministic, capped to 500 source characters, advisory, and explicitly require review; inferred fields do not write a report in this service (`backend/services/conversationalReportService.js:46-84`). The privacy notice warns against secrets. Existing report-wizard review/apply behavior must remain the write-boundary control.
+- Duplicate-report lookup is explicitly scoped to `userId`, excludes deleted/archived items, reads at most 40 candidates, and returns at most ten (`backend/services/reportIntelligenceService.js:17-32`). Although its local serializer includes precise location, only an authenticated same-account caller should receive it; controller authorization remains consumer validation.
+- Report quality and duplicate scores are labelled `advisory-only`; no approval, ownership, moderation, account sanction, face identification, or sensitive-trait inference sink exists (`backend/services/reportQualityService.js:10-57`; `backend/services/reportIntelligenceService.js:35-45`).
+- Operational guidance operates on aggregate counts, withholds recommendations below 20 reports, requires cohort minimum samples, labels recommendations experimental/advisory, and explicitly rejects individual prediction/profiling semantics (`backend/services/operationalIntelligenceService.js:70-187`). Labels are length-bounded plain strings; frontend rendering remains the stored-XSS sink check.
+
+## Image-analysis/job-lock models and API primitives shard
+
+The following files were fully read line-by-line: `backend/models/ImageAnalysis.js`, `backend/models/JobLock.js`, `backend/utils/apiError.js`, `backend/utils/apiResponse.js`, and `backend/utils/asyncHandler.js`.
+
+No new standalone candidate was promoted from this shard:
+
+- Image-analysis coordinates, confidence, moderation decision, provider, and principal scalar fields are typed/bounded, and `(itemType,itemId)` is unique (`backend/models/ImageAnalysis.js:8-60`). Several string arrays lack schema-level item/count bounds, but the only runtime writer found is the previously reviewed normalization path in `imageAnalysisService`; retain producer validation as the primary resource-integrity control and cover direct model writes in tests.
+- `ImageAnalysis.imageUrl` is a stored string, not a fetch sink in this model. Previously reviewed runtime provenance derives it from the application's upload pipeline, so this schema does not independently establish SSRF.
+- Job locks have a unique name plus required owner/expiry fields (`backend/models/JobLock.js:3-7`). Previously recorded `BG-01`/`BG-02` remain service-level acquisition/lease candidates; this model adds neither an ownership bypass nor a missing uniqueness control.
+- `ApiError` carries caller-supplied messages/details and stack state, but disclosure depends on `errorMiddleware`; that sink is reviewed separately (`backend/utils/apiError.js:11-35`).
+- `ApiResponse` serializes the exact controller-supplied data object without a generic secret scrub (`backend/utils/apiResponse.js:16-33`). Sensitive-field safety therefore remains a controller/model-serializer obligation, not a defect independently exploitable through this utility.
+- `asyncHandler` consistently forwards promise rejections to Express error handling and performs no dynamic evaluation or trust-boundary transformation (`backend/utils/asyncHandler.js:14-16`).
+
+## Service worker, browser image processing, push, and saved-search shard
+
+The following files were fully read line-by-line: `frontend/public/sw.js`, `frontend/src/utils/imageRedaction.js`, `frontend/src/utils/imageTransform.js`, `frontend/src/utils/pushNotifications.js`, and `frontend/src/utils/savedSearches.js`.
+
+No new standalone candidate was promoted. Existing `MI-01` and `SS-01` remain the relevant root issues:
+
+- Push notification navigation is reduced to a same-origin path both when received and clicked, preventing an attacker-controlled notification URL from becoming an external open redirect (`frontend/public/sw.js:4-12,31-51`). Title/body are notification text fields, not HTML sinks, and are length bounded.
+- The service worker excludes all cross-origin, `/api/`, and `/socket.io/` requests from cache handling and caches only successful basic static subresources (`frontend/public/sw.js:56-73`). This suppresses a current authenticated-API cache bleed hypothesis. Static cache entries remain origin-wide and should be cleared/versioned across security-sensitive asset releases.
+- Privacy redaction normalizes/clamps at most 20 regions, decodes locally, draws the original into a fresh canvas, applies bounded pixelation regions, and re-encodes to JPEG/PNG/WebP (`frontend/src/utils/imageRedaction.js:24-42,86-142`). Canvas re-encoding removes original file metadata. If no region is supplied it deliberately returns the original file, preserving existing `MI-01`: the UI/direct-API boundary must not imply that automatic analysis guarantees redaction.
+- Crop/rotation likewise decodes locally and re-encodes through canvas without uploading or fetching attacker-chosen URLs (`frontend/src/utils/imageTransform.js:37-92`). Large decoded pixel dimensions can consume browser memory; the reviewed report/upload boundaries cap input bytes, while pixel-dimension validation remains a performance-hardening opportunity rather than a separate exploit shown here.
+- Push permission is requested only in the explicit subscription function; server keys come from the same-origin API, subscriptions are posted through the shared API client, and service-worker scope is the fixed `/sw.js` (`frontend/src/utils/pushNotifications.js:35-63`). Unsubscribe removes both browser and server registrations; partial network failure is an operational cleanup case.
+- Saved-search filters are allowlisted/length-normalized, capped to five, and expired after 30 days (`frontend/src/utils/savedSearches.js:1-18,38-48`). This confirms `SS-01` as a same-browser cross-account privacy issue from the global storage key, not injection or unbounded storage.
+
+## Frontend preference, constant, formatting, helper, and lazy-load shard
+
+The following files were fully read line-by-line: `frontend/src/utils/accessibilityPreferences.js`, `frontend/src/utils/constants.js`, `frontend/src/utils/formatDate.js`, `frontend/src/utils/helpers.js`, and `frontend/src/utils/lazyWithRetry.js`.
+
+No standalone candidate was promoted:
+
+- Accessibility preferences accept only three text scales and exact booleans, then toggle fixed dataset/class values (`frontend/src/utils/accessibilityPreferences.js:1-46`). The global localStorage key contains no account data.
+- API/socket origins are build-time operator configuration with same-origin defaults (`frontend/src/utils/constants.js:6-7`). A malicious `VITE_*` value is a deployment/supply-chain compromise, not an end-user input path; exact production bundle values belong in deployment validation.
+- Date utilities parse and format values as text without an HTML or code sink (`frontend/src/utils/formatDate.js:13-39`). Invalid-date exceptions can affect component resilience but do not establish a trust-boundary violation here.
+- Text/status/name helpers return plain strings or fixed class strings. `optimizeImageUrl` rewrites only Cloudinary upload URLs and otherwise returns the HTTPS-upgraded source (`frontend/src/utils/helpers.js:9-120`); runtime image provenance is reviewed at the API/upload serializers rather than assumed safe from this helper.
+- Lazy chunk retry recognizes fixed error patterns, stores only the current URL in session storage, allows at most one reload per URL/window, and never evaluates stored text (`frontend/src/utils/lazyWithRetry.js:3-50`). Current URLs may contain sensitive query strings, so authentication/reset routes must avoid secrets in URLs; existing token-route handling is reviewed separately.
+
+## Frontend auth hooks, route guards, debounce, and Redux root shard
+
+The following files were fully read line-by-line: `frontend/src/hooks/useAuth.js`, `frontend/src/hooks/useDebounce.js`, `frontend/src/routes/AdminRoute.jsx`, `frontend/src/routes/ProtectedRoute.jsx`, and `frontend/src/redux/store.js`.
+
+### RS-01 — Redux root has no account-bound reset for participant/private slices
+
+- Disposition: deferred pending every slice/logout reducer review.
+- Instance: `cross-account-redux-state:frontend/src/redux/store.js:17`
+- Affected locations: direct root reducer map `frontend/src/redux/store.js:17-28`; logout wrapper `frontend/src/hooks/useAuth.js:24`; auth guard state dependency `frontend/src/routes/ProtectedRoute.jsx:11-28`.
+- Source/boundary: account A loads claims, matches, notifications, reports, or admin data, logs out, and account B authenticates in the same SPA execution context.
+- Broken control/sink: the store has no root reducer that clears all account-bound slices on logout/account change. Whether sensitive state survives depends on each slice handling logout and each page replacing rather than briefly rendering prior values.
+- Impact: stale account-A data can remain in memory and be rendered or reused after account B logs in, especially if a request fails or pages render before refetch completion.
+- Closest control/counterevidence: route guards hide protected outlets while auth is false; a full reload recreates the store; individual slices may clear on logout or reset on mount. Those controls must be enumerated before promotion.
+- Validation recommended: load every private slice as A, fail/block the logout request, authenticate as B without reloading, and inspect state/UI before and after failed refetches.
+- Taxonomy: CWE-359, CWE-488.
+
+## Negative controls from auth hooks and route guards
+
+- `useAuth` exposes action creators without token storage. Its logout callback returns the dispatch promise without `.unwrap()` (`frontend/src/hooks/useAuth.js:20-28`), reinforcing existing `ST-01`: callers can treat a rejected server logout as a locally fulfilled flow unless they explicitly inspect the action.
+- Protected/admin guards depend only on Redux authentication/current-role state and are navigation controls, not security authorization (`frontend/src/routes/AdminRoute.jsx:11-27`; `frontend/src/routes/ProtectedRoute.jsx:11-28`). Reviewed backend routes independently reauthenticate/authorize privileged operations.
+- The saved redirect state comes from React Router's current in-app location object, not a caller-provided external URL in these guards (`frontend/src/routes/ProtectedRoute.jsx:13,27`). Login consumer validation remains required.
+- Debounce holds only the caller value for a bounded timer and cancels on dependency change (`frontend/src/hooks/useDebounce.js:15-28`); delay selection can affect UX/request volume but provides no trust-boundary sink.
+- Redux serializability checking is disabled for FormData (`frontend/src/redux/store.js:29-32`). This reduces development diagnostics but does not persist or expose state by itself.
+
+## Generic form control and pagination shard
+
+The following files were fully read line-by-line: `frontend/src/components/common/Button.jsx`, `frontend/src/components/common/Input.jsx`, `frontend/src/components/common/Select.jsx`, `frontend/src/components/common/Textarea.jsx`, and `frontend/src/components/common/Pagination.jsx`.
+
+No standalone security candidate was promoted:
+
+- Button variants/sizes resolve through fixed class allowlists, loading disables interaction, and content/icons render as React nodes without an HTML sink (`frontend/src/components/common/Button.jsx:8-56`). Security-critical double-submit prevention still depends on callers passing loading/disabled state.
+- Input and textarea labels, values, helper text, and errors use ordinary React rendering/native controls, so attacker text is escaped rather than interpreted as markup (`frontend/src/components/common/Input.jsx:27-62`; `frontend/src/components/common/Textarea.jsx:18-36`). Password reveal is an explicit local button and does not persist the value.
+- Select options render label/value via native React option properties; no dynamic HTML, code evaluation, or style construction exists (`frontend/src/components/common/Select.jsx:29-69`). Server allowlists remain authoritative for privilege/state fields.
+- Pagination exposes only previous/next actions and respects explicit/bounds-derived disabled state (`frontend/src/components/common/Pagination.jsx:6-20`). It does not clamp malicious programmatic `page`/`totalPages` props; existing backend `PG-01` and query validators are the trust-boundary controls.
+
+## System-settings route and pagination-helper closure shard
+
+The following files were fully read line-by-line: `backend/routes/systemSettingRoutes.js` and `backend/utils/pagination.js`.
+
+### PG-01 — Unbounded/non-finite page values can produce an invalid or unsafe database skip
+
+- Candidate surface: any controller that passes an unvalidated `req.query.page` through `paginate` before applying the returned `skip` to a database query.
+- Attacker control: `query.page` is parsed with `parseInt`, then only lower-bounded at one; it is not required to be finite, a safe integer, or below a maximum (`backend/utils/pagination.js:22-25`). A sufficiently large decimal value can therefore become an unsafe integer or `Infinity`, and multiplication can preserve/produce a non-finite `skip`.
+- Impact hypothesis: the downstream query can reject with a server error rather than a controlled 4xx/empty page, or request an excessively deep offset whose database work is disproportionate to the response. Route-level validators suppress this where present, but the shared helper does not make that invariant universal.
+- Verification needed: enumerate every `paginate` caller and confirm a strict positive bounded page validator precedes it; otherwise reproduce with very large page values and measure response/error/database behavior. Harden centrally with finite/safe-integer checks and a defensible maximum page/offset or cursor pagination.
+- Confidence: medium as a shared-helper weakness; exploitability remains caller-dependent.
+
+No settings-route authorization candidate was promoted:
+
+- `/public/:key` is the only unauthenticated route; the previously reviewed controller accepts only fixed `PUBLIC_SETTING_KEYS` and additionally queries `isPublic: true`. The dynamic private read/update routes independently require both authentication and the `admin` role (`backend/routes/systemSettingRoutes.js:12-17`). Route order also prevents `/public/:key` from being consumed by the single-segment admin route.
+- The pagination helper caps `limit` to `1..50`, defaults malformed/zero values safely, and computes fixed response metadata (`backend/utils/pagination.js:22-36`). `buildSort` maps only caller-provided allowlisted field names to numeric sort directions, suppressing direct sort-field injection (`backend/utils/pagination.js:48-71`). `parseInt` prefix acceptance is loose input semantics but does not bypass the limit cap.
+- Existing `AL-SETTING-01` remains the relevant settings mutation audit-trail candidate; these routes confirm the update is admin-only but add no audit middleware themselves.
+
+## Frontend admin, AI, category, and claim service-boundary shard
+
+The following files were fully read line-by-line: `frontend/src/services/adminService.js`, `frontend/src/services/aiFeedbackService.js`, `frontend/src/services/aiService.js`, `frontend/src/services/categoryService.js`, and `frontend/src/services/claimService.js`.
+
+No new standalone security candidate was promoted. These clients expose existing backend findings but do not introduce a second trust-boundary bypass:
+
+- All requests use the shared `api` client; none of these services reads, writes, logs, or places an access/refresh token in storage, request bodies, URLs, or JavaScript-readable headers (`frontend/src/services/adminService.js:6-58`; `frontend/src/services/aiFeedbackService.js:1-6`; `frontend/src/services/aiService.js:1-28`; `frontend/src/services/categoryService.js:6-37`; `frontend/src/services/claimService.js:6-63`). The previously reviewed shared client supplies credentialed cookie auth and CSRF headers for mutations.
+- Dynamic admin/category/claim/feedback ids and claim question parameters are interpolated without `encodeURIComponent` (`frontend/src/services/adminService.js:34,42,58`; `frontend/src/services/aiFeedbackService.js:6`; `frontend/src/services/categoryService.js:29,37`; `frontend/src/services/claimService.js:34,45,53,58,63`). Current callers supply database ids and fixed item types, while corresponding backend routes require authentication/role as applicable and reject invalid Mongo ids/enums (`backend/routes/adminRoutes.js:23-33`; `backend/routes/aiFeedbackRoutes.js:9-11`; `backend/routes/categoryRoutes.js:31-34`; `backend/routes/claimRoutes.js:30-43`). Malformed values produce route/validation failures rather than an authorization or external-URL sink; encoding remains robustness hardening.
+- Admin status/role and claim review/contact methods construct narrow request bodies (`frontend/src/services/adminService.js:33-43`; `frontend/src/services/claimService.js:44-54`). Category create/update and AI-feedback submit/review forward caller objects, but frontend allowlisting would not be a security boundary: reviewed backend validators/controllers map or allowlist fields and independently authorize admin mutations. Existing `AF-01` remains the feedback-integrity root because the submit backend fails target ownership/existence/algorithm binding, not because this wrapper forwards the payload.
+- `suggestDetailsFromImage` and `submitClaim` send only caller-provided `FormData`; browser multipart processing plus backend upload middleware provide the actual size/type boundary (`frontend/src/services/aiService.js:4-13`; `frontend/src/services/claimService.js:13-19`). Explicitly setting `Content-Type` can be adapter-sensitive but does not expose data or bypass server validation in the reviewed browser/Axios path.
+- The vision and category-auto-create calls are direct and have no client-side debounce, cancellation, or quota (`frontend/src/services/aiService.js:4-13,26-29`). Client throttling is bypassable and therefore not the missing security control; these reachable UI calls reinforce existing server-side `AI-COST-01`, `CAT-AUTH-01`, and `CAT-DOS-01`. Current generic API limiting is 1,000 requests per 15 minutes, while only AI chat has a tighter route limiter (`backend/server.js:81-85`; `backend/routes/aiRoutes.js:14-28`).
+- Service methods return backend JSON/data directly and do not catch or reformat errors. Admin responses remain admin-only, claim detail/evidence is participant/admin scoped by the reviewed backend, and AI/category responses are application data rather than HTML execution sinks. Raw unexpected backend error text remains the separately recorded `BM-03` sink; these wrappers merely propagate Axios rejection objects to their consumers.
+
+## Frontend admin/category/claim/item Redux-slice shard
+
+The following files were fully read line-by-line: `frontend/src/redux/slices/adminSlice.js`, `frontend/src/redux/slices/categorySlice.js`, `frontend/src/redux/slices/claimSlice.js`, `frontend/src/redux/slices/foundItemSlice.js`, and `frontend/src/redux/slices/lostItemSlice.js`.
+
+### RS-01 validation update — Reviewed private slices retain account data and accept late responses across logout
+
+- Disposition update: strengthened from root-level deferred hypothesis to a high-confidence cross-account state-lifecycle candidate; browser/UI reproduction is still needed to measure actual render exposure.
+- Sensitive state confirmed: admin state retains user records and audit logs (`frontend/src/redux/slices/adminSlice.js:76-86,108-111,134-137`); claim state retains lists and the selected claim, and `shareClaimContact` replaces both with the contact-sharing response (`frontend/src/redux/slices/claimSlice.js:64-72,85-101,139-142`); found/lost slices retain report lists and selected details, including mutation responses from authenticated create/update flows (`frontend/src/redux/slices/foundItemSlice.js:66-81,90-106,117-136`; `frontend/src/redux/slices/lostItemSlice.js:66-81,90-106,117-136`).
+- Broken lifecycle control: none of these four slices handles the auth logout fulfilled action or an account/principal change. Found/lost expose manual clear actions, but those actions are neither logout listeners nor automatic account-bound resets in the reviewed files (`frontend/src/redux/slices/foundItemSlice.js:75-82`; `frontend/src/redux/slices/lostItemSlice.js:75-82`). Claim can clear only `currentClaim`, not its claim list; admin exposes no reset reducer (`frontend/src/redux/slices/claimSlice.js:73-77`; `frontend/src/redux/slices/adminSlice.js:76-88`).
+- Late-response path: every pending thunk is accepted unconditionally and every fulfilled reducer writes its payload without checking `requestId`, current principal, or current authentication. A request issued by account A can therefore complete after logout/account-B login and repopulate the store even if a synchronous reset is later added only at logout (`frontend/src/redux/slices/adminSlice.js:89-142`; `frontend/src/redux/slices/claimSlice.js:78-147`; `frontend/src/redux/slices/foundItemSlice.js:83-148`; `frontend/src/redux/slices/lostItemSlice.js:83-148`).
+- Security impact: account B or a guest in the same SPA lifetime may briefly or persistently receive account-A user/audit/claim/contact/report state if the next request fails, is delayed, or the component renders cached state before replacement. The contact-sharing response makes claim state particularly sensitive.
+- Required fix/validation: implement an account-bound root reset plus cancellation/generation or principal/request ownership checks that reject late completions; reproduce A-load -> delayed request -> logout -> B-login -> release response while inspecting Redux and rendered pages. A full page reload is a mitigating user action, not a lifecycle guarantee.
+- Taxonomy: CWE-359, CWE-488.
+
+### RR-UI-01 — Out-of-order requests can overwrite the active list/detail with stale results
+
+- Source: rapid filter/page changes or navigation from entity A to B while multiple `fetch*` requests remain in flight.
+- Broken control/sink: the slices track one shared `isLoading` flag and accept all fulfilled actions. They do not store/compare the latest thunk `requestId`, abort the superseded call, or verify that a detail response still matches the active route. A slower earlier list/detail request can overwrite the newer result (`frontend/src/redux/slices/adminSlice.js:91-115,130-141`; `frontend/src/redux/slices/claimSlice.js:81-105`; `frontend/src/redux/slices/foundItemSlice.js:86-110`; `frontend/src/redux/slices/lostItemSlice.js:86-110`). Mutation completions also assign `currentClaim`/`currentItem` regardless of intervening navigation (`frontend/src/redux/slices/claimSlice.js:125-142`; `frontend/src/redux/slices/foundItemSlice.js:130-136`; `frontend/src/redux/slices/lostItemSlice.js:130-136`).
+- Impact: stale sensitive details can appear under the wrong currently selected claim/report and users can act on misleading state; shared `isLoading` can become false while another request remains active. Server authorization still controls which payloads can be obtained, so this is not a backend IDOR by itself.
+- Validation/fix: delay A after B in browser/API mocks and assert route/entity identity, list filters, and loading state. Track latest request IDs per operation, abort superseded reads, keep operation-specific pending counts, and only update `current*` when entity/request context still matches.
+- Confidence: high for deterministic stale overwrite; security severity depends on consuming pages and account-reset behavior.
+
+Counterevidence and non-findings:
+
+- Categories are public taxonomy data in the reviewed backend route/controller boundary, so category state surviving logout is not a cross-user confidentiality defect. It remains vulnerable to ordinary stale-fetch ordering, but this shard establishes no sensitive sink (`frontend/src/redux/slices/categorySlice.js:54-106`).
+- Thunks pass caller payloads to services, including FormData and upload callbacks, but Redux is not the authorization/validation boundary. Previously reviewed server validators, ownership checks, and admin-role checks must remain authoritative; no client-side payload shaping here bypasses them (`frontend/src/redux/slices/adminSlice.js:31-73`; `frontend/src/redux/slices/categorySlice.js:20-51`; `frontend/src/redux/slices/claimSlice.js:31-61`; `frontend/src/redux/slices/foundItemSlice.js:31-63`; `frontend/src/redux/slices/lostItemSlice.js:31-63`).
+- Rejections retain only `error.message` or a server response `message`, not a raw stack/object/body. User-facing consumers should still map internal failures to stable safe copy, but these reducers do not independently expose headers, tokens, or response bodies.
+
+## Frontend image-privacy, AI-suggestion, feedback, and modal shard
+
+The following files were fully read line-by-line: `frontend/src/components/common/ImagePrivacyReview.jsx`, `frontend/src/components/common/AISuggestionReview.jsx`, `frontend/src/components/common/FeedbackModal.jsx`, `frontend/src/components/common/ConfirmDialog.jsx`, and `frontend/src/components/common/Modal.jsx`.
+
+### MI-01 validation update — scanner-unavailable manual confirmation reaches the public-image sink
+
+- Reachable frontend instance: when AI image review fails, the report wizard creates a `manual-review` record (`frontend/src/components/common/ReportItemWizard.jsx:260-289`). `ImagePrivacyReview` lets the user self-confirm that file without transforming it (`frontend/src/components/common/ImagePrivacyReview.jsx:39-56`); the callback changes only the review state to `manually-reviewed` (`frontend/src/components/common/ReportItemWizard.jsx:347-352`). The step validator then treats the image as resolved and permits submission (`frontend/src/components/common/ReportItemWizard.jsx:365-375`).
+- Public sink: the resulting original `File` remains in the wizard image array and is appended to the report upload (`frontend/src/components/common/ReportItemWizard.jsx:466-477`). Lost/found controllers upload it without authenticated delivery (`backend/controllers/lostItemController.js:41,123`; `backend/controllers/foundItemController.js:41,124`), so the shared storage service returns a durable public Cloudinary URL (`backend/services/cloudinaryService.js:7-25`).
+- Impact refinement: provider/AI unavailability converts privacy scanning into a warning-and-self-attestation control. A hurried or mistaken user can publish an unredacted face, identity document, address, plate, QR code, serial identifier, or location clue. This strengthens existing `MI-01`; it is not a separate duplicate candidate.
+- Counterevidence: the fallback is explicit, explains that automatic review is unavailable, and requires one confirmation per affected file; files positively identified as `redaction-required` use a separate redaction action and cannot use this manual-confirm button (`frontend/src/components/common/ImagePrivacyReview.jsx:25-56`). Those UX controls reduce accidental publication but do not produce the required privacy-safe public derivative or secure private original.
+- Required fix/validation: make the server authoritative. Store originals as authenticated/private assets, create a privacy-safe public derivative only after server-side moderation/redaction or a separately auditable human workflow, and reject direct API/public uploads that lack that artifact. Validate with a non-sensitive synthetic marked image while the AI provider is unavailable.
+
+## Negative controls and hardening notes from this shard
+
+- AI suggestions are advisory and require an explicit per-field **Apply** or explicit **Apply all** action; the user can dismiss them, privacy warnings are shown, and the form remains editable (`frontend/src/components/common/AISuggestionReview.jsx:26-75`). No silent form overwrite or automatic claim/ownership decision occurs in this component.
+- `FeedbackModal` submits only after an explicit user action and bounds the subject/message inputs (`frontend/src/components/common/FeedbackModal.jsx:16-64`). This is ordinary product feedback, not an automatic model-training call. The separate AI-feedback backend records new submissions as `pending`, requires an authenticated admin to approve/reject them, and states an admin-approved-dataset-only policy (`backend/controllers/aiFeedbackController.js:10-33,36-63`; `backend/models/AIDecisionFeedback.js:21-26`). No uncontrolled automatic-training path was established in this shard.
+- All reviewed suggestion, warning, reason, title, and message values render through React text contexts; none uses raw HTML, script evaluation, or a caller-selected external navigation sink.
+- `Modal` implements an Escape handler, backdrop close, focus trapping, focus restoration, dialog semantics, and body-scroll restoration (`frontend/src/components/common/Modal.jsx:14-137`). `ConfirmDialog` disables action buttons while `isLoading`, but Escape/backdrop/close remain active during an in-flight action because the base modal is unaware of the busy state (`frontend/src/components/common/ConfirmDialog.jsx:13-55`). That can create confusing stale/destructive-operation UX, but no duplicate request, authorization bypass, or secret exposure was demonstrated; record it as state-integrity hardening, not a security candidate.
