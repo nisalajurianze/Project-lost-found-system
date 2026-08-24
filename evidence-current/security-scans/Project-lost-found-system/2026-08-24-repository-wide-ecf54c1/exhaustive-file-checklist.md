@@ -256,25 +256,25 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\hooks\useAuth.js`
 - [x] `frontend/src\hooks\useDebounce.js`
 - [x] `frontend/src\hooks\useSocket.js`
-- [ ] `frontend/src\i18n\adminEvidenceTranslations.js`
-- [ ] `frontend/src\i18n\adminManagementTranslations.js`
+- [x] `frontend/src\i18n\adminEvidenceTranslations.js`
+- [x] `frontend/src\i18n\adminManagementTranslations.js`
 - [x] `frontend/src\i18n\imageProcessingTranslations.js`
 - [x] `frontend/src\i18n\LanguageContext.jsx`
 - [x] `frontend/src\i18n\realtimeNotificationTranslations.js`
 - [x] `frontend/src\i18n\recoveryTranslations.js`
-- [ ] `frontend/src\i18n\translations.js`
+- [x] `frontend/src\i18n\translations.js`
 - [x] `frontend/src\i18n\uiResidualTranslations.js`
 - [x] `frontend/src\main.jsx`
-- [ ] `frontend/src\pages\admin\AdminDashboard.jsx`
-- [ ] `frontend/src\pages\admin\AdminLogs.jsx`
+- [x] `frontend/src\pages\admin\AdminDashboard.jsx`
+- [x] `frontend/src\pages\admin\AdminLogs.jsx`
 - [x] `frontend/src\pages\admin\AIFeedbackReview.jsx`
-- [ ] `frontend/src\pages\admin\Analytics.jsx`
-- [ ] `frontend/src\pages\admin\Feedback.jsx`
-- [ ] `frontend/src\pages\admin\LocationKnowledge.jsx`
-- [ ] `frontend/src\pages\admin\ManageCategories.jsx`
+- [x] `frontend/src\pages\admin\Analytics.jsx`
+- [x] `frontend/src\pages\admin\Feedback.jsx`
+- [x] `frontend/src\pages\admin\LocationKnowledge.jsx`
+- [x] `frontend/src\pages\admin\ManageCategories.jsx`
 - [x] `frontend/src\pages\admin\ManageClaims.jsx`
-- [ ] `frontend/src\pages\admin\ManageFoundItems.jsx`
-- [ ] `frontend/src\pages\admin\ManageLostItems.jsx`
+- [x] `frontend/src\pages\admin\ManageFoundItems.jsx`
+- [x] `frontend/src\pages\admin\ManageLostItems.jsx`
 - [x] `frontend/src\pages\admin\ManageMatches.jsx`
 - [x] `frontend/src\pages\admin\ManageUsers.jsx`
 - [x] `frontend/src\pages\admin\SiteSettings.jsx`
@@ -295,11 +295,11 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\pages\user\Dashboard.jsx`
 - [ ] `frontend/src\pages\user\EditFoundItem.jsx`
 - [ ] `frontend/src\pages\user\EditLostItem.jsx`
-- [ ] `frontend/src\pages\user\MyClaims.jsx`
-- [ ] `frontend/src\pages\user\MyFoundItems.jsx`
-- [ ] `frontend/src\pages\user\MyLostItems.jsx`
-- [ ] `frontend/src\pages\user\MyMatches.jsx`
-- [ ] `frontend/src\pages\user\Notifications.jsx`
+- [x] `frontend/src\pages\user\MyClaims.jsx`
+- [x] `frontend/src\pages\user\MyFoundItems.jsx`
+- [x] `frontend/src\pages\user\MyLostItems.jsx`
+- [x] `frontend/src\pages\user\MyMatches.jsx`
+- [x] `frontend/src\pages\user\Notifications.jsx`
 - [ ] `frontend/src\pages\user\Profile.jsx`
 - [ ] `frontend/src\pages\user\ReportFound.jsx`
 - [ ] `frontend/src\pages\user\ReportLost.jsx`
@@ -327,10 +327,10 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\services\locationKnowledgeService.js`
 - [x] `frontend/src\services\lostItemService.js`
 - [x] `frontend/src\services\matchService.js`
-- [ ] `frontend/src\services\notificationService.js`
-- [ ] `frontend/src\services\settingService.js`
+- [x] `frontend/src\services\notificationService.js`
+- [x] `frontend/src\services\settingService.js`
 - [x] `frontend/src\services\socketService.js`
-- [ ] `frontend/src\services\statsService.js`
+- [x] `frontend/src\services\statsService.js`
 - [x] `frontend/src\utils\accessibilityPreferences.js`
 - [x] `frontend/src\utils\assistantHistory.js`
 - [x] `frontend/src\utils\constants.js`
@@ -342,7 +342,7 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\utils\lazyWithRetry.js`
 - [x] `frontend/src\utils\pushNotifications.js`
 - [x] `frontend/src\utils\savedSearches.js`
-- [ ] `frontend/src\utils\validators.js`
+- [x] `frontend/src\utils\validators.js`
 
 ## Reviewed privileged surfaces outside the application-code checklist
 

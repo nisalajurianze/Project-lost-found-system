@@ -2,6 +2,13 @@
 
 Status: in progress. Candidates are plausible discovery items, not validated findings.
 
+## Target evolution
+
+- Discovery began at `ecf54c1`.
+- Current committed source is `e5f410d`; `backend/config/security.js` changed `requireRedis` production default from true to false and was re-reviewed as `CF-01` through `CF-06` config/socket evidence.
+- The current worktree also changes six application files. `backend/server.js` adds Helmet `crossOriginOpenerPolicy: same-origin-allow-popups`; this is a response-isolation hardening change and creates no candidate in the reviewed server path. The five frontend files are being re-reviewed as a bounded delta shard.
+- Evidence/checklist/task changes are audit artifacts. Final validation must run after application source is frozen at an exact tree.
+
 ## Reviewed shards
 
 - Backend HTTP/auth frontier: `backend/server.js`, auth route/controller, auth and CSRF middleware — fully read.
@@ -1408,6 +1415,39 @@ The following files were fully read line-by-line: `frontend/src/components/layou
 - Profile completion validates phone/student id, restricts selection to browser-declared image types, compresses toward 2 MB/1024 px, and sends an explicit FormData/object shape (`frontend/src/components/modals/ProfileCompletionModal.jsx:34-83`). On compression failure it sends the original file; backend signature/5 MB checks remain authoritative. This profile avatar path is distinct from report-image privacy redaction.
 - Admin moderation renders all report/user text through React and uses fixed image/status/date properties; no raw HTML sink exists (`frontend/src/components/admin/AdminReportModeration.jsx:70-107`). It displays exact admin-authorized location/storage data, so public `LP-01`/`LP-02` are not caused by this privileged screen.
 
+## User claims, matches, reports, and notifications page shard
+
+The following files were fully read line-by-line: `frontend/src/pages/user/MyClaims.jsx`, `frontend/src/pages/user/MyMatches.jsx`, `frontend/src/pages/user/MyFoundItems.jsx`, `frontend/src/pages/user/MyLostItems.jsx`, and `frontend/src/pages/user/Notifications.jsx`.
+
+No new root candidate was promoted; these pages provide concrete reachability for existing findings:
+
+- Claim review is a deliberate human action. The UI requires a rejection remark and submits an explicit id/status/remark object (`frontend/src/pages/user/MyClaims.jsx:60-102,180-226`), while existing `RW-01` remains the direct-API/backend validation gap. Contact sharing is a separate explicit confirmation, but it is offered before approval, reinforcing `PC-01` (`frontend/src/pages/user/MyClaims.jsx:70-79,151-165`).
+- Match confirmation/rejection is a human click, not automatic AI approval. Rejection sends no reason, reinforcing `RW-02`; backend participant/state checks remain authoritative (`frontend/src/pages/user/MyMatches.jsx:22-42,87-96`).
+- Own-report pages request a user-id-filtered list, clear list state on unmount, and use confirmation before delete (`frontend/src/pages/user/MyFoundItems.jsx:20-60,176-183`; `frontend/src/pages/user/MyLostItems.jsx:20-60,176-183`). In-flight fulfilled requests can repopulate after unmount/account change, reinforcing `RS-01`/`RR-UI-01`; backend ownership checks protect edits/deletes.
+- Notification data/actions use the user-scoped API/thunks, render through `NotificationCard`, and use fixed preference keys (`frontend/src/pages/user/Notifications.jsx:25-116,118-249`). Existing `RS-01`/`CF-06` cover stale cross-account socket/Redux delivery; this page adds no logout reset.
+- All user/report/notification values render through React, fixed routes, or native date formatting; no raw HTML or external navigation sink appears in these pages.
+
+## Admin management translations and category/report wrapper shard
+
+The following files were fully read line-by-line: `frontend/src/i18n/adminManagementTranslations.js`, `frontend/src/pages/admin/ManageCategories.jsx`, `frontend/src/pages/admin/ManageFoundItems.jsx`, and `frontend/src/pages/admin/ManageLostItems.jsx`.
+
+### TC-02 — Account closure confirmation overstates anonymization completeness
+
+- Disposition: trust/transparency candidate linked to `AC-03` and `AC-04`.
+- Instance: `unsupported-assurance:frontend/src/i18n/adminManagementTranslations.js:38`
+- Affected locations: English assertion `frontend/src/i18n/adminManagementTranslations.js:37-45`; equivalent Sinhala `:174-182`; equivalent Tamil `:311-319`.
+- Broken control: the irreversible confirmation says personal data, sessions, and private media are removed and related workflows are safely closed/archived. Discovery candidates `AC-03` and `AC-04` found claimant-evidence/workflow cleanup gaps and owned report descriptive/location data surviving user anonymization.
+- Impact: an administrator may tell a data subject that closure is privacy-complete when identifying report/workflow content remains, creating false erasure assurance and weaker manual follow-up.
+- Closest control/counterevidence: direct account identifiers, sessions, and private media may be removed as stated; some surviving report content may be intentionally retained/anonymized under policy. The UI does not distinguish erased, pseudonymized, retained, or institutionally archived data.
+- Validation recommended: execute account closure against all report/claim/media relations and build a field-level retention matrix before final wording/severity.
+- Taxonomy: CWE-451, CWE-200.
+
+## Admin management negative controls
+
+- Settings strings accurately state claim signals are human-review only and never automatically ban/suspend/approve/reject (`frontend/src/i18n/adminManagementTranslations.js:104-138,241-275,378-412`). Existing `SET-ATOMIC-01` concerns partial policy persistence, not misleading automation wording.
+- Manual category management sends explicit name/icon/description fields through Redux; backend routes require admin and validate/normalize bounds (`frontend/src/pages/admin/ManageCategories.jsx:15-65,98-106`). Text/icon/description render through React, suppressing stored-XSS in this page.
+- Found/lost admin pages are thin fixed-type wrappers over the already reviewed moderation component (`frontend/src/pages/admin/ManageFoundItems.jsx:1-4`; `frontend/src/pages/admin/ManageLostItems.jsx:1-4`). Existing `AL-REPORT-01`/`MI-02` cover their privileged mutation and media cleanup risks.
+
 ## System-settings route and pagination-helper closure shard
 
 The following files were fully read line-by-line: `backend/routes/systemSettingRoutes.js` and `backend/utils/pagination.js`.
@@ -1545,6 +1585,32 @@ The following files were fully read line-by-line: `frontend/src/pages/admin/Mana
 - User status, role, and anonymization operations each require an explicit confirmation dialog and the UI blocks self-targeting (`frontend/src/pages/admin/ManageUsers.jsx:141-191`). The dialogs do not receive an in-flight loading flag, so repeated clicks can issue idempotent duplicate mutations/audit/email work; backend current-state/transaction controls determine final authority. Record per-action loading as robustness hardening, not a separate authorization finding.
 - All user, claim, match, feedback, error, description, reason, and setting values render through React text/form contexts. Images reach only `<img src>` through the previously reviewed Cloudinary optimizer; these pages contain no raw-HTML/evaluation sink or caller-controlled external navigation.
 
+## Frontend admin dashboard, logs, analytics, feedback, and location-knowledge shard
+
+The following files were fully read line-by-line: `frontend/src/pages/admin/AdminDashboard.jsx`, `frontend/src/pages/admin/AdminLogs.jsx`, `frontend/src/pages/admin/Analytics.jsx`, `frontend/src/pages/admin/Feedback.jsx`, and `frontend/src/pages/admin/LocationKnowledge.jsx`.
+
+### LP-03 validation update — The approval UI omits the privacy-safe projection before activating restricted knowledge
+
+- Review context shown: canonical name, sensitivity, area/campus, aliases, source type/reference, current version, submitter, and last update (`frontend/src/pages/admin/LocationKnowledge.jsx:97-113`). This is useful human provenance and all status changes remain explicit administrator actions.
+- Missing decision context: although the backend record contains `approximateZone`, coordinates, parent/nearby relationships, reviewer/time, and full version history, this page does not show those fields, a previous/current diff, or the public resolver projection. It therefore gives the reviewer no way to verify that a `zone-only`/`restricted` record will expose only its safe approximate zone before activation (`backend/models/LocationKnowledge.js:21-46`; `frontend/src/pages/admin/LocationKnowledge.jsx:97-119`).
+- Activation sink: one click can mark a community record `map-source-verified`, `field-verified`, or `university-approved` with only a generated generic note (`frontend/src/pages/admin/LocationKnowledge.jsx:39-53,114-119`). The backend accepts that status, marks it active, increments history/version, and immediately refreshes the resolver (`backend/controllers/locationKnowledgeController.js:60-79`). Existing `LP-03` then returns exact canonical names because public projection has no sensitivity branch.
+- Integrity/privacy impact refinement: a mistaken or compromised administrator can promote an exact restricted/private label as institution-verified without seeing the safe public representation or evidence history, causing misleading verification claims and precise public resolver disclosure. This strengthens `LP-03`; it is not a second precision finding.
+- Required fix: enforce the approximate-zone projection server-side, show exact-versus-public previews plus history/source/reviewer/verification date, require a meaningful evidence note for stronger statuses, and consider a distinct institutional-approver permission or two-person approval for `university-approved`. Keep every status transition immutable/auditable.
+- Counterevidence: listing/review routes require the current admin role; unapproved community records are inactive; status, sensitivity, version, source, and submitter are visible; backend records reviewer/time/history. There is no automatic or AI-driven approval in this page.
+
+### Existing audit/accountability validation updates
+
+- `AdminLogs` can display action, actor name/email, target model/id, details, IP address, and timestamp with pagination (`frontend/src/pages/admin/AdminLogs.jsx:69-98`). This confirms usable evidence for the actions that actually write `AdminLog`, while existing `AL-SETTING-01` remains visible as an absence: the fixed filter list includes user, claim, and category actions but no setting change, AI-feedback review, location approval, or platform-feedback response (`frontend/src/pages/admin/AdminLogs.jsx:11-14`). Adding a label would not fix missing producer-side audit writes.
+- The log page contains no CSV/Excel/export functionality, formula construction, download, or raw-HTML sink, so export injection is not reachable here. Log strings and multiline details render through React text contexts (`frontend/src/pages/admin/AdminLogs.jsx:78-93`). The backend exposes logs only behind global admin middleware and no application mutation/delete route for `AdminLog` was found in the reviewed admin router; database-level tamper resistance and external immutable retention remain release-evidence controls.
+- Platform feedback responses can be edited and status-changed, but the page shows the original user content separately and requires a response in this UI (`frontend/src/pages/admin/Feedback.jsx:138-169`). There is no visible immutable response history or audit receipt; add response-version/audit records for institutional accountability, but no privilege bypass or public PII sink was established here.
+
+## Sensitive aggregate, PII, AI-claim, and rendering controls
+
+- Dashboard statistics, operational risk counts, AI-provider health, audit records, analytics, feedback identities/content, and location-review data are all reached through endpoints protected by authentication plus current admin role (`backend/routes/adminRoutes.js:23-33`; `backend/routes/feedbackRoutes.js:22-24`; `backend/routes/locationKnowledgeRoutes.js:16-17`). These pages do not create a guest/ordinary-user aggregate or PII sink.
+- Analytics location hotspots display exact raw bucket labels and counts, including possible low-count/single-report labels; `mergeBuckets` applies only normalization/sorting/top-eight selection, not minimum-count suppression (`frontend/src/pages/admin/Analytics.jsx:121-126`; `backend/services/operationalIntelligenceService.js:1-13`). Because administrators already have authorized report access, this was not promoted as a new cross-role disclosure. For privacy-by-design and shared screenshots/exports, prefer governed canonical zones and suppress/merge small cells. Prediction cohorts separately disclose their sample size and mark below-minimum cohorts; recommendations are labelled advisory/experimental (`frontend/src/pages/admin/Analytics.jsx:54-71,127-136`; `backend/services/operationalIntelligenceService.js:146-184`).
+- The dashboard explicitly says strong matches await humans, counts AI corrections for review, exposes manual fallback status, and does not make an ownership/claim decision (`frontend/src/pages/admin/AdminDashboard.jsx:87-123,174-190`). A health-request failure is rendered identically to fallback mode/zero metrics because `aiHealth` becomes null; distinguish “unknown/unreachable” from confirmed fallback in operational UI, but this is readiness accuracy rather than authorization.
+- User feedback subject/message/admin response, location/source/alias strings, log fields, chart/cohort labels, recommendation/brief text, and server errors render through React text nodes or chart props; none of these five pages uses `dangerouslySetInnerHTML`, HTML parsing, dynamic code, or untrusted external navigation. Feedback profile images reach only `<img src>` from the stored profile record and are visible solely to administrators (`frontend/src/pages/admin/Feedback.jsx:124-153`).
+
 ## Remaining Redux match/notification/theme/auth shard
 
 The following files were fully read line-by-line: `frontend/src/redux/slices/matchSlice.js`, `frontend/src/redux/slices/notificationSlice.js`, `frontend/src/redux/slices/themeSlice.js`, and `frontend/src/redux/slices/authSlice.js`.
@@ -1585,3 +1651,57 @@ No new standalone security candidate was promoted. Exact reachability and counte
 - Match methods use a narrow `{ status }` body, and every server match route requires authentication plus reviewed participant/admin object authorization (`frontend/src/services/matchService.js:13-33`; `backend/routes/matchRoutes.js:22-27`). No client-selected user/principal is transmitted. Match data remains subject to existing Redux account-reset/race candidate `RS-01`, not a new service-level leak.
 - `connectFoundItem` and `connectLostItem` target `POST /:id/connect` (`frontend/src/services/foundItemService.js:60-62`; `frontend/src/services/lostItemService.js:61-63`), but neither method has a runtime caller and neither backend router defines that endpoint (`backend/routes/foundItemRoutes.js:30-39`; `backend/routes/lostItemRoutes.js:30-39`). These are stale/dead client methods causing a future 404 if reintroduced, not a currently reachable security mutation.
 - All five services rely on the shared credentialed cookie/CSRF API client and contain no token/localStorage/header logging. They also propagate Axios/backend errors without sanitizing them. Consumer slices generally retain only `message`; unexpected server-message disclosure remains existing `BM-03`, not a second leak introduced by these wrappers.
+
+## Frontend notification/settings/stats, client-validator, and admin-evidence-copy shard
+
+The following files were fully read line-by-line: `frontend/src/services/notificationService.js`, `frontend/src/services/settingService.js`, `frontend/src/services/statsService.js`, `frontend/src/utils/validators.js`, and `frontend/src/i18n/adminEvidenceTranslations.js`.
+
+### EV-PRIV-01 — Admin analytics falsely assures that private addresses are excluded from hotspots
+
+- Instance: `misleading-privacy-evidence:frontend/src/i18n/adminEvidenceTranslations.js:62`.
+- Affected locations: assurance text in all languages `frontend/src/i18n/adminEvidenceTranslations.js:62,137,143`; render sink `frontend/src/pages/admin/Analytics.jsx:121-125`; raw location source/grouping `backend/controllers/adminController.js:75-84`; pass-through `backend/controllers/adminController.js:169-175` and `backend/services/operationalIntelligenceService.js:1-14,165`.
+- User-controlled source: lost/found reporters supply raw `lostLocation`/`foundLocation`; previously reviewed item flows also store sensitivity and verification metadata alongside those strings.
+- Broken control/sink: the hotspot aggregations do not filter sensitivity, verification, `needsReview`, or governed canonical ids. They group by canonical name when present and otherwise fall back directly to the raw location. Nevertheless the UI states, “Private addresses are excluded” and that labels come from governed report data.
+- Impact: exact private/restricted or unverified labels can be shown to administrators and used in operational hotspot recommendations under a false privacy/governance assurance. This can mislead privacy review, institutional evidence, or location-targeting decisions.
+- Closest controls/counterevidence: analytics is admin-only, output is aggregate counts, and only the top eight merged labels are returned. The separate historical location-cohort query does require governed verification and public/zone-only sensitivity (`backend/controllers/adminController.js:114-140`), but those controls do not apply to hotspots.
+- Validation recommended: insert isolated recent reports with a distinctive raw private address and sensitivity metadata, fetch admin stats, and verify the label appears while the exclusion notice is rendered. Apply the governed approximate-zone projection before grouping and make the copy describe the enforced rule.
+- Taxonomy: CWE-359, CWE-451.
+
+### EV-AUDIT-01 — Audit copy and filters advertise action evidence the application does not record
+
+- Instance: `misleading-audit-completeness:frontend/src/i18n/adminEvidenceTranslations.js:4`.
+- Affected locations: completeness/missing-evidence assurance and translated action labels `frontend/src/i18n/adminEvidenceTranslations.js:3-27,135-144`; advertised filters/render `frontend/src/pages/admin/AdminLogs.jsx:11-14,40-50,89-92`; actual writer inventory `backend/controllers/adminController.js:226-233,262-269` and `backend/services/accountService.js:131-139`.
+- Broken control/sink: the UI offers claim approval/rejection and category create/update/delete filters and says missing evidence is shown as “not recorded,” but repository writer enumeration produces only user activation/deactivation, role promotion/demotion, and account anonymization. Entirely missing events cannot be displayed as “not recorded”; that fallback is used only for missing fields on a returned row. Conversely `USER_ANONYMIZED` is actually recorded but has no translated filter/label entry.
+- Impact: an administrator or reviewer can infer that an empty claim/category filter proves no such action occurred, producing incomplete security/institutional audit evidence and weakening incident reconstruction. Existing `AL-SETTING-01` and `AL-REPORT-01` demonstrate the same UI cannot reveal whole missing event families.
+- Closest controls/counterevidence: recorded user status/role/anonymization events are transactionally written and unknown action strings can render through a fallback. Neither control reconciles expected privileged state changes against actual records or warns that coverage is partial.
+- Validation recommended: perform one claim review, category mutation, settings update, moderated report deletion, and account anonymization in an isolated environment; compare resulting rows and filter options. Label the view as partial until every privileged action has an enforced write and coverage test.
+- Taxonomy: CWE-778, CWE-451.
+
+## Negative controls and validator defects from this shard
+
+- `notificationService` covers in-app notification reads/mutations, not push subscription persistence. All methods use the shared cookie/CSRF client; server routes authenticate first, scope objects to the current user, validate ids/queries, and expose no client-selected recipient (`frontend/src/services/notificationService.js:6-38`; `backend/routes/notificationRoutes.js:27-39`). Existing deferred `PS-01` remains rooted in the separate push-subscription utility/backend sender, and existing `RS-01` remains the account-lifecycle privacy defect.
+- Setting keys are interpolated without URL encoding (`frontend/src/services/settingService.js:9-27`), but every runtime caller uses fixed literal keys. The reviewed controller independently allowlists keys/types/public classification; public reads require both a fixed `PUBLIC_SETTING_KEYS` member and stored `isPublic: true`. No attacker-chosen path, arbitrary public-setting read, or client-selected `isPublic` escalation survives.
+- Public stats fetch a single fixed endpoint (`frontend/src/services/statsService.js:4-6`). The reviewed producer returns only three global counts, so no identity, precise location, contact, or small-cohort disclosure is introduced by this wrapper.
+- Email, password, student-id, and phone validation is client convenience only; server validators remain authoritative. Password rules and student-id bounds align. The client deliberately accepts only Sri Lankan mobile formats while the server accepts any mobile locale, which is policy/UX drift rather than a bypass (`frontend/src/utils/validators.js:9-42`; `backend/utils/validators.js:48-71`).
+- Concrete functional/security-usability defect: `validatePassword` returns a boolean (`frontend/src/utils/validators.js:18-24`), but the profile password-change handler destructures it as `{ isValid, message }`, making `isValid` always undefined and blocking every password rotation before the API call (`frontend/src/pages/user/Profile.jsx:141-149`). Registration/reset callers correctly treat it as boolean. Direct API password change remains protected and available, so this is not an authorization bypass; fix the return contract and regression-test valid/invalid rotation flows because inability to rotate a compromised password is security-relevant usability.
+- `validateStudentId`/`validatePhone` assume string inputs and can throw on a truthy non-string (`frontend/src/utils/validators.js:31-42`), but reviewed DOM form callers supply strings and server endpoints independently type/normalize input. Record as defensive-hardening only.
+
+## Main English/Sinhala/Tamil translation corpus shard
+
+`frontend/src/i18n/translations.js` was fully read line-by-line (all 2,665 lines).
+
+### MI-01 copy validation update — privacy assurance is stronger than the manual-fallback enforcement
+
+- The English copy says every new public photo is checked and “unresolved sensitive content cannot be submitted” (`frontend/src/i18n/translations.js:914-925`), with equivalent Sinhala and Tamil assurances (`frontend/src/i18n/translations.js:1764-1775,2610-2621`). It also says original browser files are not uploaded after redaction/replacement (`frontend/src/i18n/translations.js:793-795,919-925`).
+- Countercopy does disclose that automated analysis may be unavailable and then requires a manual privacy check/self-confirmation (`frontend/src/i18n/translations.js:789,922-924`; Sinhala `:1639,1772-1774`; Tamil `:2485,2618-2620`).
+- Existing `MI-01` runtime evidence shows that this self-confirmation marks a provider-failure image resolved without producing a redacted derivative, after which the original `File` can reach the public upload. Therefore the absolute “unresolved sensitive content cannot be submitted” assurance is materially stronger than enforcement: an undetected/self-confirmed face, ID, address, QR code, card/phone number, or other sensitive region can still be submitted.
+- Disposition: strengthen existing `MI-01`, not a duplicate finding. Revise copy only alongside the root server-authoritative private-original/public-derivative control; otherwise state clearly that manual confirmation does not guarantee removal and that the selected original may become public.
+
+No additional standalone security candidate was promoted from this corpus:
+
+- AI governance copy consistently requires human decisions and describes similarity/quality scores as advisory rather than ownership proof. It explicitly rejects automatic claim approval, face identification, and sensitive-trait inference (`frontend/src/i18n/translations.js:122,172,190,211,235,253-257,431,468,500,528-552,652,669-671,863-879,903-925`; equivalent Sinhala `:1081,1131,1149,1170,1194,1212-1216,1343-1344,1389-1402,1502,1519-1521,1713-1729,1753-1775`; Tamil `:1927,1977,1995,2016,2040,2058-2062,2189-2190,2235-2248,2348,2365-2367,2559-2575,2599-2621`). These statements align with previously reviewed human-review controllers and admin-approved AI-feedback dataset states.
+- Manual search/reporting remains advertised when the assistant or quality/provider path is unavailable (`frontend/src/i18n/translations.js:584-620,789-805`; Sinhala `:1434-1470,1639-1655`; Tamil `:2280-2316,2485-2501`). No copy claims AI-provider availability as a condition for core reporting.
+- The file contains no HTML/script payloads, `javascript:`/data URLs, external URLs, API keys, bearer values, secrets, or old Vercel/Railway/Heroku/Render/OpenAI/Gemini/Anthropic hosting/provider references. Google appears only as the current Google sign-in product label; AI provider text is generic/conditional.
+- Reset/verification strings mention only a missing or expired token; no token value, storage instruction, URL template, logging instruction, or bearer transport is embedded (`frontend/src/i18n/translations.js:82-99,1041-1058,1887-1904`). Session copy correctly describes a secure cookie rather than localStorage token handling (`:29,988,1834`).
+- Placeholders such as `{name}`, `{email}`, `{error}`, `{item}`, `{title}`, `{file}`, and `{source}` are ordinary translation interpolation markers, and this corpus contains no HTML or URL sink. They remain attacker-influenced text in some consumers, so rendering must stay escaped and email-subject/error consumers must newline-normalize/map safe messages; the translation data alone does not establish XSS, navigation, or header injection.
+- Local-browser retention disclosures are present for saved searches, assistant text history, accessibility preferences, and report text drafts (`frontend/src/i18n/translations.js:498,617,634-640,808,831-833,965`; equivalent Sinhala `:1348,1467,1484-1490,1658,1681-1683,1815`; Tamil `:2194,2313,2330-2336,2504,2527-2529,2661`). Existing `SS-01`, chatbot-history, and draft cross-account findings govern whether those disclosures are sufficient; no hidden local-storage claim is introduced here.

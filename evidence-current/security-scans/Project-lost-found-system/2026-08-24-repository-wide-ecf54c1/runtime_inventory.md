@@ -1,7 +1,9 @@
 # Runtime Inventory — Smart Lost & Found
 
-- Scan target: repository-wide checkout at `ecf54c1`
-- Branch state at checkpoint: `main == origin/main`
+- Scan session started at application commit `ecf54c1`; the directory name is retained as the immutable session identifier.
+- Current committed base: `e5f410d` with `main == origin/main`. The committed application delta `ecf54c1..e5f410d` changes `backend/config/security.js` so production Redis readiness is opt-in; it was re-reviewed and recorded as `CF-01`.
+- Current uncommitted application delta under active review: `backend/server.js`, `frontend/src/components/cards/ClaimCard.jsx`, `frontend/src/components/cards/NotificationCard.jsx`, `frontend/src/components/layout/Navbar.jsx`, `frontend/src/pages/public/FoundItemDetail.jsx`, and `frontend/src/pages/public/LostItemDetail.jsx`. Evidence files and `task.md` are audit artifacts, not application target files.
+- Target rule: final validation must freeze and record one exact commit/tree after these source changes stop. Until then, discovery evidence applies to `e5f410d` plus the explicitly reviewed worktree delta and must not be described as a release certificate.
 - Threat model: `threat-model.md` in this directory
 - Primary deployment: Vite/React SPA on Vercel; Node/Express API on Railway
 
