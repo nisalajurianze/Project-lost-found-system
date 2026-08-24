@@ -47,7 +47,7 @@ export const resolveCookieSameSite = (value, production = isProduction) => {
 export const cookieSameSite = resolveCookieSameSite(process.env.COOKIE_SAME_SITE);
 export const allowBearerAuth = asBool(process.env.ALLOW_BEARER_AUTH, false);
 export const jobsEnabled = asBool(process.env.JOBS_ENABLED, true);
-export const requireRedis = asBool(process.env.REQUIRE_REDIS, isProduction);
+export const requireRedis = asBool(process.env.REQUIRE_REDIS, false);
 export const requireEmail = asBool(process.env.REQUIRE_EMAIL_PROVIDER, isProduction);
 export const requireCloudinary = asBool(process.env.REQUIRE_CLOUDINARY, isProduction);
 export const requireTransactions = asBool(process.env.REQUIRE_MONGO_REPLICA_SET, isProduction);

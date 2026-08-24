@@ -106,91 +106,92 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `backend\config\redis.js`
 - [x] `backend\config\security.js`
 - [ ] `backend\config\socket.js`
+- [x] `backend\data\seuslLocations.js`
 - [ ] `backend\controllers\adminController.js`
-- [ ] `backend\controllers\aiChatController.js`
-- [ ] `backend\controllers\aiController.js`
+- [x] `backend\controllers\aiChatController.js`
+- [x] `backend\controllers\aiController.js`
 - [ ] `backend\controllers\aiFeedbackController.js`
 - [x] `backend\controllers\authController.js`
 - [ ] `backend\controllers\categoryController.js`
 - [x] `backend\controllers\claimController.js`
 - [ ] `backend\controllers\feedbackController.js`
-- [ ] `backend\controllers\foundItemController.js`
-- [ ] `backend\controllers\locationKnowledgeController.js`
-- [ ] `backend\controllers\lostItemController.js`
-- [ ] `backend\controllers\matchController.js`
-- [ ] `backend\controllers\notificationController.js`
+- [x] `backend\controllers\foundItemController.js`
+- [x] `backend\controllers\locationKnowledgeController.js`
+- [x] `backend\controllers\lostItemController.js`
+- [x] `backend\controllers\matchController.js`
+- [x] `backend\controllers\notificationController.js`
 - [ ] `backend\controllers\statsController.js`
 - [ ] `backend\controllers\systemSettingController.js`
-- [ ] `backend\controllers\userController.js`
-- [ ] `backend\cron\autoCleanCron.js`
-- [ ] `backend\jobs\cleanupJob.js`
-- [ ] `backend\jobs\reminderJob.js`
+- [x] `backend\controllers\userController.js`
+- [x] `backend\cron\autoCleanCron.js`
+- [x] `backend\jobs\cleanupJob.js`
+- [x] `backend\jobs\reminderJob.js`
 - [x] `backend\middlewares\authMiddleware.js`
 - [ ] `backend\middlewares\cacheMiddleware.js`
 - [x] `backend\middlewares\csrfMiddleware.js`
 - [ ] `backend\middlewares\errorMiddleware.js`
 - [x] `backend\middlewares\rateLimitMiddleware.js`
 - [ ] `backend\middlewares\roleMiddleware.js`
-- [ ] `backend\middlewares\sanitizeMiddleware.js`
+- [x] `backend\middlewares\sanitizeMiddleware.js`
 - [ ] `backend\middlewares\uploadMiddleware.js`
-- [ ] `backend\middlewares\validateMiddleware.js`
+- [x] `backend\middlewares\validateMiddleware.js`
 - [ ] `backend\models\AdminLog.js`
 - [ ] `backend\models\AIDecisionFeedback.js`
 - [ ] `backend\models\Category.js`
-- [ ] `backend\models\ClaimRequest.js`
+- [x] `backend\models\ClaimRequest.js`
 - [ ] `backend\models\Feedback.js`
-- [ ] `backend\models\FoundItem.js`
+- [x] `backend\models\FoundItem.js`
 - [ ] `backend\models\ImageAnalysis.js`
 - [ ] `backend\models\JobLock.js`
-- [ ] `backend\models\LocationKnowledge.js`
-- [ ] `backend\models\LostItem.js`
-- [ ] `backend\models\Match.js`
-- [ ] `backend\models\Notification.js`
+- [x] `backend\models\LocationKnowledge.js`
+- [x] `backend\models\LostItem.js`
+- [x] `backend\models\Match.js`
+- [x] `backend\models\Notification.js`
 - [ ] `backend\models\OutboxEvent.js`
-- [ ] `backend\models\RefreshSession.js`
+- [x] `backend\models\RefreshSession.js`
 - [ ] `backend\models\SystemSetting.js`
 - [x] `backend\models\User.js`
 - [ ] `backend\routes\adminRoutes.js`
 - [ ] `backend\routes\aiFeedbackRoutes.js`
-- [ ] `backend\routes\aiRoutes.js`
+- [x] `backend\routes\aiRoutes.js`
 - [x] `backend\routes\authRoutes.js`
 - [ ] `backend\routes\categoryRoutes.js`
 - [x] `backend\routes\claimRoutes.js`
 - [ ] `backend\routes\feedbackRoutes.js`
-- [ ] `backend\routes\foundItemRoutes.js`
-- [ ] `backend\routes\locationKnowledgeRoutes.js`
-- [ ] `backend\routes\lostItemRoutes.js`
-- [ ] `backend\routes\matchRoutes.js`
-- [ ] `backend\routes\notificationRoutes.js`
+- [x] `backend\routes\foundItemRoutes.js`
+- [x] `backend\routes\locationKnowledgeRoutes.js`
+- [x] `backend\routes\lostItemRoutes.js`
+- [x] `backend\routes\matchRoutes.js`
+- [x] `backend\routes\notificationRoutes.js`
 - [ ] `backend\routes\statsRoutes.js`
 - [ ] `backend\routes\systemSettingRoutes.js`
-- [ ] `backend\routes\userRoutes.js`
+- [x] `backend\routes\userRoutes.js`
 - [ ] `backend\scripts\bootstrapAdmin.js`
 - [ ] `backend\scripts\migrateProduction.js`
 - [x] `backend\server.js`
-- [ ] `backend\services\accountService.js`
-- [ ] `backend\services\aiMatchingService.js`
-- [ ] `backend\services\aiProviderService.js`
+- [x] `backend\services\accountService.js`
+- [x] `backend\services\aiMatchingService.js`
+- [x] `backend\services\aiProviderService.js`
 - [ ] `backend\services\chatSearchService.js`
 - [ ] `backend\services\claimRiskPolicy.js`
 - [ ] `backend\services\claimRiskService.js`
 - [ ] `backend\services\claimVerificationService.js`
-- [ ] `backend\services\cloudinaryService.js`
+- [x] `backend\services\cloudinaryService.js`
 - [ ] `backend\services\conversationalReportService.js`
 - [ ] `backend\services\emailService.js`
-- [ ] `backend\services\imageAnalysisService.js`
-- [ ] `backend\services\imageComparisonService.js`
-- [ ] `backend\services\imagePrivacyService.js`
-- [ ] `backend\services\itemProcessingService.js`
-- [ ] `backend\services\itemWorkflowService.js`
-- [ ] `backend\services\jobLockService.js`
-- [ ] `backend\services\locationIntelligenceService.js`
-- [ ] `backend\services\locationKnowledgeBootstrapService.js`
-- [ ] `backend\services\matchScoringService.js`
-- [ ] `backend\services\notificationPreferenceService.js`
-- [ ] `backend\services\notificationService.js`
+- [x] `backend\services\imageAnalysisService.js`
+- [x] `backend\services\imageComparisonService.js`
+- [x] `backend\services\imagePrivacyService.js`
+- [x] `backend\services\itemProcessingService.js`
+- [x] `backend\services\itemWorkflowService.js`
+- [x] `backend\services\jobLockService.js`
+- [x] `backend\services\locationIntelligenceService.js`
+- [x] `backend\services\locationKnowledgeBootstrapService.js`
+- [x] `backend\services\matchScoringService.js`
+- [x] `backend\services\notificationPreferenceService.js`
+- [x] `backend\services\notificationService.js`
 - [ ] `backend\services\operationalIntelligenceService.js`
-- [ ] `backend\services\outboxService.js`
+- [x] `backend\services\outboxService.js`
 - [ ] `backend\services\reportIntelligenceService.js`
 - [ ] `backend\services\reportQualityService.js`
 - [x] `backend\services\sessionService.js`
@@ -202,7 +203,7 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `backend\utils\pagination.js`
 - [ ] `backend\utils\security.js`
 - [x] `backend\utils\serializers.js`
-- [ ] `backend\utils\validators.js`
+- [x] `backend\utils\validators.js`
 - [ ] `frontend/public\sw.js`
 - [x] `frontend/src\App.jsx`
 - [ ] `frontend/src\components\admin\AdminReportModeration.jsx`
@@ -247,7 +248,7 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\components\layout\DashboardLayout.jsx`
 - [ ] `frontend/src\components\layout\Footer.jsx`
 - [ ] `frontend/src\components\layout\MobileBottomNav.jsx`
-- [ ] `frontend/src\components\layout\Navbar.jsx`
+- [x] `frontend/src\components\layout\Navbar.jsx`
 - [ ] `frontend/src\components\layout\PublicLayout.jsx`
 - [ ] `frontend/src\components\layout\Sidebar.jsx`
 - [ ] `frontend/src\components\modals\NotificationPreferencesModal.jsx`
@@ -281,11 +282,11 @@ Search hits are review priority markers, not findings or completed reviews.
 - [ ] `frontend/src\pages\public\About.jsx`
 - [ ] `frontend/src\pages\public\Contact.jsx`
 - [ ] `frontend/src\pages\public\ForgotPassword.jsx`
-- [ ] `frontend/src\pages\public\FoundItemDetail.jsx`
+- [x] `frontend/src\pages\public\FoundItemDetail.jsx`
 - [ ] `frontend/src\pages\public\FoundItems.jsx`
 - [ ] `frontend/src\pages\public\Home.jsx`
-- [ ] `frontend/src\pages\public\Login.jsx`
-- [ ] `frontend/src\pages\public\LostItemDetail.jsx`
+- [x] `frontend/src\pages\public\Login.jsx`
+- [x] `frontend/src\pages\public\LostItemDetail.jsx`
 - [ ] `frontend/src\pages\public\LostItems.jsx`
 - [ ] `frontend/src\pages\public\Register.jsx`
 - [ ] `frontend/src\pages\public\ResetPassword.jsx`
@@ -331,7 +332,7 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\services\socketService.js`
 - [ ] `frontend/src\services\statsService.js`
 - [ ] `frontend/src\utils\accessibilityPreferences.js`
-- [ ] `frontend/src\utils\assistantHistory.js`
+- [x] `frontend/src\utils\assistantHistory.js`
 - [ ] `frontend/src\utils\constants.js`
 - [ ] `frontend/src\utils\formatDate.js`
 - [ ] `frontend/src\utils\helpers.js`
@@ -346,3 +347,5 @@ Search hits are review priority markers, not findings or completed reviews.
 ## Reviewed privileged surfaces outside the application-code checklist
 
 The deployment/CI pass fully read and reviewed `docker-compose.yml`, `backend/Dockerfile`, `frontend/vercel.json`, `.github/workflows/ci.yml`, and `.github/workflows/deploy.yml`. Root `Dockerfile`, `railway.json`, and `vercel.json` are absent. These build and deployment controls are recorded in `finding-discovery.md`; they are not application-code checklist rows and therefore are not marked `[x]` here.
+
+The second privileged-surface pass fully read and reviewed `.github/workflows/security.yml`, `.dockerignore`, `frontend/Dockerfile`, `frontend/nginx.conf`, and `backend/.dockerignore`. `backend/railway.json` is absent. Results and deferred supporting-file checks are recorded in `finding-discovery.md`; no application-code checklist state was changed for this pass.
