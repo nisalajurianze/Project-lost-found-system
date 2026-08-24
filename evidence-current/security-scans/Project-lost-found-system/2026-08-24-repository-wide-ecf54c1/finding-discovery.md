@@ -1323,6 +1323,91 @@ No standalone security candidate was promoted:
 - Select options render label/value via native React option properties; no dynamic HTML, code evaluation, or style construction exists (`frontend/src/components/common/Select.jsx:29-69`). Server allowlists remain authoritative for privilege/state fields.
 - Pagination exposes only previous/next actions and respects explicit/bounds-derived disabled state (`frontend/src/components/common/Pagination.jsx:6-20`). It does not clamp malicious programmatic `page`/`totalPages` props; existing backend `PG-01` and query validators are the trust-boundary controls.
 
+## Language context and focused translation shard
+
+The following files were fully read line-by-line: `frontend/src/i18n/imageProcessingTranslations.js`, `frontend/src/i18n/realtimeNotificationTranslations.js`, `frontend/src/i18n/recoveryTranslations.js`, `frontend/src/i18n/uiResidualTranslations.js`, and `frontend/src/i18n/LanguageContext.jsx`.
+
+No standalone security candidate was promoted:
+
+- The language choice is constrained to the fixed options set before writing the document language/dataset (`frontend/src/i18n/LanguageContext.jsx:4-16,23-37`). Translation interpolation returns ordinary strings and performs no HTML parsing (`frontend/src/i18n/LanguageContext.jsx:18-21,39-43`); React consumers must continue avoiding `dangerouslySetInnerHTML`.
+- Privacy/image failure messages distinguish ordinary editing fallback from privacy-safe redaction failure, and the latter tells the user to remove the image or switch browsers (`frontend/src/i18n/imageProcessingTranslations.js:3-31`). Existing `MI-01` is a workflow enforcement issue, not a missing warning-string issue.
+- Recovery messages explicitly require physical handover confirmation and state that AI suggestions are not ownership/handover proof; cancellation reason UX asks for at least five characters in all three languages (`frontend/src/i18n/recoveryTranslations.js:3-128`). Existing `RW-01` remains the backend/API enforcement gap.
+- Profile-completion and push strings describe optional notifications and authorised contact sharing; they do not themselves expose values or make authorization decisions (`frontend/src/i18n/realtimeNotificationTranslations.js:1-20`; `frontend/src/i18n/uiResidualTranslations.js:1-81`).
+
+## Statistic card, chart, and loader shard
+
+The following files were fully read line-by-line: `frontend/src/components/cards/StatCard.jsx`, `frontend/src/components/charts/DashboardChart.jsx`, `frontend/src/components/charts/MonthlyReportsChart.jsx`, `frontend/src/components/charts/StatusPieChart.jsx`, and `frontend/src/components/common/Loader.jsx`.
+
+No standalone candidate was promoted. Titles, values, labels, counts, and empty-state messages pass through React/Chart.js data properties rather than HTML injection sinks. Styling choices come from fixed maps. Chart work is proportional to supplied arrays/keys; reviewed stats producers return bounded aggregate groups, so no attacker-amplifiable frontend resource path was demonstrated in these components. The loader uses a fixed same-origin logo path and fixed size-class allowlist.
+
+## Primary layout and mobile navigation shard
+
+The following files were fully read line-by-line: `frontend/src/components/layout/AdminLayout.jsx`, `frontend/src/components/layout/DashboardLayout.jsx`, `frontend/src/components/layout/Footer.jsx`, `frontend/src/components/layout/MobileBottomNav.jsx`, and `frontend/src/components/layout/PublicLayout.jsx`.
+
+### TC-01 — Global footer overstates AI/privacy assurance as “Privacy-first AI verification”
+
+- Disposition: trust/transparency candidate linked to `MI-01` and advisory-only AI controls.
+- Instance: `unsupported-assurance:frontend/src/components/layout/Footer.jsx:30`
+- Affected location: globally visible footer badge `frontend/src/components/layout/Footer.jsx:28-31`.
+- Broken control: the badge states that the product provides “Privacy-first AI verification,” while reviewed AI functions are explicitly advisory and do not verify ownership; `MI-01` demonstrates a scanner-unavailable route that can publish an untouched image through the public media path.
+- Impact: users may infer that AI verifies ownership or guarantees image privacy and therefore submit sensitive images/details with more confidence than the actual controls support.
+- Closest control/counterevidence: report/claim/recovery screens contain stronger local notices that AI is not proof and require human decisions. The footer claim is short marketing text, not an authorization mechanism, but it is global and unqualified.
+- Validation recommended: usability/policy review; replace with an evidence-supported statement that distinguishes human verification, advisory AI, and manual privacy review.
+- Taxonomy: CWE-451, CWE-1021 (interface trust context; final taxonomy may be adjusted).
+
+## Layout/navigation negative controls
+
+- Both admin logout buttons dispatch `logoutUser` without awaiting or checking the server result (`frontend/src/components/layout/AdminLayout.jsx:45,76-83,105-113`), reinforcing existing `ST-01`; no new root issue was created.
+- Admin link destinations and all mobile navigation/report destinations are fixed internal routes. Unauthenticated report redirect state uses the current router pathname, not an external URL (`frontend/src/components/layout/MobileBottomNav.jsx:24-43,45-114`).
+- Layouts expose semantic main/navigation landmarks and no raw HTML, script, dynamic external URL, or privileged API action (`frontend/src/components/layout/AdminLayout.jsx:65-121`; `frontend/src/components/layout/DashboardLayout.jsx:11-23`; `frontend/src/components/layout/PublicLayout.jsx:11-20`). Backend guards remain authoritative for admin pages.
+
+## Public registration, recovery, verification, and contact shard
+
+The following files were fully read line-by-line: `frontend/src/pages/public/ForgotPassword.jsx`, `frontend/src/pages/public/Register.jsx`, `frontend/src/pages/public/ResetPassword.jsx`, `frontend/src/pages/public/VerifyEmail.jsx`, and `frontend/src/pages/public/Contact.jsx`.
+
+No new standalone security candidate was promoted:
+
+- Forgot-password UI applies syntactic email validation, displays only the address the visitor submitted, and moves to a generic dispatched state after the API call (`frontend/src/pages/public/ForgotPassword.jsx:23-55`). Account-enumeration resistance remains the reviewed backend response/timing control.
+- Registration uses the same password/email/phone/student-id constraints as the server-facing validation, sends an explicit field set, and passes Google credentials only to the dedicated auth action (`frontend/src/pages/public/Register.jsx:39-111`). No token is written to browser storage here.
+- Reset and verification tokens are read from URL fragments rather than query parameters, reducing server log/referrer exposure; tokens are posted through the auth service and never rendered (`frontend/src/pages/public/ResetPassword.jsx:16-48`; `frontend/src/pages/public/VerifyEmail.jsx:13-47`). The fragment remains in browser history until navigation and should be replaced/cleared after success as defense in depth; backend single-use/expiry is authoritative.
+- API error messages are rendered as React text (`frontend/src/pages/public/ForgotPassword.jsx:35-39,69`; `frontend/src/pages/public/ResetPassword.jsx:43-45,75`; `frontend/src/pages/public/VerifyEmail.jsx:37-41,74-78`). No XSS sink exists, but existing `BM-03` covers raw production message disclosure.
+- Contact details come only from the fixed public setting and are encoded for the Google Maps query; the reviewed settings controller validates email/phone values and uses a fixed public-key allowlist (`frontend/src/pages/public/Contact.jsx:21-27,60-104`). External map links use `noopener noreferrer`.
+- Contact submission requires the authenticated Redux user and posts only subject/message/fixed rating/category; editable display email is not sent as an identity override (`frontend/src/pages/public/Contact.jsx:34-58,109-116`). Backend authentication and explicit feedback mapping prevent caller identity spoofing.
+
+## Item fields, language/scroll/status controls, and animated background shard
+
+The following files were fully read line-by-line: `frontend/src/components/common/ItemAttributeFields.jsx`, `frontend/src/components/common/LanguageSwitcher.jsx`, `frontend/src/components/common/ScrollToTopButton.jsx`, `frontend/src/components/common/SpaceBackground.jsx`, and `frontend/src/components/common/StatusBadge.jsx`.
+
+No standalone security candidate was promoted:
+
+- Item attribute controls only update caller-owned state and render escaped labels/text; lack of client maxlength attributes does not bypass reviewed server list/scalar bounds (`frontend/src/components/common/ItemAttributeFields.jsx:6-22`).
+- Language selection iterates the fixed supported options and passes codes through the constrained language provider (`frontend/src/components/common/LanguageSwitcher.jsx:5-94`). No user-controlled HTML/class/URL sink exists.
+- Scroll and status controls use fixed actions/classes; the assistant-state custom event changes only visibility (`frontend/src/components/common/ScrollToTopButton.jsx:6-49`; `frontend/src/components/common/StatusBadge.jsx:9-16`).
+- The decorative canvas is hidden from assistive technology, pauses while the document is hidden, uses 30fps/lower star counts for low-effects/mobile, and renders one static frame for reduced motion (`frontend/src/components/common/SpaceBackground.jsx:13-29,47-57,100-111,302-317,337-387,390-397`).
+- Performance hardening: resize events are not throttled and each event recreates up to 900 star objects before the next animation frame (`frontend/src/components/common/SpaceBackground.jsx:35-98,332-345`). This is locally triggered browser work, not an unauthenticated remote resource-exhaustion path; cover sustained resize/device-rotation in performance UAT.
+
+## Sidebar, notification/profile modals, and admin report moderation shard
+
+The following files were fully read line-by-line: `frontend/src/components/layout/Sidebar.jsx`, `frontend/src/components/modals/NotificationPreferencesModal.jsx`, `frontend/src/components/modals/ProfileCompletionModal.jsx`, and `frontend/src/components/admin/AdminReportModeration.jsx`.
+
+### AL-REPORT-01 — Administrator deletion of another user's report has no admin audit record
+
+- Instance: `missing-audit:frontend/src/components/admin/AdminReportModeration.jsx:56`
+- Affected locations: privileged UI action `frontend/src/components/admin/AdminReportModeration.jsx:56-65,98,107`; server authorization/mutation `backend/controllers/lostItemController.js:157-174` and `backend/controllers/foundItemController.js:159-176`; generic authenticated routes `backend/routes/lostItemRoutes.js:37` and `backend/routes/foundItemRoutes.js:37`.
+- Privileged source: an administrator archives/deletes a student report from the admin moderation screen.
+- Broken control/sink: the generic delete controllers allow either owner or admin and cascade report/match/claim/image-analysis mutations, but never create `AdminLog`, identify that the actor used admin authority, or record a reason/previous state.
+- Impact: compromised or mistaken administrators can remove public reports, reject active matches/pending claims, and initiate public-image deletion without an application audit trail for attribution/review.
+- Closest control/counterevidence: explicit confirmation UI, current-user authentication, admin/owner authorization, in-progress handover prohibition, and a Mongo transaction protect state integrity. They do not provide accountability, and direct API callers bypass the UI confirmation.
+- Validation recommended: delete another user's lost/found report as admin and query admin logs; confirm no external audit middleware/provider event exists.
+- Taxonomy: CWE-778.
+
+## Sidebar/modal/moderation negative controls
+
+- Sidebar destinations are fixed internal paths. Its logout is another fire-and-forget dispatch (`frontend/src/components/layout/Sidebar.jsx:8-28`), reinforcing `ST-01` rather than creating a new root issue.
+- Notification preference UI constructs only fixed channel/category boolean fields and posts through the same-origin API (`frontend/src/components/modals/NotificationPreferencesModal.jsx:15-69,83-144`). Backend validation rejects unknown keys and user-scopes persistence.
+- Profile completion validates phone/student id, restricts selection to browser-declared image types, compresses toward 2 MB/1024 px, and sends an explicit FormData/object shape (`frontend/src/components/modals/ProfileCompletionModal.jsx:34-83`). On compression failure it sends the original file; backend signature/5 MB checks remain authoritative. This profile avatar path is distinct from report-image privacy redaction.
+- Admin moderation renders all report/user text through React and uses fixed image/status/date properties; no raw HTML sink exists (`frontend/src/components/admin/AdminReportModeration.jsx:70-107`). It displays exact admin-authorized location/storage data, so public `LP-01`/`LP-02` are not caused by this privileged screen.
+
 ## System-settings route and pagination-helper closure shard
 
 The following files were fully read line-by-line: `backend/routes/systemSettingRoutes.js` and `backend/utils/pagination.js`.
@@ -1400,3 +1485,103 @@ The following files were fully read line-by-line: `frontend/src/components/commo
 - `FeedbackModal` submits only after an explicit user action and bounds the subject/message inputs (`frontend/src/components/common/FeedbackModal.jsx:16-64`). This is ordinary product feedback, not an automatic model-training call. The separate AI-feedback backend records new submissions as `pending`, requires an authenticated admin to approve/reject them, and states an admin-approved-dataset-only policy (`backend/controllers/aiFeedbackController.js:10-33,36-63`; `backend/models/AIDecisionFeedback.js:21-26`). No uncontrolled automatic-training path was established in this shard.
 - All reviewed suggestion, warning, reason, title, and message values render through React text contexts; none uses raw HTML, script evaluation, or a caller-selected external navigation sink.
 - `Modal` implements an Escape handler, backdrop close, focus trapping, focus restoration, dialog semantics, and body-scroll restoration (`frontend/src/components/common/Modal.jsx:14-137`). `ConfirmDialog` disables action buttons while `isLoading`, but Escape/backdrop/close remain active during an in-flight action because the base modal is unaware of the busy state (`frontend/src/components/common/ConfirmDialog.jsx:13-55`). That can create confusing stale/destructive-operation UX, but no duplicate request, authorization bypass, or secret exposure was demonstrated; record it as state-integrity hardening, not a security candidate.
+
+## Frontend accessibility, AI-loading, category, empty-state, and location-assistant shard
+
+The following files were fully read line-by-line: `frontend/src/components/common/AccessibilityPreferences.jsx`, `frontend/src/components/common/AILoadingToast.jsx`, `frontend/src/components/common/CreatableCategorySelect.jsx`, `frontend/src/components/common/EmptyState.jsx`, and `frontend/src/components/common/LocationAssistant.jsx`.
+
+### CAT-AUTH-01/CAT-DOS-01 validation update — ordinary field blur triggers global category creation before report submission
+
+- Reachable trigger: `CreatableCategorySelect` retains arbitrary typed text and, on blur, converts any non-empty trimmed value into a selection without requiring the visible **Add** action or a separate confirmation (`frontend/src/components/common/CreatableCategorySelect.jsx:70-90`). It imposes no input-length cap.
+- Call chain: the report wizard passes this change directly to `ensureCategory` (`frontend/src/components/common/ReportItemWizard.jsx:649-658`); a non-existing name immediately calls `aiService.autoCreateCategory`, stores the returned AI-generated category in the form, and refreshes the global category collection (`frontend/src/components/common/ReportItemWizard.jsx:196-217`). This happens before the report is submitted, so clicking outside the field and later abandoning the report can still mutate global taxonomy and consume provider/database/cache resources.
+- Amplification refinement: the component does not disable creation while the request is loading, deduplicate in-flight names, require a completed report, or ask for governance approval. Repeated type-and-blur interactions provide a low-friction UI trigger for the already recorded backend authorization/cost/cache-amplification roots. Client controls would remain bypassable, so the required security fix is still server-side role/moderation, strict pre-provider length validation, per-user/route quotas, idempotency/concurrency control, and delayed activation.
+- Counterevidence: whitespace-only input is ignored; selecting an existing option clears the typed ref; the wizard maps case-insensitive existing category names without calling the provider (`frontend/src/components/common/CreatableCategorySelect.jsx:72-89`; `frontend/src/components/common/ReportItemWizard.jsx:196-203`). Backend authentication, normalization, and unique indexes also constrain anonymous use and exact duplicates. These do not prevent low-privilege global mutation or unique-name amplification.
+
+### LP-01/LP-02 validation update — location privacy metadata is received but not presented or enforced by the input assistant
+
+- `LocationAssistant` sends the user's free-text location to the protected same-origin resolver after a 550 ms pause once at least three characters exist (`frontend/src/components/common/LocationAssistant.jsx:8-33`). It renders exact canonical name, verification status, and area, but does not render the response `privacyNotice` or use the returned `sensitivity` classification (`frontend/src/components/common/LocationAssistant.jsx:48-60`).
+- When multiple suggestions exist, clicking one explicitly replaces the report field with the exact `suggestion.canonicalName`; `suggestion.sensitivity` is ignored (`frontend/src/components/common/LocationAssistant.jsx:61-73`). The backend response includes sensitivity and claims private/restricted places are approximate, but `publicLocationView` itself returns canonical name and area without a sensitivity branch (`backend/controllers/aiController.js:27-45`; `backend/services/locationIntelligenceService.js:82-89`).
+- Impact refinement: the assistant gives no visible warning to broaden a private/restricted location and does not itself enforce an approximate zone. The report wizard later submits the free-text value, reinforcing existing `LP-01`/`LP-02` public raw-location disclosure rather than creating a separate finding. Precision reduction must be enforced in the public server serializer/projection; the UI should also display the privacy notice and sensitivity-aware preview before submission.
+- Counterevidence: suggestion application requires an explicit click; the component never silently overwrites the field with `result.best`; no coordinates are rendered; and the current bundled static locations are public or zone-level entries. Dynamic approved location knowledge and future restricted/private entries make server-enforced projection the durable boundary.
+
+## Negative controls and hardening notes from this shard
+
+- The location resolver is deterministic in-process location matching rather than an external AI-provider call (`backend/services/locationIntelligenceService.js:35-53`). Its route requires authentication, the controller caps normalized queries at 300 characters, the UI debounces requests, and only three suggestions render (`backend/routes/aiRoutes.js:23-25`; `backend/controllers/aiController.js:27-45`; `frontend/src/components/common/LocationAssistant.jsx:10-33,61-73`). Cleanup suppresses stale UI writes but does not abort the already-issued HTTP request; adding `AbortController`/request identity would reduce benign resource waste and stale loading behavior, not establish the missing server abuse boundary.
+- `AILoadingToast` renders caller messages and translations only as React text, performs no AI action, ownership decision, or suggestion application, and its only action dismisses the fixed toast id (`frontend/src/components/common/AILoadingToast.jsx:5-16`). Its generic “extracting” copy is a product-accuracy concern after completion, not a security claim.
+- Category labels, create labels, errors, helper text, empty-state content, and location values use React/react-select rendering without raw-HTML or evaluation sinks. `EmptyState` invokes only the callback supplied by its trusted parent and constructs no URL (`frontend/src/components/common/CreatableCategorySelect.jsx:92-128`; `frontend/src/components/common/EmptyState.jsx:10-38`).
+- Accessibility preferences use fixed option keys/values and the previously reviewed sanitizer-backed storage helper (`frontend/src/components/common/AccessibilityPreferences.jsx:14-24,40-68`). The launcher is visually hidden (`frontend/src/components/common/AccessibilityPreferences.jsx:28-36`), which may make the feature unreachable without another caller, but that is accessibility/product verification rather than a confidentiality or authorization defect.
+
+## Frontend admin claims, matches, users, settings, and AI-feedback-review shard
+
+The following files were fully read line-by-line: `frontend/src/pages/admin/ManageClaims.jsx`, `frontend/src/pages/admin/ManageMatches.jsx`, `frontend/src/pages/admin/ManageUsers.jsx`, `frontend/src/pages/admin/SiteSettings.jsx`, and `frontend/src/pages/admin/AIFeedbackReview.jsx`.
+
+### SET-ATOMIC-01 — Abuse-control settings can partially commit while the UI reports the combined save failed
+
+- Instance: `partial-security-policy-update:frontend/src/pages/admin/SiteSettings.jsx:128`.
+- Privileged source/boundary: an administrator edits the three claim-abuse thresholds as one visible form and presses one save button (`frontend/src/pages/admin/SiteSettings.jsx:224-235`).
+- Broken control/sink: the handler issues three independent setting mutations inside `Promise.all` (`frontend/src/pages/admin/SiteSettings.jsx:122-150`). Each backend request independently upserts one key and has no shared transaction/version (`backend/controllers/systemSettingController.js:103-135`). If one request fails after another succeeds, `Promise.all` rejects, the page shows a single failure toast, and local state remains the old combined object even though part of the security policy is already live.
+- Impact: operators can unknowingly leave inconsistent anti-abuse policy in production—for example a raised daily limit can persist while the pending/rejected limits appear unsaved—or unexpectedly tighten one control. This weakens configuration assurance and complicates incident reconstruction.
+- Closest controls/counterevidence: client and server independently enforce strict numeric bounds; only administrators can mutate supported keys; the page can be reloaded to discover actual values. Those controls prevent arbitrary values but do not provide atomic all-or-nothing policy update, compare-and-set protection, rollback, or an accurate partial-success result.
+- Validation/fix: force the second/third request to fail after the first succeeds, then reload and compare all keys. Replace the three writes with one server-side transactional policy endpoint (or explicit sequential compensation), return per-key results/version, and refresh authoritative state after any failure.
+- Taxonomy: CWE-703, CWE-367.
+
+### AF-01 validation update — The human approval UI omits the context needed to detect forged feedback
+
+- The admin page displays only target type, decision, submitter name, optional dimension/note, policy, and timestamp (`frontend/src/pages/admin/AIFeedbackReview.jsx:71-90`). It does not display or link `targetId`, load the underlying target, show `algorithmVersion`/source, compare the original AI result with the correction, or let the reviewer enter a case-specific review rationale.
+- Approval/rejection is a one-click action with a generated generic note (`frontend/src/pages/admin/AIFeedbackReview.jsx:29-43,86-90`). This makes the existing `AF-01` server weakness—unowned/nonexistent targets and claimant-supplied algorithm identity—impossible to verify from the intended review screen before approval.
+- Review completeness is also bounded incorrectly: the page requests `limit: 100`, while shared pagination caps the response at 50; it renders no pagination control and always loads the first newest page (`frontend/src/pages/admin/AIFeedbackReview.jsx:15-27,59-95`; `backend/controllers/aiFeedbackController.js:36-50`; `backend/utils/pagination.js:22-27`). Forged/new feedback can bury older pending records from this UI.
+- Counterevidence: all records start pending; listing/review is admin-only; buttons render only for pending records; no reviewed runtime automatically trains a model. This remains feedback-integrity and review-workload risk, not proof of automatic poisoning. Fix target ownership/existence/version binding server-side, deduplicate submissions, show a safe target snapshot/diff and immutable provenance, require a meaningful review note, and provide real pagination.
+
+### Existing workflow/audit validation updates
+
+- `RW-02` is confirmed on the administrator path: suggested matches expose direct **Reject** and **Confirm** buttons and send only `{id,status}` with no reason/confirmation form (`frontend/src/pages/admin/ManageMatches.jsx:30-41,199-219`). AI score and explanation are displayed, but the click remains a human action; no automatic match confirmation occurs. Backend transaction/state checks reject an opposite decision after finalization and create pending AI feedback for the first decision (`backend/controllers/matchController.js:81-104`), limiting double-click conflict but not supplying a durable human reason.
+- `LA-STATUS-01`, `LA-ROLE-01`, and `LA-DELETE-01` remain UI-reachable: `ManageUsers` disables only actions targeting the current account, not an administrator who is currently the other last active admin (`frontend/src/pages/admin/ManageUsers.jsx:141-176`). Two administrators can therefore open confirmation dialogs for each other and submit cross-deactivation/demotion/anonymization concurrently. Server-side last-admin serialization remains the required fix; client counts would be stale and bypassable.
+- `AL-SETTING-01` is reinforced by the actual settings UI. Email-verification changes are immediate one-click writes, while contact and abuse settings are direct saves; none asks for a reason or shows an audit receipt/version (`frontend/src/pages/admin/SiteSettings.jsx:72-107,122-150,179-235`). Strict allowlists/bounds and admin-only routes remain positive authorization controls but do not provide accountability.
+
+## Negative controls from this admin shard
+
+- Claim approval/rejection is explicitly initiated by a human administrator through a modal, and its textarea is required in this UI (`frontend/src/pages/admin/ManageClaims.jsx:43-74,144-190`). Existing `RW-01` remains the direct-API gap because the server permits an empty durable rejection reason; this page itself does not silently approve a claim.
+- Claim cards receive admin context only on this admin route; user administration intentionally shows student id, email, and phone to an authenticated administrator (`frontend/src/pages/admin/ManageClaims.jsx:121-131`; `frontend/src/pages/admin/ManageUsers.jsx:128-176`). Reviewed backend routes independently require the admin role and claim proof links are short-lived signed assets. No anonymous/ordinary-user PII or proof sink was established in these pages.
+- User status, role, and anonymization operations each require an explicit confirmation dialog and the UI blocks self-targeting (`frontend/src/pages/admin/ManageUsers.jsx:141-191`). The dialogs do not receive an in-flight loading flag, so repeated clicks can issue idempotent duplicate mutations/audit/email work; backend current-state/transaction controls determine final authority. Record per-action loading as robustness hardening, not a separate authorization finding.
+- All user, claim, match, feedback, error, description, reason, and setting values render through React text/form contexts. Images reach only `<img src>` through the previously reviewed Cloudinary optimizer; these pages contain no raw-HTML/evaluation sink or caller-controlled external navigation.
+
+## Remaining Redux match/notification/theme/auth shard
+
+The following files were fully read line-by-line: `frontend/src/redux/slices/matchSlice.js`, `frontend/src/redux/slices/notificationSlice.js`, `frontend/src/redux/slices/themeSlice.js`, and `frontend/src/redux/slices/authSlice.js`.
+
+### RS-01 validation update — match and notification state add a concrete post-logout privacy path
+
+- Match state retains the account-scoped match list, pagination, and current match. Its only clear action removes `currentMatch`; it has no logout/account-change listener and cannot clear the list (`frontend/src/redux/slices/matchSlice.js:42-55,63-94`). Match list/detail/status completions are accepted without principal or request-generation checks (`frontend/src/redux/slices/matchSlice.js:56-99`).
+- Notification state retains full notification messages plus unread metadata and has no clear/reset-on-logout reducer. `resetUnreadCount` changes only the number, leaving messages intact (`frontend/src/redux/slices/notificationSlice.js:55-74,82-113`). This is directly account-private activity data, not public cache state.
+- Concrete late ingress: `addSocketNotification` unconditionally prepends the supplied notification and increments unread count (`frontend/src/redux/slices/notificationSlice.js:64-70`). Combined with existing `CF-06` evidence that an authenticated socket is not disconnected/revalidated on logout, expiry, role change, or deactivation, account-A notifications can enter the shared Redux store after local logout and potentially after account B logs in.
+- All match/notification async fulfillments also lack logout fencing, principal binding, or latest-request checks; an account-A HTTP response released after logout can repopulate the state (`frontend/src/redux/slices/matchSlice.js:56-99`; `frontend/src/redux/slices/notificationSlice.js:75-113`).
+- Impact/validation: account B or a guest can receive account-A match evidence, report relationships, notification text, and activity signals within the same SPA lifetime. Validate with A socket + delayed match/notification request -> logout -> B login -> emit/release A events while observing Redux/UI. Root account reset must be paired with socket disconnect/reconnect and generation/principal checks, otherwise late events refill cleared state.
+
+### ST-01 validation update — logout clears only auth state and does not fence older authentication completions
+
+- `logoutUser` waits on the previously reviewed service wrapper, and the slice implements only its fulfilled reducer; that reducer clears `auth.user` and authentication flags but does not reset any other slice (`frontend/src/redux/slices/authSlice.js:18,44`). Because `authService.logout` swallows server failures, this remains a falsely successful local logout when revocation/cookie clearing never reached the server.
+- Register, password login, Google login, and `fetchCurrentUser` fulfilled reducers all set authenticated user state without comparing request generation or a logout epoch (`frontend/src/redux/slices/authSlice.js:29-43`). A completion that was already in flight can therefore run after logout and restore `isAuthenticated`/role-bearing `user` state in the client. Backend authorization still blocks revoked sessions, but client route state and retained private slices can become visible/misleading until the next server rejection.
+- `clearAuth` is likewise local state clearing, not server revocation (`frontend/src/redux/slices/authSlice.js:23-27`). It must not be presented as a security logout.
+- Required fix/validation: propagate logout failure, await/unwrap it in callers, cancel/fence all auth and private-data thunks with an account/session generation, synchronously reset account-bound state, and explicitly disconnect the authenticated socket. Test both pre-request failure and response-lost-after-server-success cases.
+
+Negative controls and hardening notes:
+
+- No reviewed slice stores the authenticated `user`, role, token, notification, or match state in localStorage. Theme persistence writes only `LOCAL_STORAGE_THEME_KEY`; `applyThemeToDOM` maps only exact `dark`, `light`, or `system` values to a fixed `dark` class operation, so an arbitrary cached/action value is not used as a DOM/HTML/class-name injection sink (`frontend/src/redux/slices/themeSlice.js:9-36,44-59`). `setTheme` should still enum-normalize values for state integrity.
+- `updateUserProfile` can replace the client user object, but it is an internal Redux action and does not alter the server session or establish backend role authorization (`frontend/src/redux/slices/authSlice.js:23-27`). Reviewed protected APIs independently authenticate and authorize requests.
+- Socket notifications are appended without a collection cap, and duplicate events increment unread count again (`frontend/src/redux/slices/notificationSlice.js:64-70`). This can grow memory/count drift during a long or replay-heavy session; event deduplication and a bounded in-memory window are recommended. Server-controlled socket delivery and reload/fetch replacement reduce this to hardening absent a demonstrated attacker-controlled high-rate event source.
+- Rejections retain message/code strings rather than raw response objects, stacks, headers, or tokens (`frontend/src/redux/slices/matchSlice.js:9-39`; `frontend/src/redux/slices/notificationSlice.js:9-52`; `frontend/src/redux/slices/authSlice.js:6-18`). Login/register/Google credentials are thunk arguments and should be excluded from production action logging/devtools, but these files do not persist those arguments themselves.
+
+## Frontend feedback, item, location-knowledge, and match service-boundary shard
+
+The following files were fully read line-by-line: `frontend/src/services/feedbackService.js`, `frontend/src/services/foundItemService.js`, `frontend/src/services/locationKnowledgeService.js`, `frontend/src/services/lostItemService.js`, and `frontend/src/services/matchService.js`.
+
+No new standalone security candidate was promoted. Exact reachability and counterevidence:
+
+- Lost/found list and detail methods intentionally call the public `optionalAuth` routes and return their response objects without privacy projection (`frontend/src/services/foundItemService.js:26-36`; `frontend/src/services/lostItemService.js:27-37`). Home and public search consume those methods. This confirms broad frontend reachability for existing `LP-01`/`LP-02` raw-location disclosure and `MI-01` public-image exposure; the defect remains the server serializer/storage boundary, not these transport wrappers.
+- Lost/found create/update forward caller-built `FormData`, including images and location fields, and explicitly select multipart transport (`frontend/src/services/foundItemService.js:13-20,42-49`; `frontend/src/services/lostItemService.js:13-20,43-50`). Frontend shaping cannot enforce privacy against direct API callers. Reviewed backend upload limits, validators, explicit field mapping, ownership checks, and rollback controls prevent generic mass assignment, while the absence of an authoritative private-original/public-derivative pipeline remains existing `MI-01`.
+- Axios serializes filter, location-resolution, and admin-list values via `params`, rather than concatenating them into a URL (`frontend/src/services/feedbackService.js:24-26`; `frontend/src/services/foundItemService.js:26-28`; `frontend/src/services/locationKnowledgeService.js:4,6`; `frontend/src/services/lostItemService.js:27-29`; `frontend/src/services/matchService.js:13-15`). Corresponding backend validators allowlist/bound query semantics, so no URL/query injection or unauthorized projection was established.
+- Entity ids are interpolated without `encodeURIComponent` in feedback, item, location-review, and match paths (`frontend/src/services/feedbackService.js:35-36`; `frontend/src/services/foundItemService.js:34-71`; `frontend/src/services/locationKnowledgeService.js:7`; `frontend/src/services/lostItemService.js:35-72`; `frontend/src/services/matchService.js:21-32`). Runtime callers supply stored Mongo ids, and the reachable backend routes validate ids and independently enforce public/authenticated/admin/participant/owner boundaries. Malformed programmatic values can cause a 404/validation failure, not external navigation or object-authorization bypass; encoding remains robustness hardening.
+- Platform-feedback admin reads/responses and location-knowledge list/review are labelled admin-only only by comments/API naming on the client, but the server independently requires current admin authorization and validates bodies (`backend/routes/feedbackRoutes.js:20-24`; `backend/routes/locationKnowledgeRoutes.js:14-17`). Raw client payload forwarding in `respondToFeedback`, location `suggest`, and location `review` does not create mass assignment because reviewed controllers construct explicit fields. Existing `LP-03` remains the public resolver's precision-projection root.
+- Match methods use a narrow `{ status }` body, and every server match route requires authentication plus reviewed participant/admin object authorization (`frontend/src/services/matchService.js:13-33`; `backend/routes/matchRoutes.js:22-27`). No client-selected user/principal is transmitted. Match data remains subject to existing Redux account-reset/race candidate `RS-01`, not a new service-level leak.
+- `connectFoundItem` and `connectLostItem` target `POST /:id/connect` (`frontend/src/services/foundItemService.js:60-62`; `frontend/src/services/lostItemService.js:61-63`), but neither method has a runtime caller and neither backend router defines that endpoint (`backend/routes/foundItemRoutes.js:30-39`; `backend/routes/lostItemRoutes.js:30-39`). These are stale/dead client methods causing a future 404 if reintroduced, not a currently reachable security mutation.
+- All five services rely on the shared credentialed cookie/CSRF API client and contain no token/localStorage/header logging. They also propagate Axios/backend errors without sanitizing them. Consumer slices generally retain only `message`; unexpected server-message disclosure remains existing `BM-03`, not a second leak introduced by these wrappers.

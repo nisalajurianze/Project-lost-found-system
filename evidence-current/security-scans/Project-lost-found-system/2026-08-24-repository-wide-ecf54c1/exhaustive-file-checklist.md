@@ -206,92 +206,92 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `backend\utils\validators.js`
 - [x] `frontend/public\sw.js`
 - [x] `frontend/src\App.jsx`
-- [ ] `frontend/src\components\admin\AdminReportModeration.jsx`
+- [x] `frontend/src\components\admin\AdminReportModeration.jsx`
 - [x] `frontend/src\components\cards\ClaimCard.jsx`
 - [x] `frontend/src\components\cards\ItemCard.jsx`
 - [x] `frontend/src\components\cards\MatchCard.jsx`
 - [x] `frontend/src\components\cards\NotificationCard.jsx`
-- [ ] `frontend/src\components\cards\StatCard.jsx`
-- [ ] `frontend/src\components\charts\DashboardChart.jsx`
-- [ ] `frontend/src\components\charts\MonthlyReportsChart.jsx`
-- [ ] `frontend/src\components\charts\StatusPieChart.jsx`
-- [ ] `frontend/src\components\common\AccessibilityPreferences.jsx`
+- [x] `frontend/src\components\cards\StatCard.jsx`
+- [x] `frontend/src\components\charts\DashboardChart.jsx`
+- [x] `frontend/src\components\charts\MonthlyReportsChart.jsx`
+- [x] `frontend/src\components\charts\StatusPieChart.jsx`
+- [x] `frontend/src\components\common\AccessibilityPreferences.jsx`
 - [x] `frontend/src\components\common\AIChatbot.jsx`
-- [ ] `frontend/src\components\common\AILoadingToast.jsx`
+- [x] `frontend/src\components\common\AILoadingToast.jsx`
 - [x] `frontend/src\components\common\AISuggestionReview.jsx`
 - [x] `frontend/src\components\common\Button.jsx`
 - [x] `frontend/src\components\common\ClaimModal.jsx`
 - [x] `frontend/src\components\common\ConfirmDialog.jsx`
-- [ ] `frontend/src\components\common\CreatableCategorySelect.jsx`
-- [ ] `frontend/src\components\common\EmptyState.jsx`
+- [x] `frontend/src\components\common\CreatableCategorySelect.jsx`
+- [x] `frontend/src\components\common\EmptyState.jsx`
 - [x] `frontend/src\components\common\FeedbackModal.jsx`
 - [x] `frontend/src\components\common\ImagePrivacyReview.jsx`
 - [x] `frontend/src\components\common\ImageUpload.jsx`
 - [x] `frontend/src\components\common\Input.jsx`
-- [ ] `frontend/src\components\common\ItemAttributeFields.jsx`
+- [x] `frontend/src\components\common\ItemAttributeFields.jsx`
 - [x] `frontend/src\components\common\ItemEvidenceSummary.jsx`
-- [ ] `frontend/src\components\common\LanguageSwitcher.jsx`
-- [ ] `frontend/src\components\common\Loader.jsx`
-- [ ] `frontend/src\components\common\LocationAssistant.jsx`
+- [x] `frontend/src\components\common\LanguageSwitcher.jsx`
+- [x] `frontend/src\components\common\Loader.jsx`
+- [x] `frontend/src\components\common\LocationAssistant.jsx`
 - [x] `frontend/src\components\common\MatchExplanation.jsx`
 - [x] `frontend/src\components\common\Modal.jsx`
 - [x] `frontend/src\components\common\Pagination.jsx`
 - [x] `frontend/src\components\common\ReportItemWizard.jsx`
-- [ ] `frontend/src\components\common\ScrollToTopButton.jsx`
+- [x] `frontend/src\components\common\ScrollToTopButton.jsx`
 - [x] `frontend/src\components\common\SearchFilter.jsx`
 - [x] `frontend/src\components\common\Select.jsx`
-- [ ] `frontend/src\components\common\SpaceBackground.jsx`
-- [ ] `frontend/src\components\common\StatusBadge.jsx`
+- [x] `frontend/src\components\common\SpaceBackground.jsx`
+- [x] `frontend/src\components\common\StatusBadge.jsx`
 - [x] `frontend/src\components\common\Textarea.jsx`
 - [x] `frontend/src\components\common\WorkflowTimeline.jsx`
-- [ ] `frontend/src\components\layout\AdminLayout.jsx`
-- [ ] `frontend/src\components\layout\DashboardLayout.jsx`
-- [ ] `frontend/src\components\layout\Footer.jsx`
-- [ ] `frontend/src\components\layout\MobileBottomNav.jsx`
+- [x] `frontend/src\components\layout\AdminLayout.jsx`
+- [x] `frontend/src\components\layout\DashboardLayout.jsx`
+- [x] `frontend/src\components\layout\Footer.jsx`
+- [x] `frontend/src\components\layout\MobileBottomNav.jsx`
 - [x] `frontend/src\components\layout\Navbar.jsx`
-- [ ] `frontend/src\components\layout\PublicLayout.jsx`
-- [ ] `frontend/src\components\layout\Sidebar.jsx`
-- [ ] `frontend/src\components\modals\NotificationPreferencesModal.jsx`
-- [ ] `frontend/src\components\modals\ProfileCompletionModal.jsx`
+- [x] `frontend/src\components\layout\PublicLayout.jsx`
+- [x] `frontend/src\components\layout\Sidebar.jsx`
+- [x] `frontend/src\components\modals\NotificationPreferencesModal.jsx`
+- [x] `frontend/src\components\modals\ProfileCompletionModal.jsx`
 - [x] `frontend/src\hooks\useAuth.js`
 - [x] `frontend/src\hooks\useDebounce.js`
 - [x] `frontend/src\hooks\useSocket.js`
 - [ ] `frontend/src\i18n\adminEvidenceTranslations.js`
 - [ ] `frontend/src\i18n\adminManagementTranslations.js`
-- [ ] `frontend/src\i18n\imageProcessingTranslations.js`
-- [ ] `frontend/src\i18n\LanguageContext.jsx`
-- [ ] `frontend/src\i18n\realtimeNotificationTranslations.js`
-- [ ] `frontend/src\i18n\recoveryTranslations.js`
+- [x] `frontend/src\i18n\imageProcessingTranslations.js`
+- [x] `frontend/src\i18n\LanguageContext.jsx`
+- [x] `frontend/src\i18n\realtimeNotificationTranslations.js`
+- [x] `frontend/src\i18n\recoveryTranslations.js`
 - [ ] `frontend/src\i18n\translations.js`
-- [ ] `frontend/src\i18n\uiResidualTranslations.js`
+- [x] `frontend/src\i18n\uiResidualTranslations.js`
 - [x] `frontend/src\main.jsx`
 - [ ] `frontend/src\pages\admin\AdminDashboard.jsx`
 - [ ] `frontend/src\pages\admin\AdminLogs.jsx`
-- [ ] `frontend/src\pages\admin\AIFeedbackReview.jsx`
+- [x] `frontend/src\pages\admin\AIFeedbackReview.jsx`
 - [ ] `frontend/src\pages\admin\Analytics.jsx`
 - [ ] `frontend/src\pages\admin\Feedback.jsx`
 - [ ] `frontend/src\pages\admin\LocationKnowledge.jsx`
 - [ ] `frontend/src\pages\admin\ManageCategories.jsx`
-- [ ] `frontend/src\pages\admin\ManageClaims.jsx`
+- [x] `frontend/src\pages\admin\ManageClaims.jsx`
 - [ ] `frontend/src\pages\admin\ManageFoundItems.jsx`
 - [ ] `frontend/src\pages\admin\ManageLostItems.jsx`
-- [ ] `frontend/src\pages\admin\ManageMatches.jsx`
-- [ ] `frontend/src\pages\admin\ManageUsers.jsx`
-- [ ] `frontend/src\pages\admin\SiteSettings.jsx`
+- [x] `frontend/src\pages\admin\ManageMatches.jsx`
+- [x] `frontend/src\pages\admin\ManageUsers.jsx`
+- [x] `frontend/src\pages\admin\SiteSettings.jsx`
 - [ ] `frontend/src\pages\protected\VerifyResolution.jsx`
 - [ ] `frontend/src\pages\public\About.jsx`
-- [ ] `frontend/src\pages\public\Contact.jsx`
-- [ ] `frontend/src\pages\public\ForgotPassword.jsx`
+- [x] `frontend/src\pages\public\Contact.jsx`
+- [x] `frontend/src\pages\public\ForgotPassword.jsx`
 - [x] `frontend/src\pages\public\FoundItemDetail.jsx`
 - [x] `frontend/src\pages\public\FoundItems.jsx`
 - [ ] `frontend/src\pages\public\Home.jsx`
 - [x] `frontend/src\pages\public\Login.jsx`
 - [x] `frontend/src\pages\public\LostItemDetail.jsx`
 - [x] `frontend/src\pages\public\LostItems.jsx`
-- [ ] `frontend/src\pages\public\Register.jsx`
-- [ ] `frontend/src\pages\public\ResetPassword.jsx`
+- [x] `frontend/src\pages\public\Register.jsx`
+- [x] `frontend/src\pages\public\ResetPassword.jsx`
 - [x] `frontend/src\pages\public\SearchItems.jsx`
-- [ ] `frontend/src\pages\public\VerifyEmail.jsx`
+- [x] `frontend/src\pages\public\VerifyEmail.jsx`
 - [ ] `frontend/src\pages\user\Dashboard.jsx`
 - [ ] `frontend/src\pages\user\EditFoundItem.jsx`
 - [ ] `frontend/src\pages\user\EditLostItem.jsx`
@@ -309,9 +309,9 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\redux\slices\claimSlice.js`
 - [x] `frontend/src\redux\slices\foundItemSlice.js`
 - [x] `frontend/src\redux\slices\lostItemSlice.js`
-- [ ] `frontend/src\redux\slices\matchSlice.js`
-- [ ] `frontend/src\redux\slices\notificationSlice.js`
-- [ ] `frontend/src\redux\slices\themeSlice.js`
+- [x] `frontend/src\redux\slices\matchSlice.js`
+- [x] `frontend/src\redux\slices\notificationSlice.js`
+- [x] `frontend/src\redux\slices\themeSlice.js`
 - [x] `frontend/src\redux\store.js`
 - [x] `frontend/src\routes\AdminRoute.jsx`
 - [x] `frontend/src\routes\ProtectedRoute.jsx`
@@ -322,11 +322,11 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\services\authService.js`
 - [x] `frontend/src\services\categoryService.js`
 - [x] `frontend/src\services\claimService.js`
-- [ ] `frontend/src\services\feedbackService.js`
-- [ ] `frontend/src\services\foundItemService.js`
-- [ ] `frontend/src\services\locationKnowledgeService.js`
-- [ ] `frontend/src\services\lostItemService.js`
-- [ ] `frontend/src\services\matchService.js`
+- [x] `frontend/src\services\feedbackService.js`
+- [x] `frontend/src\services\foundItemService.js`
+- [x] `frontend/src\services\locationKnowledgeService.js`
+- [x] `frontend/src\services\lostItemService.js`
+- [x] `frontend/src\services\matchService.js`
 - [ ] `frontend/src\services\notificationService.js`
 - [ ] `frontend/src\services\settingService.js`
 - [x] `frontend/src\services\socketService.js`
