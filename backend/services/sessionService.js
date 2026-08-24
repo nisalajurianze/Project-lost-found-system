@@ -106,7 +106,9 @@ export const rotateSession = async (rawRefresh, req, res) => {
     result = await performRotation(null);
   } finally {
     if (dbSession) {
-      try { await dbSession.endSession(); } catch {}
+      try { await dbSession.endSession(); } catch {
+        // Ignored: cleanup error during session ending
+      }
     }
   }
 
