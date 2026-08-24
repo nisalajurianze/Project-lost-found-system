@@ -28,7 +28,7 @@ const AccessibilityPreferences = () => {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.75rem)] left-4 z-50 flex min-h-12 min-w-12 items-center justify-center rounded-full border border-surface-300 bg-white text-primary-700 shadow-lg hover:bg-primary-50 focus:outline-none focus:ring-4 focus:ring-primary-200 dark:border-surface-700 dark:bg-surface-900 dark:text-primary-300 dark:hover:bg-surface-800 sm:bottom-6 sm:left-6"
+        className="hidden"
         aria-label={t('accessibility.open')}
         aria-haspopup="dialog"
       >

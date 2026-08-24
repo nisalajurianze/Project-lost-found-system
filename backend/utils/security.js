@@ -7,3 +7,5 @@ export const safeEqual = (left, right) => {
   const b = Buffer.from(String(right || ''));
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/;
+export const isValidPassword = (value) => typeof value === 'string' && value.length >= 12 && value.length <= 128 && PASSWORD_REGEX.test(value);

@@ -1,10 +1,75 @@
 
 :root {
-  --font-ui-multilingual: Inter, "Noto Sans Sinhala", "Noto Sans Tamil", "Segoe UI", Arial, sans-serif;
+  --font-ui-multilingual: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', 'Segoe UI', Arial, sans-serif;
+}
+
+html {
+  font-size: 90%;
+}
+
+body {
+  zoom: 0.9;
 }
 
 html, body, button, input, textarea, select {
   font-family: var(--font-ui-multilingual);
+}
+
+/* ========================================================
+   MULTILINGUAL (SINHALA / TAMIL) TYPOGRAPHY OVERLAP FIXES
+   ======================================================== */
+html[lang="si"],
+html[data-language="si"] {
+  font-family: 'Noto Sans Sinhala', 'Iskoola Pota', 'Nirmala UI', system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+html[lang="ta"],
+html[data-language="ta"] {
+  font-family: 'Noto Sans Tamil', 'Latha', 'Nirmala UI', system-ui, sans-serif;
+  line-height: 1.55;
+}
+
+html[lang="si"] h1,
+html[lang="si"] h2,
+html[lang="si"] h3,
+html[lang="si"] h4,
+html[lang="ta"] h1,
+html[lang="ta"] h2,
+html[lang="ta"] h3,
+html[lang="ta"] h4,
+html[data-language="si"] h1,
+html[data-language="si"] h2,
+html[data-language="si"] h3,
+html[data-language="si"] h4,
+html[data-language="ta"] h1,
+html[data-language="ta"] h2,
+html[data-language="ta"] h3,
+html[data-language="ta"] h4 {
+  line-height: 1.38 !important;
+  letter-spacing: 0.005em !important;
+}
+
+html[lang="si"] .leading-tight,
+html[lang="si"] .leading-none,
+html[lang="ta"] .leading-tight,
+html[lang="ta"] .leading-none,
+html[data-language="si"] .leading-tight,
+html[data-language="si"] .leading-none,
+html[data-language="ta"] .leading-tight,
+html[data-language="ta"] .leading-none {
+  line-height: 1.35 !important;
+}
+
+html[lang="si"] .tracking-tight,
+html[lang="si"] .tracking-tighter,
+html[lang="ta"] .tracking-tight,
+html[lang="ta"] .tracking-tighter,
+html[data-language="si"] .tracking-tight,
+html[data-language="si"] .tracking-tighter,
+html[data-language="ta"] .tracking-tight,
+html[data-language="ta"] .tracking-tighter {
+  letter-spacing: normal !important;
 }
 
 @tailwind base;
@@ -85,6 +150,28 @@ html, body, button, input, textarea, select {
   /* Selection */
   ::selection {
     @apply bg-primary-500/30 text-primary-900 dark:text-primary-100;
+  }
+
+  /* Date / Time Picker in Dark Mode */
+  .dark input[type="date"],
+  .dark input[type="time"],
+  .dark input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.9) brightness(1.2);
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+  }
+
+  .dark input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator:hover,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
   }
 }
 

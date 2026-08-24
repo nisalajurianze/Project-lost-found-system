@@ -13,7 +13,6 @@ RUN apk add --no-cache tini \
   && adduser -S app -u 10001 -G app
 COPY --from=dependencies --chown=app:app /app/node_modules ./node_modules
 COPY --chown=app:app . .
-RUN rm -rf node_modules/.cache postman test*.js test*.jpg clear_unsplash_images.js .env .env.*
 USER app
 EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

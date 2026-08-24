@@ -82,17 +82,17 @@ export const Home = () => {
 
   return (
     <div className="flex flex-1 flex-col bg-surface-50 transition-colors duration-300 dark:bg-surface-900">
-      <section className="hero-bg relative flex items-center justify-center py-20 text-center text-white lg:py-28">
+      <section className="hero-bg relative flex items-center justify-center pt-8 pb-24 sm:py-20 text-center text-white lg:py-28">
         <SpaceBackground />
-        <div className="page-container relative z-10 mx-auto flex max-w-5xl flex-col items-center">
-          <motion.img initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} src="/logo.png" alt="Smart L&F" className="-mt-16 mb-3 h-32 w-32 object-contain drop-shadow-2xl sm:h-40 sm:w-40" />
-          <motion.span initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-md">{t('home.badge')}</motion.span>
-          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">{t('home.title')} <span className="text-primary-300">{t('home.titleAccent')}</span></motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 max-w-3xl text-lg leading-relaxed text-primary-100">{t('home.subtitle')}</motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-9 flex flex-wrap justify-center gap-3">
+        <div className="page-container relative z-10 mx-auto flex max-w-5xl flex-col items-center px-4">
+          <motion.img initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} src="/logo.png" alt="Smart L&F" className="-mt-6 sm:-mt-16 mb-3 h-24 w-24 sm:h-36 sm:w-36 object-contain drop-shadow-2xl" />
+          <motion.span initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 sm:mb-6 inline-block rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider backdrop-blur-md">{t('home.badge')}</motion.span>
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-3xl text-2xl sm:text-4xl lg:text-5xl font-extrabold leading-snug sm:leading-[1.25] lg:leading-[1.22]">{t('home.title')} <span className="text-primary-300">{t('home.titleAccent')}</span></motion.h1>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-4 sm:mt-6 max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed text-primary-100">{t('home.subtitle')}</motion.p>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6 sm:mt-9 flex flex-col sm:flex-row flex-wrap justify-center gap-3 w-full max-w-sm sm:max-w-none">
             <Button variant="primary" size="lg" onClick={() => navigate('/dashboard/report-lost')} icon={<FiPlusCircle />}>{t('home.reportLost')}</Button>
             <Button variant="outline" size="lg" onClick={() => navigate('/dashboard/report-found')} icon={<FiShield />} className="border-white text-white hover:bg-white/10 dark:border-white dark:text-white">{t('home.reportFound')}</Button>
-            <Button variant="outline" size="lg" onClick={() => navigate('/lost-items')} icon={<FiSearch />} className="border-white text-white hover:bg-white/10 dark:border-white dark:text-white">{t('home.searchReports')}</Button>
+            <Button variant="outline" size="lg" onClick={() => navigate('/search')} icon={<FiSearch />} className="border-white text-white hover:bg-white/10 dark:border-white dark:text-white">{t('home.searchReports')}</Button>
           </motion.div>
         </div>
       </section>
@@ -101,8 +101,8 @@ export const Home = () => {
 
       <section className="page-container mx-auto max-w-6xl py-16 lg:py-20"><h2 className="mb-10 text-center text-2xl font-extrabold text-surface-900 dark:text-white lg:text-3xl">{t('home.featuresTitle')}</h2><div className="grid gap-6 md:grid-cols-3">{features.map(({ title, desc, icon: Icon, color }) => <article key={title} className="glass-card border border-surface-200 bg-white p-6 text-left dark:border-surface-700 dark:bg-surface-800"><div className="mb-4 w-fit rounded-2xl bg-surface-50 p-3 dark:bg-surface-900"><Icon className={`text-3xl ${color}`} aria-hidden="true" /></div><h3 className="mb-2 text-lg font-bold text-surface-900 dark:text-white">{title}</h3><p className="text-sm leading-relaxed text-surface-500 dark:text-surface-400">{desc}</p></article>)}</div></section>
 
-      <ListingSection title={t('home.latestLost')} description={t('home.latestLostDesc')} path="/lost-items" items={latestLost} type="lost" background="bg-surface-100 dark:bg-surface-950/20" />
-      <ListingSection title={t('home.latestFound')} description={t('home.latestFoundDesc')} path="/found-items" items={latestFound} type="found" background="bg-white dark:bg-surface-900" />
+      <ListingSection title={t('home.latestLost')} description={t('home.latestLostDesc')} path="/search?type=lost" items={latestLost} type="lost" background="bg-surface-100 dark:bg-surface-950/20" />
+      <ListingSection title={t('home.latestFound')} description={t('home.latestFoundDesc')} path="/search?type=found" items={latestFound} type="found" background="bg-white dark:bg-surface-900" />
     </div>
   );
 };

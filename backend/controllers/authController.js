@@ -41,7 +41,7 @@ const register = asyncHandler(async (req, res) => {
   if (existingUser) throw ApiError.conflict('Email or student ID is already registered.');
 
   const setting = await SystemSetting.findOne({ key: 'require_email_verification' }).lean();
-  const requireVerification = setting ? setting.value !== false : true;
+  const requireVerification = setting?.value === true;
   const verificationToken = requireVerification ? randomToken(32) : null;
   const user = await createUserOrConflict({
     fullName: req.body.fullName,
@@ -139,7 +139,7 @@ const login = asyncHandler(async (req, res) => {
   }
   if (!user.isActive || user.deletedAt) throw ApiError.forbidden('Account is unavailable.');
   const setting = await SystemSetting.findOne({ key: 'require_email_verification' }).lean();
-  if ((setting ? setting.value !== false : true) && !user.isVerified) throw ApiError.forbidden('Verify your email before logging in.');
+  if (setting?.value === true && !user.isVerified) throw ApiError.forbidden('Verify your email before logging in.');
   user.loginAttempts = 0;
   user.lockUntil = undefined;
   user.lastLogin = new Date();

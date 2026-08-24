@@ -17,12 +17,15 @@ export const ConfirmDialog = ({
   confirmText = 'Delete',
   cancelText = 'Cancel',
   isDanger = true,
+  variant,
   isLoading = false
 }) => {
+  const resolvedVariant = variant || (isDanger ? 'danger' : 'primary');
+  const isDestructive = resolvedVariant === 'danger' || (!variant && isDanger);
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div className="flex flex-col items-center text-center">
-        <div className={`p-3 rounded-full mb-4 ${isDanger ? 'bg-red-50 text-red-500 dark:bg-red-950/20' : 'bg-amber-50 text-amber-500 dark:bg-amber-950/20'}`}>
+        <div className={`p-3 rounded-full mb-4 ${isDestructive ? 'bg-red-50 text-red-500 dark:bg-red-950/20' : 'bg-primary-50 text-primary-600 dark:bg-primary-950/20'}`}>
           <FiAlertTriangle className="text-3xl" />
         </div>
         <p className="text-sm text-surface-600 dark:text-surface-300 mb-6">
@@ -39,7 +42,7 @@ export const ConfirmDialog = ({
           </Button>
           <Button
             onClick={onConfirm}
-            variant={isDanger ? 'danger' : 'primary'}
+            variant={resolvedVariant}
             className="flex-1"
             isLoading={isLoading}
           >

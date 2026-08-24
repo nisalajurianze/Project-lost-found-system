@@ -9,11 +9,17 @@ import Button from './Button';
 
 export const EmptyState = ({
   title = 'No items found',
-  description = 'Try adjusting your search filters or check back later.',
+  description,
+  message,
   actionText,
   onAction,
+  action,
   icon = <FiInbox className="text-5xl text-surface-400" />
 }) => {
+  const displayDescription = message || description || 'Try adjusting your search filters or check back later.';
+  const resolvedActionText = action?.label || actionText;
+  const resolvedOnAction = action?.onClick || onAction;
+
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-surface-200 dark:border-surface-700/50 rounded-2xl bg-white/40 dark:bg-surface-800/10 backdrop-blur-sm max-w-lg mx-auto my-6">
       <div className="p-4 bg-surface-100 dark:bg-surface-800 rounded-full mb-4">
@@ -23,11 +29,11 @@ export const EmptyState = ({
         {title}
       </h3>
       <p className="text-sm text-surface-500 dark:text-surface-400 max-w-sm mb-6">
-        {description}
+        {displayDescription}
       </p>
-      {actionText && onAction && (
-        <Button onClick={onAction} variant="outline" size="sm">
-          {actionText}
+      {resolvedActionText && resolvedOnAction && (
+        <Button onClick={resolvedOnAction} variant="outline" size="sm">
+          {resolvedActionText}
         </Button>
       )}
     </div>

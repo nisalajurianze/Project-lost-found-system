@@ -44,31 +44,71 @@ export const MobileBottomNav = () => {
 
   return (
     <>
-      <nav aria-label={t('nav.mobilePrimary')} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-end border-t border-surface-200/70 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg dark:border-surface-800/70 dark:bg-surface-950/95 lg:hidden no-print">
+      <nav aria-label={t('nav.mobilePrimary')} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-surface-200/80 bg-white/95 px-1 h-16 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg dark:border-surface-800/80 dark:bg-surface-950/95 xl:hidden no-print">
         {links.slice(0, 2).map(({ id, label, path, icon: Icon }) => (
-          <Link key={id} to={path} aria-current={isActive(path) ? 'page' : undefined} className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1 rounded-lg px-1 text-xs font-semibold ${isActive(path) ? 'text-primary-600 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
-            <Icon className="h-5 w-5" aria-hidden="true" /><span>{label}</span>
+          <Link key={id} to={path} aria-current={isActive(path) ? 'page' : undefined} className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-xs font-semibold ${isActive(path) ? 'text-primary-600 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            <span className="text-[11px] truncate max-w-[62px] text-center">{label}</span>
           </Link>
         ))}
 
-        <button type="button" onClick={openReportMenu} className="relative -top-3 mx-auto flex min-h-16 min-w-16 flex-col items-center justify-center gap-0.5 rounded-full border-4 border-white bg-primary-600 text-xs font-bold text-white shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 dark:border-surface-950" aria-haspopup={isAuthenticated ? 'dialog' : undefined} aria-label={t('nav.reportAria')}>
-          <FiPlus className="h-6 w-6" aria-hidden="true" /><span>{t('common.report')}</span>
-        </button>
+        <div className="relative -top-3.5 flex flex-col items-center justify-center">
+          <button
+            type="button"
+            onClick={openReportMenu}
+            className="group flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/30 ring-4 ring-white dark:ring-surface-950 transition-all duration-200 active:scale-95 hover:scale-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
+            aria-haspopup={isAuthenticated ? 'dialog' : undefined}
+            aria-label={t('nav.reportAria')}
+          >
+            <FiPlus className="h-6 w-6 transition-transform duration-300 group-hover:rotate-90" aria-hidden="true" />
+          </button>
+          <span className="mt-0.5 text-[10px] font-bold text-primary-600 dark:text-primary-400 tracking-tight">
+            {t('common.report')}
+          </span>
+        </div>
 
         {links.slice(2).map(({ id, label, path, icon: Icon }) => (
-          <Link key={id} to={path} aria-current={isActive(path) ? 'page' : undefined} className={`flex min-h-[4.5rem] flex-col items-center justify-center gap-1 rounded-lg px-1 text-xs font-semibold ${isActive(path) ? 'text-primary-600 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
-            <Icon className="h-5 w-5" aria-hidden="true" /><span>{label}</span>
+          <Link key={id} to={path} aria-current={isActive(path) ? 'page' : undefined} className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-xs font-semibold ${isActive(path) ? 'text-primary-600 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            <span className="text-[11px] truncate max-w-[62px] text-center">{label}</span>
           </Link>
         ))}
       </nav>
 
       <Modal isOpen={isReportMenuOpen} onClose={() => setIsReportMenuOpen(false)} title={t('nav.reportPrompt')} size="sm">
-        <div className="grid gap-3">
-          <Link to="/dashboard/report-lost" onClick={() => setIsReportMenuOpen(false)} className="flex min-h-16 items-center justify-between rounded-xl border border-rose-200 bg-rose-50 px-4 text-base font-bold text-rose-800 hover:border-rose-400 dark:border-rose-900/60 dark:bg-rose-950/25 dark:text-rose-200">
-            {t('nav.lostAction')} <span aria-hidden="true">→</span>
+        <div className="grid gap-3 pt-1">
+          <Link
+            to="/dashboard/report-lost"
+            onClick={() => setIsReportMenuOpen(false)}
+            className="group flex min-h-[72px] items-center justify-between rounded-2xl border border-rose-200/90 bg-gradient-to-r from-rose-50 to-white p-4 transition-all duration-200 hover:scale-[1.02] hover:border-rose-400 hover:shadow-md dark:border-rose-900/50 dark:bg-gradient-to-r dark:from-rose-950/40 dark:to-surface-800 dark:hover:border-rose-700"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-600 dark:bg-rose-500/25 dark:text-rose-300 shadow-xs">
+                <FiPlus className="h-6 w-6" />
+              </div>
+              <div className="text-left">
+                <p className="text-base font-bold text-rose-950 dark:text-rose-100">{t('nav.lostAction')}</p>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{t('report.lost')}</p>
+              </div>
+            </div>
+            <span className="text-xl font-bold text-rose-500 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
           </Link>
-          <Link to="/dashboard/report-found" onClick={() => setIsReportMenuOpen(false)} className="flex min-h-16 items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-base font-bold text-emerald-800 hover:border-emerald-400 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-200">
-            {t('nav.foundAction')} <span aria-hidden="true">→</span>
+
+          <Link
+            to="/dashboard/report-found"
+            onClick={() => setIsReportMenuOpen(false)}
+            className="group flex min-h-[72px] items-center justify-between rounded-2xl border border-emerald-200/90 bg-gradient-to-r from-emerald-50 to-white p-4 transition-all duration-200 hover:scale-[1.02] hover:border-emerald-400 hover:shadow-md dark:border-emerald-900/50 dark:bg-gradient-to-r dark:from-emerald-950/40 dark:to-surface-800 dark:hover:border-emerald-700"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/25 dark:text-emerald-300 shadow-xs">
+                <FiPlus className="h-6 w-6" />
+              </div>
+              <div className="text-left">
+                <p className="text-base font-bold text-emerald-950 dark:text-emerald-100">{t('nav.foundAction')}</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{t('report.found')}</p>
+              </div>
+            </div>
+            <span className="text-xl font-bold text-emerald-500 transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
           </Link>
         </div>
       </Modal>

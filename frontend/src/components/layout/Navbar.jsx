@@ -165,17 +165,16 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   );
 
   const renderProfileDropdown = () => (
-    <div className={`fixed top-[4.5rem] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-64 rounded-xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top sm:origin-top-right ${
+    <div className={`fixed top-[4.5rem] left-4 right-4 sm:absolute sm:top-auto sm:left-auto sm:right-0 sm:mt-2 sm:w-[22rem] rounded-2xl border border-surface-200 bg-white shadow-2xl dark:border-surface-700 dark:bg-surface-800 z-50 overflow-hidden flex flex-col transition-all duration-300 origin-top sm:origin-top-right ${
       profileDropdownOpen ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible pointer-events-none'
     }`}>
-      <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800/50 flex justify-between items-center">
-        <div className="flex flex-col overflow-hidden mr-2">
+      <div className="px-4 py-3.5 border-b border-surface-100 dark:border-surface-700 bg-surface-50/80 dark:bg-surface-800/50 flex justify-between items-center gap-3">
+        <div className="flex flex-col overflow-hidden min-w-0 flex-1">
           <p className="text-sm font-bold text-surface-900 dark:text-white truncate">{user?.fullName}</p>
           <p className="text-xs text-surface-500 dark:text-surface-400 truncate">{user?.email}</p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Link to="/about" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">{t('common.about')}</Link>
-          <Link to="/contact" onClick={() => setProfileDropdownOpen(false)} className="text-[11px] text-primary-600 dark:text-primary-400 font-bold hover:underline">{t('common.contact')}</Link>
+        <div className="xl:hidden shrink-0">
+          <LanguageSwitcher compact />
         </div>
       </div>
 
@@ -240,13 +239,20 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
         )}
       </div>
 
-      <div className="border-t border-surface-100 dark:border-surface-700 py-1">
+      <div className="border-t border-surface-100 dark:border-surface-700 px-4 py-2.5 flex items-center justify-between gap-3 bg-surface-50/60 dark:bg-surface-800/40">
         <button type="button"
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+          className="flex items-center gap-2 text-sm font-bold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
         >
-          <FiLogOut className="text-lg" /> {t('common.logout')}
+          <FiLogOut className="text-base" />
+          <span>{t('common.logout')}</span>
         </button>
+
+        <div className="flex items-center gap-2 text-xs font-semibold text-surface-500 dark:text-surface-400">
+          <Link to="/about" onClick={() => setProfileDropdownOpen(false)} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{t('common.about')}</Link>
+          <span>•</span>
+          <Link to="/contact" onClick={() => setProfileDropdownOpen(false)} className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">{t('common.contact')}</Link>
+        </div>
       </div>
     </div>
   );
@@ -254,13 +260,13 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   return (
     <nav className="sticky top-0 z-40 w-full border-b border-surface-200/50 bg-white/75 backdrop-blur-md dark:border-surface-800/50 dark:bg-surface-900/75 transition-colors duration-300">
       <div className="w-full px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+        <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo & Mobile Menu Toggle */}
-          <div className="flex items-center gap-1.5 hover:opacity-90 transition-opacity">
+          <div className="flex items-center gap-1.5 hover:opacity-90 transition-opacity shrink-0">
             {onMenuClick ? (
               <button type="button"
                 onClick={onMenuClick}
-                className="lg:hidden relative min-h-11 min-w-11 flex items-center justify-center text-primary-500 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors focus:outline-none"
+                className="xl:hidden relative min-h-11 min-w-11 flex items-center justify-center text-primary-500 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors focus:outline-none"
                 aria-label={t('common.toggleAdminMenu')}
               >
                 <FiMenu className={`absolute text-2xl transition-all duration-300 ${isMenuOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
@@ -268,7 +274,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               </button>
             ) : null}
 
-            <Link to="/" className={`min-h-11 min-w-11 items-center justify-center gap-1.5 ${onMenuClick ? 'hidden lg:flex' : 'flex'}`}>
+            <Link to="/" className={`min-h-11 min-w-11 items-center justify-center gap-1.5 ${onMenuClick ? 'hidden xl:flex' : 'flex'}`}>
               <img src="/logo.png" alt={t('common.logoAlt')} className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
             </Link>
 
@@ -280,12 +286,12 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden xl:flex items-center gap-4 2xl:gap-7 shrink-0">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`inline-flex min-h-11 items-center text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-11 items-center text-sm font-medium whitespace-nowrap transition-colors ${
                   isActive(link.path)
                     ? 'text-primary-600 dark:text-primary-400'
                     : 'text-surface-600 hover:text-surface-900 dark:text-surface-300 dark:hover:text-white'
@@ -297,7 +303,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
           {/* Action Icons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden xl:flex items-center gap-3 shrink-0">
             <LanguageSwitcher compact />
             {/* Theme Toggle */}
             <button type="button"
@@ -385,8 +391,8 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
             {/* Mobile Actions */}
-          <div className="flex md:hidden items-center gap-2 sm:gap-3">
-            <LanguageSwitcher compact />
+          <div className="flex xl:hidden items-center gap-2 sm:gap-3">
+            {!isAuthenticated && <LanguageSwitcher compact />}
             {/* Mobile Notification Bell */}
             {isAuthenticated && (
               <div className="relative" ref={mobileNotificationDropdownRef}>

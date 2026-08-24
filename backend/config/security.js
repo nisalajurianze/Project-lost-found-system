@@ -35,6 +35,8 @@ export const accessSecret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SEC
 export const accessExpire = process.env.JWT_ACCESS_EXPIRE || process.env.JWT_EXPIRES_IN || '15m';
 export const accessMaxAgeMs = durationMs(accessExpire, 15 * 60 * 1_000);
 export const refreshDays = Math.min(90, Math.max(1, Number(process.env.REFRESH_TOKEN_DAYS || 7)));
+export const rememberedRefreshDays = Math.min(90, Math.max(1, Number(process.env.REMEMBERED_REFRESH_TOKEN_DAYS || 30)));
+export const nonRememberedRefreshDays = Math.min(90, Math.max(1, Number(process.env.NON_REMEMBERED_REFRESH_TOKEN_DAYS || 1)));
 export const cookieSecure = asBool(process.env.COOKIE_SECURE, isProduction);
 export const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 export const resolveCookieSameSite = (value, production = isProduction) => {

@@ -28,7 +28,7 @@ import toast from 'react-hot-toast';
 export const FoundItemDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { search } = useLocation();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { t } = useLanguage();
   const { isAuthenticated, user } = useAuth();
@@ -71,13 +71,13 @@ export const FoundItemDetail = () => {
   }, [currentItem]);
 
   useEffect(() => {
-    if (new URLSearchParams(search).get('claim') !== '1' || !isAuthenticated || !currentItem) return;
+    if (new URLSearchParams(location.search).get('claim') !== '1' || !isAuthenticated || !currentItem) return;
     const reporterId = currentItem.userId?._id || currentItem.userId;
     const eligible = ['available', 'matched'].includes(currentItem.status)
       && reporterId?.toString() !== loggedInUserId?.toString()
       && !hasClaimedSession && !hasExistingClaim;
     if (eligible) setIsClaimModalOpen(true);
-  }, [currentItem, hasClaimedSession, hasExistingClaim, isAuthenticated, loggedInUserId, search]);
+  }, [currentItem, hasClaimedSession, hasExistingClaim, isAuthenticated, loggedInUserId, location.search]);
 
   if (isLoading) {
     return <Loader fullPage />;
@@ -393,7 +393,7 @@ export const FoundItemDetail = () => {
                   </div>
                   <div className="pt-2">
                     {!isAuthenticated && (
-                      <Button variant="primary" size="sm" className="px-6">
+                      <Button variant="primary" size="sm" className="px-6" onClick={() => navigate('/login', { state: { from: location } })}>
                         {t('detail.loginFinder')}
                       </Button>
                     )}

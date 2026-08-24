@@ -11,12 +11,14 @@ export const Button = ({
   variant = 'primary',
   size = 'md',
   isLoading = false,
+  loading = false,
   disabled = false,
   icon = null,
   onClick,
   className = '',
   ...props
 }) => {
+  const activeLoading = Boolean(isLoading || loading);
   const baseClasses = 'btn';
 
   const variantClasses = {
@@ -41,11 +43,11 @@ export const Button = ({
     <button
       type={type}
       className={`${baseClasses} ${selectedVariant} ${selectedSize} ${className}`}
-      disabled={disabled || isLoading}
+      disabled={disabled || activeLoading}
       onClick={onClick}
       {...props}
     >
-      {isLoading ? (
+      {activeLoading ? (
         <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
       ) : (
         icon && <span className="flex-shrink-0">{icon}</span>

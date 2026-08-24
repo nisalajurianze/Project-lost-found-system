@@ -58,6 +58,7 @@ const ManageCategories = lazyWithRetry(() => import('./pages/admin/ManageCategor
 const SiteSettings = lazyWithRetry(() => import('./pages/admin/SiteSettings'));
 const LocationKnowledge = lazyWithRetry(() => import('./pages/admin/LocationKnowledge'));
 const AIFeedbackReview = lazyWithRetry(() => import('./pages/admin/AIFeedbackReview'));
+const ManageClaims = lazyWithRetry(() => import('./pages/admin/ManageClaims'));
 
 // Fallback loader
 import Loader from './components/common/Loader';
@@ -149,9 +150,9 @@ const App = () => {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/search" element={<SearchItems />} />
-          <Route path="/lost-items" element={<LostItems />} />
+          <Route path="/lost-items" element={<Navigate to="/search?type=lost" replace />} />
           <Route path="/lost-items/:id" element={<LostItemDetail />} />
-          <Route path="/found-items" element={<FoundItems />} />
+          <Route path="/found-items" element={<Navigate to="/search?type=found" replace />} />
           <Route path="/found-items/:id" element={<FoundItemDetail />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
 
@@ -192,6 +193,7 @@ const App = () => {
             <Route path="/admin/settings" element={<SiteSettings />} />
             <Route path="/admin/locations" element={<LocationKnowledge />} />
             <Route path="/admin/ai-feedback" element={<AIFeedbackReview />} />
+            <Route path="/admin/claims" element={<ManageClaims />} />
           </Route>
         </Route>
       </Routes>

@@ -61,7 +61,7 @@ const itemToForm = (item, isLost) => ({
   date: toLocalDateTime(isLost ? item?.lostDate : item?.foundDate),
   storedAt: item?.storedAt || '',
   contactPreference: item?.contactPreference || 'both',
-  contactVisibility: 'request_only',
+  contactVisibility: item?.contactVisibility || 'request_only',
 });
 
 const ReportItemWizard = ({ mode, itemId = null }) => {
@@ -512,26 +512,47 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
   ];
   const visibilityOptions = [
     { value: 'request_only', label: t('report.shareApproved') },
+    { value: 'public', label: t('report.sharePublic') },
   ];
 
   if (isEdit && !isInitialised && (!hasRequestedItem || itemLoading)) return <div className="py-16 text-center text-surface-600 dark:text-surface-300" role="status">{t('report.loading')}</div>;
   if (isEdit && !isInitialised && hasRequestedItem && !itemLoading && (!currentItem || currentItem._id !== itemId)) return <div className="py-16 text-center text-red-700 dark:text-red-300" role="alert">{t('report.loadFailed')}</div>;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 animate-fade-in">
+    <div className="w-full space-y-6 animate-fade-in">
       <ProfileCompletionModal isOpen={isProfileModalOpen} onClose={handleProfileModalClose} onSuccess={() => setIsProfileModalOpen(false)} />
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-surface-900 dark:text-white">{t('report.title', { action: t(isEdit ? 'report.edit' : 'report.create'), type: t(isLost ? 'report.lost' : 'report.found') })}</h1>
-          <p className="mt-1 text-base text-surface-600 dark:text-surface-300">{t('report.subtitle')}</p>
+          <div className="flex items-center gap-2 mb-2">
+            {isLost ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-rose-50 border border-rose-200/90 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800/60 dark:text-rose-300 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                {t('report.lost')}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-emerald-50 border border-emerald-200/90 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/60 dark:text-emerald-300 shadow-xs">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                {t('report.found')}
+              </span>
+            )}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-surface-900 dark:text-white">{t('report.title', { action: t(isEdit ? 'report.edit' : 'report.create'), type: t(isLost ? 'report.lost' : 'report.found') })}</h1>
+          <p className="mt-1 text-sm sm:text-base text-surface-600 dark:text-surface-300">{t('report.subtitle')}</p>
         </div>
-        <Button type="button" variant="ghost" onClick={() => setIsClearConfirmOpen(true)}>{t('report.clearDraft')}</Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 font-semibold text-xs sm:text-sm"
+          onClick={() => setIsClearConfirmOpen(true)}
+        >
+          {t('report.clearDraft')}
+        </Button>
       </header>
 
       {draftRestored && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100" role="status">
-          {t('report.draftRestored')}
+        <div className="rounded-xl border border-blue-200 bg-blue-50/90 dark:border-blue-900/50 dark:bg-blue-950/30 p-2.5 sm:p-3 text-xs sm:text-sm text-blue-900 dark:text-blue-100 flex items-center justify-between gap-2 shadow-xs" role="status">
+          <span>{t('report.draftRestored')}</span>
         </div>
       )}
 
@@ -542,19 +563,39 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
         </div>
       )}
 
-      <nav aria-label={t('report.progress')} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {steps.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => id < step && setStep(id)}
-            disabled={id > step}
-            aria-current={step === id ? 'step' : undefined}
-            className={`min-h-14 rounded-xl border px-3 py-2 text-left text-sm font-semibold transition ${step === id ? 'border-primary-500 bg-primary-50 text-primary-800 dark:bg-primary-950/30 dark:text-primary-200' : id < step ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200' : 'border-surface-200 bg-surface-50 text-surface-400 dark:border-surface-800 dark:bg-surface-900/40'}`}
-          >
-            <span className="flex items-center gap-2"><Icon className="h-4 w-4" /> {id}. {label}</span>
-          </button>
-        ))}
+      <nav aria-label={t('report.progress')} className="grid grid-cols-4 gap-1.5 sm:gap-3">
+        {steps.map(({ id, label, icon: Icon }) => {
+          const isCurrent = step === id;
+          const isCompleted = id < step;
+          const hasPhoto = (images && images.length > 0) || (existingImages && existingImages.length > 0);
+          const isPhotoStepWithoutImage = id === 1 && isCompleted && !hasPhoto;
+
+          let stepClass = 'border-surface-200 bg-surface-50 text-surface-400 dark:border-surface-800 dark:bg-surface-900/40';
+          if (isCurrent) {
+            stepClass = 'border-primary-500 bg-primary-50 text-primary-800 dark:border-primary-500 dark:bg-primary-950/30 dark:text-primary-200 shadow-xs';
+          } else if (isPhotoStepWithoutImage) {
+            stepClass = 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200';
+          } else if (isCompleted) {
+            stepClass = 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-200';
+          }
+
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => id < step && setStep(id)}
+              disabled={id > step}
+              aria-current={isCurrent ? 'step' : undefined}
+              className={`min-h-11 sm:min-h-14 rounded-xl border px-1 sm:px-3 py-2 text-center sm:text-left text-xs sm:text-sm font-semibold transition flex items-center justify-center sm:justify-start gap-1 sm:gap-2 ${stepClass}`}
+            >
+              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="truncate">
+                <span className="hidden sm:inline">{id}. </span>
+                {label}
+              </span>
+            </button>
+          );
+        })}
       </nav>
 
       {Object.keys(errors).length > 0 && (
@@ -568,7 +609,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
         </section>
       )}
 
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-surface-200 bg-white p-4 shadow-lg dark:border-surface-800 dark:bg-surface-900 sm:p-7">
+      <form onSubmit={handleSubmit} className={`rounded-2xl border border-surface-200 bg-white p-4 shadow-lg dark:border-surface-800 dark:bg-surface-900 sm:p-7 border-t-4 ${isLost ? '!border-t-rose-500' : '!border-t-emerald-500'}`}>
         {step === 1 && (
           <section className="space-y-5" aria-labelledby="photo-step-title">
             <div><h2 id="photo-step-title" className="text-xl font-bold">{t('report.photoTitle')}</h2><p className="mt-1 text-sm text-surface-500">{t('report.photoDesc')}</p></div>
@@ -638,8 +679,8 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
           <section className="space-y-5" aria-labelledby="review-step-title">
             <div><h2 id="review-step-title" className="text-xl font-bold">{t('report.reviewTitle')}</h2><p className="mt-1 text-sm text-surface-500">{t('report.reviewDesc')}</p></div>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Select label={t('report.contactChannel')} name="contactPreference" value={form.contactPreference} onChange={(event) => update('contactPreference', event.target.value)} options={contactOptions} />
-              <Select label={t('report.contactVisibility')} name="contactVisibility" value={form.contactVisibility} onChange={(event) => update('contactVisibility', event.target.value)} options={visibilityOptions} />
+              <Select label={t('report.contactChannel')} name="contactPreference" value={form.contactPreference || 'both'} onChange={(event) => update('contactPreference', event.target.value)} options={contactOptions} placeholder="" />
+              <Select label={t('report.contactVisibility')} name="contactVisibility" value={form.contactVisibility || 'request_only'} onChange={(event) => update('contactVisibility', event.target.value)} options={visibilityOptions} placeholder="" />
             </div>
             <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4 dark:border-surface-800 dark:bg-surface-950/40">
               <h3 className="font-bold text-surface-900 dark:text-white">{t('report.preview')}</h3>
@@ -688,9 +729,24 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-surface-200 pt-5 dark:border-surface-800">
           <Button type="button" variant="outline" onClick={() => setStep((current) => Math.max(1, current - 1))} disabled={step === 1} icon={<ChevronLeft className="h-4 w-4" />}>{t('report.back')}</Button>
           {step < 4 ? (
-            <Button type="button" onClick={goNext}>{t('report.continue')} <ChevronRight className="h-4 w-4" /></Button>
+            <Button
+              type="button"
+              onClick={goNext}
+              className={isLost ? '!bg-rose-600 hover:!bg-rose-700 !text-white' : '!bg-emerald-600 hover:!bg-emerald-700 !text-white'}
+            >
+              {t('report.continue')} <ChevronRight className="h-4 w-4" />
+            </Button>
           ) : (
-            <Button type="submit" variant="success" isLoading={isLoading} disabled={!isOnline} icon={<Check className="h-4 w-4" />}>{t(isEdit ? 'report.saveChanges' : 'report.submitReport')}</Button>
+            <Button
+              type="submit"
+              variant="success"
+              isLoading={isLoading}
+              disabled={!isOnline}
+              className={isLost ? '!bg-rose-600 hover:!bg-rose-700 !text-white' : '!bg-emerald-600 hover:!bg-emerald-700 !text-white'}
+              icon={<Check className="h-4 w-4" />}
+            >
+              {t(isEdit ? 'report.saveChanges' : 'report.submitReport')}
+            </Button>
           )}
         </div>
       </form>

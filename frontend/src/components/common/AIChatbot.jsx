@@ -3,8 +3,10 @@ import {
   FiAlertCircle,
   FiChevronRight,
   FiClock,
+  FiGlobe,
   FiMic,
   FiMessageSquare,
+  FiPackage,
   FiPlus,
   FiSearch,
   FiSend,
@@ -378,6 +380,22 @@ const AIChatbot = () => {
     }
   };
 
+  const adjustTextareaHeight = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 180)}px`;
+    }
+  };
+
+  const handleInputChange = (event) => {
+    setInput(event.target.value);
+    adjustTextareaHeight();
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
+
   const handleSubmit = (event) => {
     event.preventDefault();
     requestAssistant(input);
@@ -419,22 +437,24 @@ const AIChatbot = () => {
     recognition.start();
   };
 
+  const isInitialOnly = messages.length === 1 && messages[0].role === 'ai';
+
   return (
     <>
       <button
         type="button"
         ref={floatingButtonRef}
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.75rem)] right-4 z-50 flex min-h-12 items-center gap-2 rounded-full bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-300 sm:bottom-6 sm:right-6 ${isOpen ? 'pointer-events-none scale-90 opacity-0' : 'opacity-100'}`}
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom,0px)+5.75rem)] right-4 z-50 flex min-h-12 items-center gap-2.5 rounded-full bg-gradient-to-r from-primary-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-xl shadow-primary-500/25 transition-all hover:scale-105 hover:shadow-2xl hover:shadow-primary-500/40 focus:outline-none focus:ring-4 focus:ring-primary-300 sm:bottom-6 sm:right-6 ${isOpen ? 'pointer-events-none scale-90 opacity-0' : 'opacity-100'}`}
         aria-label={t('assistant.openAria')}
         aria-haspopup="dialog"
       >
-        <FiMessageSquare className="h-5 w-5" aria-hidden="true" />
-        <span className="hidden sm:inline">{t('assistant.askButton')}</span>
+        <FaRobot className="h-5 w-5 animate-pulse" aria-hidden="true" />
+        <span className="hidden sm:inline font-display font-medium tracking-wide">{t('assistant.askButton')}</span>
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[79] bg-surface-950/35 backdrop-blur-[2px] sm:bg-transparent sm:backdrop-blur-none" aria-hidden="true" onMouseDown={closeAssistant} />
+        <div className="fixed inset-0 z-[79] bg-surface-950/40 backdrop-blur-sm transition-opacity sm:bg-surface-950/20" aria-hidden="true" onMouseDown={closeAssistant} />
       )}
 
       {isOpen && (
@@ -443,155 +463,273 @@ const AIChatbot = () => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="smart-lf-assistant-title"
-        className="fixed inset-0 z-[80] flex flex-col overflow-hidden bg-white shadow-2xl dark:bg-surface-900 sm:inset-y-4 sm:left-auto sm:right-4 sm:w-[min(32rem,calc(100vw-2rem))] sm:rounded-2xl sm:border sm:border-surface-200 sm:dark:border-surface-700"
+        className="fixed inset-0 z-[80] flex flex-col overflow-hidden bg-white shadow-2xl dark:bg-surface-900 sm:inset-y-4 sm:left-auto sm:right-4 sm:w-[min(32rem,calc(100vw-2rem))] sm:rounded-2xl sm:border sm:border-surface-200/80 sm:dark:border-surface-700/80"
         style={mobileViewport ? { height: `${mobileViewport.height}px`, top: `${mobileViewport.top}px`, bottom: 'auto' } : undefined}
       >
-        <header className="flex min-h-16 items-center justify-between gap-3 border-b border-surface-200 px-4 py-3 dark:border-surface-700">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300">
-              <FaRobot aria-hidden="true" />
+        {/* Modern Header */}
+        <header className="flex min-h-16 items-center justify-between gap-2.5 border-b border-surface-200/80 bg-white/95 px-3.5 sm:px-4 py-2.5 sm:py-3 backdrop-blur-md dark:border-surface-700/80 dark:bg-surface-900/95">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-500 text-white shadow-md shadow-primary-500/20">
+              <FaRobot className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-white dark:bg-surface-900">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              </span>
             </div>
             <div className="min-w-0">
-              <h2 id="smart-lf-assistant-title" className="truncate text-lg font-bold text-surface-900 dark:text-white">{t('assistant.title')}</h2>
-              <p className="text-xs text-surface-500 dark:text-surface-400">{t('assistant.subtitle')}</p>
+              <h2 id="smart-lf-assistant-title" className="truncate text-sm sm:text-base font-bold text-surface-900 dark:text-white font-display">
+                {t('assistant.title')}
+              </h2>
+              <p className="flex items-center gap-1.5 truncate text-[11px] sm:text-xs text-surface-500 dark:text-surface-400">
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Online AI</span>
+                <span>•</span>
+                <span className="truncate">{t('assistant.subtitle')}</span>
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={beginNewConversation} className="flex h-11 w-11 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 hover:text-primary-700 dark:hover:bg-surface-800" aria-label={t('assistant.newAria')}>
-              <FiPlus aria-hidden="true" />
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={beginNewConversation}
+              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 hover:text-primary-700 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-primary-300 transition-colors"
+              aria-label={t('assistant.newAria')}
+              title={t('assistant.newConversation')}
+            >
+              <FiPlus className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button type="button" onClick={() => setHistoryOpen((value) => !value)} className="flex h-11 w-11 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 hover:text-primary-700 dark:hover:bg-surface-800" aria-label={t('assistant.historyAria')} aria-expanded={historyOpen}>
-              <FiClock aria-hidden="true" />
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((value) => !value)}
+              className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${
+                historyOpen
+                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300'
+                  : 'text-surface-500 hover:bg-surface-100 hover:text-primary-700 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-primary-300'
+              }`}
+              aria-label={t('assistant.historyAria')}
+              aria-expanded={historyOpen}
+              title={t('assistant.historyTitle')}
+            >
+              <FiClock className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button type="button" onClick={handleClearChat} className="flex h-11 w-11 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 hover:text-red-600 dark:hover:bg-surface-800" aria-label={t('assistant.deleteCurrentAria')}>
-              <FiTrash2 aria-hidden="true" />
+            <button
+              type="button"
+              onClick={handleClearChat}
+              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-surface-500 hover:bg-rose-50 hover:text-rose-600 dark:text-surface-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-400 transition-colors"
+              aria-label={t('assistant.deleteCurrentAria')}
+              title={t('assistant.clearHistory')}
+            >
+              <FiTrash2 className="h-4 w-4" aria-hidden="true" />
             </button>
-            <button type="button" onClick={closeAssistant} className="flex h-11 w-11 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800" aria-label={t('assistant.closeAria')}>
-              <FiX className="h-5 w-5" aria-hidden="true" />
+            <div className="mx-0.5 h-4 w-px bg-surface-200 dark:bg-surface-700" />
+            <button
+              type="button"
+              onClick={closeAssistant}
+              className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 hover:text-surface-800 dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-200 transition-colors"
+              aria-label={t('assistant.closeAria')}
+            >
+              <FiX className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
             </button>
           </div>
         </header>
 
+        {/* History Slide-over */}
         {historyOpen && (
           <aside className="absolute inset-x-0 bottom-0 top-16 z-20 overflow-y-auto bg-white p-4 dark:bg-surface-900" aria-label={t('assistant.historyTitle')}>
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-3 dark:border-surface-800">
               <div>
-                <h3 className="text-lg font-bold text-surface-900 dark:text-white">{t('assistant.historyTitle')}</h3>
-                <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{t('assistant.historyDesc')}</p>
+                <h3 className="text-base font-bold text-surface-900 dark:text-white font-display">{t('assistant.historyTitle')}</h3>
+                <p className="mt-0.5 text-xs text-surface-500 dark:text-surface-400">{t('assistant.historyDesc')}</p>
               </div>
-              <button type="button" onClick={() => setHistoryOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800" aria-label={t('assistant.closeHistoryAria')}><FiX aria-hidden="true" /></button>
+              <button type="button" onClick={() => setHistoryOpen(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800" aria-label={t('assistant.closeHistoryAria')}><FiX aria-hidden="true" /></button>
             </div>
-            <button type="button" onClick={beginNewConversation} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-bold text-white hover:bg-primary-700"><FiPlus aria-hidden="true" /> {t('assistant.newConversation')}</button>
+            <button type="button" onClick={beginNewConversation} className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white hover:bg-primary-700 shadow-sm transition"><FiPlus aria-hidden="true" /> {t('assistant.newConversation')}</button>
             {conversationHistory.length ? (
-              <ul className="mt-4 space-y-2">
+              <ul className="mt-3 space-y-2">
                 {conversationHistory.map((conversation) => (
-                  <li key={conversation.id} className="flex items-stretch gap-2 rounded-xl border border-surface-200 p-2 dark:border-surface-700">
-                    <button type="button" onClick={() => openConversation(conversation)} className="min-h-12 min-w-0 flex-1 rounded-lg px-3 text-left hover:bg-surface-50 dark:hover:bg-surface-800" aria-current={conversation.id === conversationId ? 'true' : undefined}>
+                  <li key={conversation.id} className="flex items-stretch gap-2 rounded-xl border border-surface-200 p-1.5 dark:border-surface-700">
+                    <button type="button" onClick={() => openConversation(conversation)} className="min-h-11 min-w-0 flex-1 rounded-lg px-3 text-left hover:bg-surface-50 dark:hover:bg-surface-800" aria-current={conversation.id === conversationId ? 'true' : undefined}>
                       <span className="block truncate text-sm font-semibold text-surface-900 dark:text-white">{conversation.title}</span>
-                      <span className="mt-1 block text-xs text-surface-500 dark:text-surface-400">{new Date(conversation.updatedAt).toLocaleString()} · {t('assistant.messagesCount', { count: conversation.messages.length })}</span>
+                      <span className="mt-0.5 block text-xs text-surface-500 dark:text-surface-400">{new Date(conversation.updatedAt).toLocaleString()} · {t('assistant.messagesCount', { count: conversation.messages.length })}</span>
                     </button>
-                    <button type="button" onClick={() => deleteConversation(conversation.id)} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-surface-500 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30" aria-label={t('assistant.deleteConversation', { title: conversation.title })}><FiTrash2 aria-hidden="true" /></button>
+                    <button type="button" onClick={() => deleteConversation(conversation.id)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-surface-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30" aria-label={t('assistant.deleteConversation', { title: conversation.title })}><FiTrash2 aria-hidden="true" /></button>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-5 rounded-xl bg-surface-50 p-4 text-sm text-surface-600 dark:bg-surface-800 dark:text-surface-300">{t('assistant.noHistory')}</p>
+              <p className="mt-4 rounded-xl bg-surface-50 p-4 text-center text-sm text-surface-500 dark:bg-surface-800 dark:text-surface-400">{t('assistant.noHistory')}</p>
             )}
-            {conversationHistory.length > 0 && <button type="button" onClick={clearAllConversationHistory} className="mt-4 min-h-11 w-full rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/30">{t('assistant.clearHistory')}</button>}
+            {conversationHistory.length > 0 && <button type="button" onClick={clearAllConversationHistory} className="mt-4 min-h-10 w-full rounded-xl border border-rose-200 px-4 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900/60 dark:text-rose-400 dark:hover:bg-rose-950/30">{t('assistant.clearHistory')}</button>}
           </aside>
         )}
 
-        <div className="flex-1 overflow-y-auto px-4 py-4" aria-live="polite" aria-relevant="additions">
-          <div className="space-y-5">
-            {messages.map((message, index) => (
-              <div key={`${message.timestamp}-${index}`} className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'rounded-br-sm bg-primary-600 text-white' : 'rounded-bl-sm bg-surface-100 text-surface-900 dark:bg-surface-800 dark:text-surface-100'}`}>
-                  {message.role === 'user' ? message.content : (
-                    <ReactMarkdown components={{
-                      a: ({ href, children }) => isSafeInternalPath(href) ? (
-                        <Link to={toSafeInternalPath(href)} onClick={closeAssistant} className="font-semibold text-primary-700 underline dark:text-primary-300">{children}</Link>
-                      ) : <span>{children}</span>,
-                    }}>{message.content}</ReactMarkdown>
+        {/* Message Stream */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" aria-live="polite" aria-relevant="additions">
+          {messages.map((message, index) => (
+            <div key={`${message.timestamp}-${index}`} className={`flex flex-col ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className="flex items-start gap-2.5 max-w-[92%]">
+                {message.role === 'ai' && (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 mt-1">
+                    <FaRobot className="h-3.5 w-3.5" aria-hidden="true" />
+                  </div>
+                )}
+                <div className={`rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                  message.role === 'user'
+                    ? 'rounded-tr-sm bg-gradient-to-r from-primary-600 to-indigo-600 text-white'
+                    : 'rounded-tl-sm bg-surface-100/90 text-surface-900 border border-surface-200/70 dark:bg-surface-800/90 dark:border-surface-700/60 dark:text-surface-100'
+                }`}>
+                  {message.role === 'user' ? (
+                    <span>{message.content}</span>
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown components={{
+                        a: ({ href, children }) => isSafeInternalPath(href) ? (
+                          <Link to={toSafeInternalPath(href)} onClick={closeAssistant} className="font-semibold text-primary-600 underline dark:text-primary-400 hover:opacity-80">{children}</Link>
+                        ) : <span>{children}</span>,
+                      }}>{message.content}</ReactMarkdown>
+                    </div>
                   )}
                 </div>
-
-                {message.personalSummary && <div className="mt-3 w-full"><PersonalSummary summary={message.personalSummary} t={t} /></div>}
-                {message.reportDraft && <ReportDraftCard draft={message.reportDraft} onStart={startReportDraft} t={t} />}
-
-                {message.items?.length > 0 && (
-                  <div className="mt-3 w-full space-y-3">
-                    <p className="text-sm font-semibold text-surface-700 dark:text-surface-200">{t('assistant.showingResults', { shown: message.items.length, total: message.total })}</p>
-                    {message.items.map((item) => <AssistantResultCard key={`${item.itemType}-${item._id}`} item={item} closeAssistant={closeAssistant} t={t} />)}
-                    {message.hasMore && message.query?.message && (
-                      <button
-                        type="button"
-                        onClick={() => requestAssistant(message.query.message, { page: (message.page || 1) + 1, displayUser: false })}
-                        disabled={isLoading}
-                        className="min-h-11 w-full rounded-xl border border-primary-300 px-4 text-sm font-semibold text-primary-700 hover:bg-primary-50 disabled:opacity-50 dark:border-primary-700 dark:text-primary-300 dark:hover:bg-primary-950/30"
-                      >
-                        {t('assistant.showMore')}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {message.actions?.length > 0 && (
-                  <div className="mt-3 flex w-full flex-wrap gap-2">
-                    {message.actions.map((action) => {
-                      const safeUrl = toSafeInternalPath(action.url, '');
-                      return safeUrl ? (
-                        <Link key={`${action.type}-${action.url}`} to={safeUrl} onClick={closeAssistant} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-3 text-sm font-semibold text-surface-800 hover:border-primary-400 hover:text-primary-700 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100">
-                          {action.label}
-                        </Link>
-                      ) : null;
-                    })}
-                  </div>
-                )}
-
-                {message.meta?.notice && (
-                  <div className="mt-3 flex w-full gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-                    <FiAlertCircle className="mt-0.5 shrink-0" aria-hidden="true" />
-                    <div><strong>{message.meta.notice}</strong><div className="mt-1 font-normal">{t('assistant.source', { source: message.meta.source })}</div></div>
-                  </div>
-                )}
-                <span className="mt-1 px-1 text-xs text-surface-400">{message.timestamp}</span>
               </div>
-            ))}
 
-            {isLoading && (
-              <div role="status" className="flex items-center gap-3 rounded-xl bg-surface-100 p-3 text-sm text-surface-600 dark:bg-surface-800 dark:text-surface-300">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" aria-hidden="true" />
-                {t('assistant.searching')}
-              </div>
-            )}
+              {message.personalSummary && <div className="mt-3 w-full"><PersonalSummary summary={message.personalSummary} t={t} /></div>}
+              {message.reportDraft && <ReportDraftCard draft={message.reportDraft} onStart={startReportDraft} t={t} />}
 
-            {!isLoading && quickReplies.length > 0 && (
-              <div className="flex flex-wrap gap-2" aria-label={t('assistant.suggestedQuestions')}>
-                {quickReplies.map((reply) => (
-                  <button key={reply} type="button" onClick={() => reply === 'Refine search' ? inputRef.current?.focus() : requestAssistant(translateQuickReply(reply))} className="min-h-11 rounded-full border border-primary-200 bg-primary-50 px-4 text-sm font-semibold text-primary-700 hover:bg-primary-100 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300">
-                    {translateQuickReply(reply)}
-                  </button>
-                ))}
+              {message.items?.length > 0 && (
+                <div className="mt-3 w-full space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-surface-500 dark:text-surface-400">{t('assistant.showingResults', { shown: message.items.length, total: message.total })}</p>
+                  {message.items.map((item) => <AssistantResultCard key={`${item.itemType}-${item._id}`} item={item} closeAssistant={closeAssistant} t={t} />)}
+                  {message.hasMore && message.query?.message && (
+                    <button
+                      type="button"
+                      onClick={() => requestAssistant(message.query.message, { page: (message.page || 1) + 1, displayUser: false })}
+                      disabled={isLoading}
+                      className="min-h-10 w-full rounded-xl border border-primary-300 bg-primary-50/50 px-4 text-xs font-bold text-primary-700 hover:bg-primary-100 disabled:opacity-50 dark:border-primary-800 dark:bg-primary-950/30 dark:text-primary-300 transition"
+                    >
+                      {t('assistant.showMore')}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {message.actions?.length > 0 && (
+                <div className="mt-3 flex w-full flex-wrap gap-2">
+                  {message.actions.map((action) => {
+                    const safeUrl = toSafeInternalPath(action.url, '');
+                    return safeUrl ? (
+                      <Link key={`${action.type}-${action.url}`} to={safeUrl} onClick={closeAssistant} className="inline-flex min-h-9 items-center rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold text-surface-800 shadow-sm hover:border-primary-400 hover:text-primary-700 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-100 transition">
+                        {action.label}
+                      </Link>
+                    ) : null;
+                  })}
+                </div>
+              )}
+
+              {message.meta?.notice && (
+                <div className="mt-3 flex w-full gap-2 rounded-xl border border-amber-200/80 bg-amber-50/70 p-3 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                  <FiAlertCircle className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <div><strong>{message.meta.notice}</strong><div className="mt-0.5 font-normal text-amber-800/90 dark:text-amber-300/80">{t('assistant.source', { source: message.meta.source })}</div></div>
+                </div>
+              )}
+              <span className="mt-1 px-9 text-[11px] text-surface-400">{message.timestamp}</span>
+            </div>
+          ))}
+
+          {/* Quick Starter Grid when conversation is empty */}
+          {isInitialOnly && (
+            <div className="mt-2 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-surface-400 px-1">Suggested Inquiries</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => requestAssistant('I lost my item on campus')}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-primary-400 hover:bg-primary-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-primary-700 transition group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                    <FiSearch className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">Lost Something</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Search & draft a report</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => requestAssistant('I found an item on campus')}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-emerald-400 hover:bg-emerald-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-emerald-700 transition group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                    <FiPackage className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Found an Item</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Help return to owner</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => requestAssistant('Items found near Library')}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-amber-400 hover:bg-amber-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-amber-700 transition group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
+                    <FiSearch className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-amber-600 dark:group-hover:text-amber-400">Library Area</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Check recent findings</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => requestAssistant('My reports')}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-primary-400 hover:bg-primary-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-primary-700 transition group"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300">
+                    <FiClock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">My Activity</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Claims, matches, alerts</div>
+                  </div>
+                </button>
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+            </div>
+          )}
+
+          {isLoading && (
+            <div role="status" className="flex items-center gap-3 rounded-2xl bg-surface-100/80 p-3.5 text-sm text-surface-600 dark:bg-surface-800/80 dark:text-surface-300 border border-surface-200/50 dark:border-surface-700/50">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" aria-hidden="true" />
+              <span className="text-xs font-medium">{t('assistant.searching')}</span>
+            </div>
+          )}
+
+          {!isLoading && !isInitialOnly && quickReplies.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1" aria-label={t('assistant.suggestedQuestions')}>
+              {quickReplies.map((reply) => (
+                <button
+                  key={reply}
+                  type="button"
+                  onClick={() => reply === 'Refine search' ? inputRef.current?.focus() : requestAssistant(translateQuickReply(reply))}
+                  className="rounded-full border border-primary-200/80 bg-primary-50/70 px-3.5 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-100 hover:border-primary-300 dark:border-primary-900/60 dark:bg-primary-950/40 dark:text-primary-300 dark:hover:bg-primary-950/70 transition shadow-2xs"
+                >
+                  {translateQuickReply(reply)}
+                </button>
+              ))}
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSubmit} className="border-t border-surface-200 bg-white p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] dark:border-surface-700 dark:bg-surface-900">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <label htmlFor="assistant-voice-language" className="text-xs font-medium text-surface-500 dark:text-surface-400">{t('assistant.voiceLanguage')}</label>
-            <select id="assistant-voice-language" value={voiceLanguage} onChange={(event) => setVoiceLanguage(event.target.value)} className="min-h-9 rounded-lg border border-surface-300 bg-white px-2 text-xs text-surface-700 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-200">
-              {voiceOptions(t).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </div>
-          <div className="flex items-end gap-2">
+        {/* Polished Capsule Input Bar */}
+        <form onSubmit={handleSubmit} className="border-t border-surface-200/80 bg-white p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] dark:border-surface-700/80 dark:bg-surface-900">
+          <div className="rounded-2xl border border-surface-300/80 bg-surface-50/90 p-2 shadow-inner-sm focus-within:border-primary-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-500/20 dark:border-surface-700 dark:bg-surface-800/60 dark:focus-within:bg-surface-800 transition-all">
             <label htmlFor="assistant-message" className="sr-only">{t('assistant.inputLabel')}</label>
             <textarea
               ref={inputRef}
               id="assistant-message"
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={handleInputChange}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
@@ -601,16 +739,56 @@ const AIChatbot = () => {
               rows={1}
               maxLength={500}
               placeholder={t('assistant.placeholder')}
-              className="min-h-12 max-h-32 flex-1 resize-y rounded-xl border border-surface-300 bg-surface-50 px-3 py-3 text-base text-surface-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-surface-600 dark:bg-surface-800 dark:text-white dark:focus:ring-primary-900"
+              className="w-full resize-none border-0 bg-transparent px-2.5 py-1.5 text-sm leading-relaxed text-surface-900 placeholder:text-surface-400 outline-none dark:text-white dark:placeholder:text-surface-500 max-h-40 overflow-y-auto"
+              style={{ minHeight: '38px' }}
             />
-            <button type="button" onClick={toggleListening} className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${isListening ? 'border-red-300 bg-red-50 text-red-600 dark:bg-red-950/40' : 'border-surface-300 text-surface-600 hover:bg-surface-100 dark:border-surface-600 dark:text-surface-300 dark:hover:bg-surface-800'}`} aria-label={isListening ? t('assistant.stopVoice') : t('assistant.startVoice')} aria-pressed={isListening}>
-              <FiMic aria-hidden="true" />
-            </button>
-            <button type="submit" disabled={!input.trim() || isLoading} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50" aria-label={t('assistant.send')}>
-              <FiSend aria-hidden="true" />
-            </button>
+            
+            <div className="mt-1 flex items-center justify-between gap-2 border-t border-surface-200/60 pt-2 dark:border-surface-700/60">
+              {/* Language Selector Pill */}
+              <div className="flex items-center gap-1 text-surface-500 dark:text-surface-400">
+                <FiGlobe className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <label htmlFor="assistant-voice-language" className="sr-only">{t('assistant.voiceLanguage')}</label>
+                <select
+                  id="assistant-voice-language"
+                  value={voiceLanguage}
+                  onChange={(event) => setVoiceLanguage(event.target.value)}
+                  className="bg-transparent text-[11px] font-medium text-surface-600 dark:text-surface-300 outline-none cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
+                >
+                  {voiceOptions(t).map((option) => <option key={option.value} value={option.value} className="bg-white dark:bg-surface-800 text-surface-800 dark:text-surface-200">{option.label}</option>)}
+                </select>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${
+                    isListening
+                      ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30'
+                      : 'text-surface-500 hover:bg-surface-200/60 hover:text-surface-800 dark:text-surface-400 dark:hover:bg-surface-700 dark:hover:text-surface-100'
+                  }`}
+                  aria-label={isListening ? t('assistant.stopVoice') : t('assistant.startVoice')}
+                  aria-pressed={isListening}
+                  title="Voice input"
+                >
+                  <FiMic className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="submit"
+                  disabled={!input.trim() || isLoading}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-sm transition hover:opacity-90 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                  aria-label={t('assistant.send')}
+                  title="Send message"
+                >
+                  <FiSend className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="mt-2 text-xs text-surface-500 dark:text-surface-400">{t('assistant.ownershipNote')}</p>
+          <p className="mt-1.5 text-center text-[10px] text-surface-400 dark:text-surface-500 font-medium">
+            AI Assistant · {t('assistant.ownershipNote')}
+          </p>
         </form>
       </section>
       )}

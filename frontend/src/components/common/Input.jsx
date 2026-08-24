@@ -14,6 +14,7 @@ export const Input = React.forwardRef(({
   helperText = '',
   required = false,
   className = '',
+  icon = null,
   showPasswordLabel = 'Show password',
   hidePasswordLabel = 'Hide password',
   ...props
@@ -31,12 +32,17 @@ export const Input = React.forwardRef(({
         </label>
       )}
       <div className="relative">
+        {icon && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-surface-400">
+            {icon}
+          </div>
+        )}
         <input
           ref={ref}
           type={inputType}
           id={name}
           name={name}
-          className={`input-base ${isPassword ? 'pr-12' : ''} ${error ? 'input-error' : ''}`}
+          className={`input-base ${icon ? 'pl-10' : ''} ${isPassword ? 'pr-12' : ''} ${error ? 'input-error' : ''}`}
           required={required}
           {...props}
         />

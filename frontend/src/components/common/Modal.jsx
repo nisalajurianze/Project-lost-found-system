@@ -123,7 +123,7 @@ export const Modal = ({
                 type="button"
                 onClick={onClose}
                 aria-label={closeLabel || t('common.close')}
-                className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-surface-400 dark:hover:bg-surface-700 dark:hover:text-white"
+                className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-surface-400 dark:hover:bg-surface-700/60 dark:hover:text-white"
               >
                 <IoMdClose className="text-xl" aria-hidden="true" />
               </button>

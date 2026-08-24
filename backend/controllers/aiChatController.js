@@ -9,12 +9,12 @@ import {
   expandKeywords,
   inferIntent,
   isPersonalQuery,
-  normalizeText,
   resolveConversationLanguage,
   resolveSearchMessage,
   scoreCandidate,
 } from '../services/chatSearchService.js';
 import { buildConversationalReportDraft } from '../services/conversationalReportService.js';
+import { aiConfigured, requestAIJson } from '../services/aiProviderService.js';
 
 const DEFAULT_PAGE_SIZE = 6;
 const MAX_PAGE_SIZE = 12;
@@ -110,6 +110,28 @@ const personalSummary = async (userId) => {
   return { lostReports, foundReports, pendingClaims, totalClaims, suggestedMatches, unreadNotifications };
 };
 
+const generateAssistantResponse = async (userMessage, history, items, reportDraft, language) => {
+  if (!aiConfigured()) return null;
+  try {
+    const itemSummaries = items.slice(0, 3).map((item) => `- ${item.itemName} (${item.category}) at ${item.location}, match: ${item.relevanceScore}%`).join('\n');
+    const systemPrompt = `You are the smart, helpful AI assistant for the South Eastern University of Sri Lanka (SEUSL) Smart Lost & Found system.
+Respond naturally in ${language === 'si' ? 'Sinhala' : language === 'ta' ? 'Tamil' : 'English / Singlish'} based on user language.
+Keep response concise and helpful (2-3 sentences). If matching reports are found, mention them. If no reports match, guide the user to report or search again.
+Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.slice(-4).map((m) => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content })),
+      { role: 'user', content: `User query: ${userMessage}\nMatched items in system:\n${itemSummaries || 'None'}\nReport draft: ${reportDraft ? JSON.stringify(reportDraft.fields) : 'None'}` },
+    ];
+
+    const response = await requestAIJson(messages, { purpose: 'assistant-chat' });
+    return response?.data;
+  } catch {
+    return null;
+  }
+};
+
 export const handleAIChat = asyncHandler(async (req, res) => {
   const incoming = String(req.body?.message || '').normalize('NFKC').trim();
   const history = Array.isArray(req.body?.history) ? req.body.history.slice(-10) : [];
@@ -119,8 +141,12 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const language = resolveConversationLanguage(incoming, history);
   const greetingOnly = /^(hi|hello|hey|ආයුබෝවන්|வணக்கம்)[!.\s]*$/iu.test(incoming);
   if (greetingOnly) {
+    const aiGreeting = await generateAssistantResponse(incoming, history, [], null, language);
     return ApiResponse.ok({
-      text: t(language, 'greeting'), language, quickReplies: ['Lost a black phone', 'Found a wallet', 'My reports'], items: [],
+      text: aiGreeting?.reply || t(language, 'greeting'),
+      language,
+      quickReplies: aiGreeting?.quickReplies?.length ? aiGreeting.quickReplies : ['Lost a black phone', 'Found a wallet', 'My reports'],
+      items: [],
       actions: [{ type: 'report_lost', label: 'Report lost item', url: '/dashboard/report-lost' }, { type: 'report_found', label: 'Report found item', url: '/dashboard/report-found' }],
     }).send(res);
   }
@@ -175,20 +201,36 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const items = ranked.slice(start, start + pageSize);
 
   if (!total) {
+    const aiGenerated = await generateAssistantResponse(searchMessage, history, [], reportDraft, language);
     return ApiResponse.ok({
-      text: t(language, 'none'), language, intent, query: { message: searchMessage, terms, page: 1, pageSize },
-      total: 0, totalPages: 0, hasMore: false, quickReplies: ['Try another search'], items: [],
+      text: aiGenerated?.reply || t(language, 'none'),
+      language,
+      intent,
+      query: { message: searchMessage, terms, page: 1, pageSize },
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
+      quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : ['Try another search'],
+      items: [],
       actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
       reportDraft,
       meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
     }).send(res);
   }
 
+  const aiGenerated = await generateAssistantResponse(searchMessage, history, items, reportDraft, language);
   return ApiResponse.ok({
-    text: t(language, 'results', total), language, intent,
+    text: aiGenerated?.reply || t(language, 'results', total),
+    language,
+    intent,
     query: { message: searchMessage, terms, page: safePage, pageSize },
-    total, page: safePage, pageSize, totalPages, hasMore: safePage < totalPages,
-    items, quickReplies: ['Refine search'],
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+    hasMore: safePage < totalPages,
+    items,
+    quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : ['Refine search'],
     reportDraft,
     actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
     meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },

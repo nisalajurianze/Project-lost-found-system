@@ -490,23 +490,23 @@ const mongoIdParam = [
 
 const paginationQuery = [
   query('page')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1 })
     .withMessage('Page must be a positive integer'),
   query('limit')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 1, max: 50 })
     .withMessage('Limit must be between 1 and 50'),
 ];
 
 const itemListQueryValidator = (statuses, sortableFields) => [
-  query('search').optional().isString().trim().isLength({ max: 200 }).withMessage('Search is too long'),
-  query('category').optional().isString().trim().isLength({ max: 100 }).withMessage('Category is too long'),
-  query('status').optional().isIn([...statuses, 'all']).withMessage('Invalid item status'),
-  query('userId').optional().isMongoId().withMessage('Invalid user ID'),
-  query('startDate').optional().isISO8601().withMessage('Invalid start date'),
-  query('endDate').optional().isISO8601().withMessage('Invalid end date'),
-  query('sort').optional().isString().isLength({ max: 100 }).custom((value) => {
+  query('search').optional({ checkFalsy: true }).isString().trim().isLength({ max: 200 }).withMessage('Search is too long'),
+  query('category').optional({ checkFalsy: true }).isString().trim().isLength({ max: 100 }).withMessage('Category is too long'),
+  query('status').optional({ checkFalsy: true }).isIn([...statuses, 'all']).withMessage('Invalid item status'),
+  query('userId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid user ID'),
+  query('startDate').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid start date'),
+  query('endDate').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid end date'),
+  query('sort').optional({ checkFalsy: true }).isString().isLength({ max: 100 }).custom((value) => {
     const allowed = new Set(sortableFields);
     const fields = value.split(',').map((entry) => entry.trim()).filter(Boolean);
     if (fields.length === 0 || fields.some((field) => !allowed.has(field.replace(/^-/, '')))) {
@@ -582,15 +582,15 @@ const handoverCancellationValidator = [
 ];
 
 const matchQueryValidator = [
-  query('status').optional().isIn(['suggested', 'confirmed', 'rejected']).withMessage('Invalid match status'),
-  query('userId').optional().isMongoId().withMessage('Invalid user ID'),
+  query('status').optional({ checkFalsy: true }).isIn(['suggested', 'confirmed', 'rejected']).withMessage('Invalid match status'),
+  query('userId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid user ID'),
   ...paginationQuery,
 ];
 
 const claimQueryValidator = [
-  query('status').optional().isIn(['pending', 'approved', 'rejected']).withMessage('Invalid claim status'),
-  query('role').optional().isIn(['claimant', 'reporter']).withMessage('Invalid claim role filter'),
-  query('claimantId').optional().isMongoId().withMessage('Invalid claimant ID'),
+  query('status').optional({ checkFalsy: true }).isIn(['pending', 'approved', 'rejected']).withMessage('Invalid claim status'),
+  query('role').optional({ checkFalsy: true }).isIn(['claimant', 'reporter']).withMessage('Invalid claim role filter'),
+  query('claimantId').optional({ checkFalsy: true }).isMongoId().withMessage('Invalid claimant ID'),
   ...paginationQuery,
 ];
 

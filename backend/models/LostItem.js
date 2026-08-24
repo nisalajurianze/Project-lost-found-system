@@ -79,7 +79,7 @@ const lostItemSchema = new mongoose.Schema(
       validate: {
         validator: function (value) {
           // Allow up to +24 hours to account for timezone differences
-          return value <= new Date();
+          return value <= new Date(Date.now() + 24 * 60 * 60 * 1000);
         },
         message: 'Lost date cannot be in the future',
       },
