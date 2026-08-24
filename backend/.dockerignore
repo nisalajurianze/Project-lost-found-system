@@ -7,15 +7,11 @@ npm-debug.log*
 coverage
 postman
 tests
-seed
-scripts
-data
 *.log
 *.md
 test*.js
 test*.jpg
 test*.png
 clear_unsplash_images.js
-seed.js
 Dockerfile
 .dockerignore
