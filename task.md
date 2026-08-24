@@ -29,3 +29,18 @@
 - [ ] Obtain institutional privacy, security, operational, and university submission sign-off for the exact release checksum
 
 Current stance: the exact source revision, Railway/Vercel routing, core live auth/privacy/readiness/realtime paths, and bounded chat/storage provider probes are verified. Optional AI remains disabled, vision is not configured, and institution-controlled delivery, recovery, UAT, accessibility and approval gates remain pending; this is a hardened release candidate, not an institutionally certified production release.
+
+## 2026-08-24 repository-wide security/performance audit (`ecf54c1`)
+
+- [x] Phase 1: Persist repository-scoped threat model
+- [/] Phase 2: Finding discovery
+  - [/] Freeze the latest target and checkpoint per-scan artifacts
+  - [ ] Save runtime inventory
+  - [ ] Save exhaustive in-scope file checklist
+  - [ ] Save high-impact coverage ledger
+  - [ ] Fully read and review every checklist file
+- [ ] Phase 3: Validate every candidate and close every ledger row
+- [ ] Phase 4: Attack-path and severity analysis
+- [ ] Phase 5: Security/performance verification and final report
+
+Audit stance: current source is not security-certified until all phases and checklist rows are closed. Human/institutional sign-off remains a separate pending gate.

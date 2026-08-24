@@ -1,0 +1,37 @@
+# Repository Coverage Ledger — ecf54c1
+
+Interim disposition `open` is allowed only during discovery. Final closure must be `reportable`, `suppressed`, `not_applicable`, or `deferred` with exact evidence.
+
+| ID | Boundary/shard | High-impact family | Source / privileged boundary | Sink / root control | Files checked | Candidate IDs | Disposition | Evidence / next closure |
+|---|---|---|---|---|---|---|---|---|
+| AUTH-01 | Password registration/login | auth bypass, secret disclosure, brute force | public auth bodies | password hashing, response serializer, lockout | auth route/controller/server | SD-01, SD-02 | open | Validate `User` serialization and response output. |
+| AUTH-02 | Google login/account binding | IdP misbinding, account takeover | client `idToken` | Google verifier, account lookup/link | auth route/controller | SD-03 | open | Validate audience/issuer/account-link race and serializer. |
+| AUTH-03 | Access/refresh sessions | replay, revocation bypass | access/refresh cookies | JWT verify, session rotation/revocation | auth middleware/controller | SR-01 | open | Inspect token TTL/claims/session service/cookie controls. |
+| AUTH-04 | Reset/verification | token replay, enumeration | email/token parameters | hashed token lookup and session revocation | auth route/controller |  | open | Fan out through validators, User model, email links. |
+| AUTH-05 | Reverse-proxy rate limits | brute force/limit bypass | `X-Forwarded-For`/topology | `trust proxy`, limiter key | server/auth route | RP-01 | open | Confirm Railway hop topology/direct origin exposure. |
+| HTTP-01 | Global middleware order | CSRF/CORS/body/sanitizer bypass | HTTP request | Express middleware sequence | server |  | open | Inspect config and every pre-CSRF route. |
+| AUTHZ-01 | Lost-report objects | IDOR/BOLA, mass assignment | query/body/path IDs | owner/admin checks and serializers |  |  | open | Review route/controller/model/service siblings. |
+| AUTHZ-02 | Found-report objects | IDOR/BOLA, mass assignment | query/body/path IDs | owner/admin checks and serializers |  |  | open | Review route/controller/model/service siblings. |
+| AUTHZ-03 | Claims/private evidence/contact | IDOR, private evidence disclosure, unauthorized approval | claim/item IDs, evidence, decisions | participant/reporter/admin checks, signed asset view | claim route/controller, serializers |  | open | Route fully protected; object view/review/share checks present. Continue model/upload/private-asset review. |
+| AUTHZ-04 | Matches/handover | unauthorized transition/contact | match/report IDs and decisions | participant/admin checks and workflow transitions |  |  | open | Enumerate all operations independently. |
+| AUTHZ-05 | Notifications/push | cross-user object access, SSRF-like push abuse | notification IDs, subscription endpoint | user filter, push provider |  |  | open | Validate ownership and endpoint/provider behavior. |
+| ADMIN-01 | User role/status/delete | privilege escalation, protected mutation | admin request path/body | role guard, self-protection, audit transaction |  |  | open | Review route/controller/service/model. |
+| ADMIN-02 | Settings/categories/locations/feedback | unauthorized privileged state change | admin/community inputs | role guard, strict field allowlists, audit history |  |  | open | Split per router and operation. |
+| QUERY-01 | Public lost/found/search | NoSQL/query injection, unbounded work | query/search/sort/page | Mongoose filters, text/regex, pagination |  |  | open | Inspect query builders and validators per endpoint. |
+| QUERY-02 | Admin/user lists | NoSQL injection, data exposure | admin/user query parameters | filters/projections/pagination |  |  | open | Inspect each controller/list route. |
+| UPLOAD-01 | Report images | parser DoS, unsafe upload, public/private confusion | uploaded bytes/MIME | Multer/signature/Sharp/Cloudinary |  |  | open | Enumerate public report paths and processor helpers. |
+| UPLOAD-02 | Claim evidence | private asset disclosure, parser DoS | authenticated evidence bytes | upload checks/private folder/signed view |  |  | open | Trace storage, rollback, serialization, signed delivery. |
+| NET-01 | AI provider | SSRF, credential leak, prompt boundary | prompts/images/operator URL | URL policy, fetch, schema checks |  |  | open | Validate URL restrictions, redirects, timeouts, payload minimization. |
+| NET-02 | Email provider/templates | header/template injection, secret leak | stored/user text and operator config | sender validation, HTML escaping, provider fetch |  |  | open | Enumerate template/link/button instances. |
+| NET-03 | Cloudinary/image comparison | SSRF/private media disclosure | image URLs/provider IDs | URL allowlist, provider calls, signed access |  |  | open | Validate host policy and authenticated source constraints. |
+| REALTIME-01 | Socket.IO | auth bypass, room/data isolation | handshake cookies/query/events | JWT/user mapping and room join |  |  | open | Review server config and frontend socket service/hook. |
+| JOB-01 | Outbox/reminders/cleanup | race, duplicate privileged actions | persisted events/schedule | atomic claim/lock/dedupe/retry |  |  | open | Review each worker and lock/TTL failure mode. |
+| BROWSER-01 | Markdown/rendered content | stored/reflected XSS | server/user/AI text | React/Markdown/URL renderer | main/App/api |  | open | Fan out render contexts and sanitizer/link controls. |
+| BROWSER-02 | Navigation/auth state | open redirect, stale auth, CSRF retry | URL/storage/API errors | internal-path checks, cookie bootstrap, route guards | main/App/api |  | open | Review navigation helpers, auth slice/service and pages. |
+| BROWSER-03 | Service worker/push/cache | cache privacy, notification navigation abuse | request/push payload | cache policy and same-origin URL checks |  |  | open | Full service-worker review required. |
+| DATA-01 | Public serializers | sensitive cross-boundary disclosure | model documents/populates | item/claim/user/private asset serializers |  |  | open | Review all serializers and every response caller. |
+| CONFIG-01 | Secrets/runtime defaults | secret exposure, fail-open production config | env/deploy config | config validation/logging |  |  | open | Secret scan plus full config/deploy review. |
+| SUPPLY-01 | CI/deployment/container | supply-chain or artifact compromise | PR/workflow/build context | actions permissions, install/build/deploy, runtime user |  |  | open | Review workflows/Docker/Vercel/Railway. |
+| DEP-01 | Runtime dependencies | reachable known vulnerabilities | package versions | dependency graph and reachable imports |  |  | open | Exact clean audits and advisory review after discovery. |
+| PERF-01 | Database/API hot paths | attacker-triggered DoS | filters/page/query/body | limits/indexes/query loops |  |  | open | Review unbounded reads, regex/text, N+1, indexes. |
+| PERF-02 | Media/AI hot paths | CPU/memory/cost DoS | images/prompts/retries | file limits, dimensions, timeouts, concurrency |  |  | open | Validate bounds and provider retry behavior. |
