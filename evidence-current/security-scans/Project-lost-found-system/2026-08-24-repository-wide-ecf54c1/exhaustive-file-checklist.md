@@ -278,13 +278,13 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\pages\admin\ManageMatches.jsx`
 - [x] `frontend/src\pages\admin\ManageUsers.jsx`
 - [x] `frontend/src\pages\admin\SiteSettings.jsx`
-- [ ] `frontend/src\pages\protected\VerifyResolution.jsx`
-- [ ] `frontend/src\pages\public\About.jsx`
+- [x] `frontend/src\pages\protected\VerifyResolution.jsx`
+- [x] `frontend/src\pages\public\About.jsx`
 - [x] `frontend/src\pages\public\Contact.jsx`
 - [x] `frontend/src\pages\public\ForgotPassword.jsx`
 - [x] `frontend/src\pages\public\FoundItemDetail.jsx`
 - [x] `frontend/src\pages\public\FoundItems.jsx`
-- [ ] `frontend/src\pages\public\Home.jsx`
+- [x] `frontend/src\pages\public\Home.jsx`
 - [x] `frontend/src\pages\public\Login.jsx`
 - [x] `frontend/src\pages\public\LostItemDetail.jsx`
 - [x] `frontend/src\pages\public\LostItems.jsx`
@@ -292,17 +292,17 @@ Search hits are review priority markers, not findings or completed reviews.
 - [x] `frontend/src\pages\public\ResetPassword.jsx`
 - [x] `frontend/src\pages\public\SearchItems.jsx`
 - [x] `frontend/src\pages\public\VerifyEmail.jsx`
-- [ ] `frontend/src\pages\user\Dashboard.jsx`
-- [ ] `frontend/src\pages\user\EditFoundItem.jsx`
-- [ ] `frontend/src\pages\user\EditLostItem.jsx`
+- [x] `frontend/src\pages\user\Dashboard.jsx`
+- [x] `frontend/src\pages\user\EditFoundItem.jsx`
+- [x] `frontend/src\pages\user\EditLostItem.jsx`
 - [x] `frontend/src\pages\user\MyClaims.jsx`
 - [x] `frontend/src\pages\user\MyFoundItems.jsx`
 - [x] `frontend/src\pages\user\MyLostItems.jsx`
 - [x] `frontend/src\pages\user\MyMatches.jsx`
 - [x] `frontend/src\pages\user\Notifications.jsx`
-- [ ] `frontend/src\pages\user\Profile.jsx`
-- [ ] `frontend/src\pages\user\ReportFound.jsx`
-- [ ] `frontend/src\pages\user\ReportLost.jsx`
+- [x] `frontend/src\pages\user\Profile.jsx`
+- [x] `frontend/src\pages\user\ReportFound.jsx`
+- [x] `frontend/src\pages\user\ReportLost.jsx`
 - [x] `frontend/src\redux\slices\adminSlice.js`
 - [x] `frontend/src\redux\slices\authSlice.js`
 - [x] `frontend/src\redux\slices\categorySlice.js`
