@@ -61,6 +61,9 @@ const SETTING_DEFINITIONS = Object.freeze({
   spam_max_pending_claims: { public: false, normalize: (value) => asBoundedInteger(value, 'spam_max_pending_claims', 1, 50) },
   spam_max_rejected_claims: { public: false, normalize: (value) => asBoundedInteger(value, 'spam_max_rejected_claims', 1, 50) },
   spam_max_claims_per_day: { public: false, normalize: (value) => asBoundedInteger(value, 'spam_max_claims_per_day', 1, 100) },
+  retention_inactive_days: { public: false, normalize: (value) => asBoundedInteger(value, 'retention_inactive_days', 1, 365) },
+  retention_resolved_days: { public: false, normalize: (value) => asBoundedInteger(value, 'retention_resolved_days', 1, 90) },
+  retention_unconfirmed_claims_days: { public: false, normalize: (value) => asBoundedInteger(value, 'retention_unconfirmed_claims_days', 1, 60) },
 });
 
 const PUBLIC_SETTING_KEYS = new Set(
@@ -133,6 +136,12 @@ export const updateSetting = asyncHandler(async (req, res) => {
 
   await deleteCache(`${CACHE_PREFIX}${key}`);
   return ApiResponse.ok(setting, 'Setting updated successfully.').send(res);
+});
+
+export const triggerCleanup = asyncHandler(async (req, res) => {
+  const { runCleanupTask } = await import('../jobs/cleanupJob.js');
+  const result = await runCleanupTask();
+  return ApiResponse.ok(result, 'Resource retention cleanup completed successfully.').send(res);
 });
 
 export { PUBLIC_SETTING_KEYS, SETTING_DEFINITIONS };

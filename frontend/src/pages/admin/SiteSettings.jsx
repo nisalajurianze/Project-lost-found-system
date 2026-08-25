@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FiEdit2, FiSave } from 'react-icons/fi';
+import { FiEdit2, FiRefreshCw, FiSave, FiTrash2 } from 'react-icons/fi';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { useLanguage } from '../../i18n/LanguageContext';
+import api from '../../services/api';
 import settingService from '../../services/settingService';
 
 const DEFAULT_SPAM_SETTINGS = Object.freeze({
@@ -16,6 +17,18 @@ const SPAM_BOUNDS = Object.freeze({
   spam_max_pending_claims: { min: 1, max: 50 },
   spam_max_rejected_claims: { min: 1, max: 50 },
   spam_max_claims_per_day: { min: 1, max: 100 },
+});
+
+const DEFAULT_RETENTION_SETTINGS = Object.freeze({
+  retention_inactive_days: 30,
+  retention_resolved_days: 3,
+  retention_unconfirmed_claims_days: 14,
+});
+
+const RETENTION_BOUNDS = Object.freeze({
+  retention_inactive_days: { min: 1, max: 365 },
+  retention_resolved_days: { min: 1, max: 90 },
+  retention_unconfirmed_claims_days: { min: 1, max: 60 },
 });
 
 const parseSettingInteger = (value, fallback) => {
@@ -33,15 +46,21 @@ export const SiteSettings = () => {
   const [isSavingAuth, setIsSavingAuth] = useState(false);
   const [spamSettings, setSpamSettings] = useState(DEFAULT_SPAM_SETTINGS);
   const [isSavingSpam, setIsSavingSpam] = useState(false);
+  const [retentionSettings, setRetentionSettings] = useState(DEFAULT_RETENTION_SETTINGS);
+  const [isSavingRetention, setIsSavingRetention] = useState(false);
+  const [isRunningCleanup, setIsRunningCleanup] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
-      const [contactRes, authRes, pendingRes, rejectedRes, velocityRes] = await Promise.all([
+      const [contactRes, authRes, pendingRes, rejectedRes, velocityRes, inactiveRes, resolvedRes, unconfirmedRes] = await Promise.all([
         settingService.getSetting('contact_details').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
         settingService.getSetting('require_email_verification').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
         settingService.getSetting('spam_max_pending_claims').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
         settingService.getSetting('spam_max_rejected_claims').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
         settingService.getSetting('spam_max_claims_per_day').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
+        settingService.getSetting('retention_inactive_days').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
+        settingService.getSetting('retention_resolved_days').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
+        settingService.getSetting('retention_unconfirmed_claims_days').catch((error) => error?.response?.status === 404 ? null : Promise.reject(error)),
       ]);
 
       const contact = contactRes?.data || {};
@@ -57,6 +76,11 @@ export const SiteSettings = () => {
         spam_max_pending_claims: parseSettingInteger(pendingRes?.data, DEFAULT_SPAM_SETTINGS.spam_max_pending_claims),
         spam_max_rejected_claims: parseSettingInteger(rejectedRes?.data, DEFAULT_SPAM_SETTINGS.spam_max_rejected_claims),
         spam_max_claims_per_day: parseSettingInteger(velocityRes?.data, DEFAULT_SPAM_SETTINGS.spam_max_claims_per_day),
+      });
+      setRetentionSettings({
+        retention_inactive_days: parseSettingInteger(inactiveRes?.data, DEFAULT_RETENTION_SETTINGS.retention_inactive_days),
+        retention_resolved_days: parseSettingInteger(resolvedRes?.data, DEFAULT_RETENTION_SETTINGS.retention_resolved_days),
+        retention_unconfirmed_claims_days: parseSettingInteger(unconfirmedRes?.data, DEFAULT_RETENTION_SETTINGS.retention_unconfirmed_claims_days),
       });
     } catch {
       toast.error(t('settings.loadError'));
@@ -151,6 +175,63 @@ export const SiteSettings = () => {
     }
   };
 
+  const validateRetentionSettings = () => {
+    const normalized = {};
+    for (const [key, bounds] of Object.entries(RETENTION_BOUNDS)) {
+      const parsed = Number.parseInt(retentionSettings[key], 10);
+      if (!Number.isInteger(parsed) || parsed < bounds.min || parsed > bounds.max) {
+        toast.error(t('settings.invalidRange', { min: bounds.min, max: bounds.max }));
+        return null;
+      }
+      normalized[key] = parsed;
+    }
+    return normalized;
+  };
+
+  const handleSaveRetentionSettings = async (event) => {
+    event.preventDefault();
+    const normalized = validateRetentionSettings();
+    if (!normalized) return;
+    setIsSavingRetention(true);
+    try {
+      await Promise.all([
+        settingService.updateSetting(
+          'retention_inactive_days',
+          normalized.retention_inactive_days,
+          'Number of days before an unresolved/inactive item is automatically archived and its images purged.',
+        ),
+        settingService.updateSetting(
+          'retention_resolved_days',
+          normalized.retention_resolved_days,
+          'Number of days after handover/claim completion before item images and AI records are purged.',
+        ),
+        settingService.updateSetting(
+          'retention_unconfirmed_claims_days',
+          normalized.retention_unconfirmed_claims_days,
+          'Number of days before an approved but unconfirmed claim connection is automatically cancelled.',
+        ),
+      ]);
+      setRetentionSettings(normalized);
+      toast.success(t('settings.retentionSuccess'));
+    } catch {
+      toast.error(t('settings.retentionError'));
+    } finally {
+      setIsSavingRetention(false);
+    }
+  };
+
+  const handleRunCleanupNow = async () => {
+    setIsRunningCleanup(true);
+    try {
+      await api.post('/system-settings/run-cleanup');
+      toast.success(t('settings.cleanupSuccess'));
+    } catch {
+      toast.error(t('settings.cleanupError'));
+    } finally {
+      setIsRunningCleanup(false);
+    }
+  };
+
   const handleContactChange = (event) => {
     const { name, value } = event.target;
     setContactDetails((previous) => ({ ...previous, [name]: value }));
@@ -158,6 +239,10 @@ export const SiteSettings = () => {
 
   const handleSpamChange = (key, value) => {
     setSpamSettings((previous) => ({ ...previous, [key]: value }));
+  };
+
+  const handleRetentionChange = (key, value) => {
+    setRetentionSettings((previous) => ({ ...previous, [key]: value }));
   };
 
   if (isLoading) {
@@ -231,6 +316,66 @@ export const SiteSettings = () => {
           <Input type="number" min="1" max="100" label={t('settings.dailyLabel')} value={spamSettings.spam_max_claims_per_day} onChange={(event) => handleSpamChange('spam_max_claims_per_day', event.target.value)} placeholder="5" helperText={t('settings.dailyHelp')} required />
           <div className="pt-2">
             <Button type="submit" variant="primary" isLoading={isSavingSpam} icon={<FiSave aria-hidden="true" />}>{t('settings.saveAbuse')}</Button>
+          </div>
+        </form>
+      </section>
+
+      <section className="card mt-6 border border-surface-200 bg-white p-6 dark:border-surface-700 dark:bg-surface-800" aria-labelledby="retention-settings-title">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-surface-100 pb-3 dark:border-surface-700">
+          <div>
+            <h2 id="retention-settings-title" className="font-display text-lg font-bold text-surface-900 dark:text-white">{t('settings.retentionTitle')}</h2>
+            <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{t('settings.retentionSubtitle')}</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRunCleanupNow}
+            isLoading={isRunningCleanup}
+            icon={<FiRefreshCw aria-hidden="true" className={isRunningCleanup ? 'animate-spin' : ''} />}
+          >
+            {t('settings.runCleanupNow')}
+          </Button>
+        </div>
+
+        <p className="mb-4 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">{t('settings.retentionNotice')}</p>
+
+        <form onSubmit={handleSaveRetentionSettings} className="space-y-4">
+          <Input
+            type="number"
+            min="1"
+            max="365"
+            label={t('settings.inactiveDaysLabel')}
+            value={retentionSettings.retention_inactive_days}
+            onChange={(event) => handleRetentionChange('retention_inactive_days', event.target.value)}
+            placeholder="30"
+            helperText={t('settings.inactiveDaysHelp')}
+            required
+          />
+          <Input
+            type="number"
+            min="1"
+            max="90"
+            label={t('settings.resolvedDaysLabel')}
+            value={retentionSettings.retention_resolved_days}
+            onChange={(event) => handleRetentionChange('retention_resolved_days', event.target.value)}
+            placeholder="3"
+            helperText={t('settings.resolvedDaysHelp')}
+            required
+          />
+          <Input
+            type="number"
+            min="1"
+            max="60"
+            label={t('settings.unconfirmedDaysLabel')}
+            value={retentionSettings.retention_unconfirmed_claims_days}
+            onChange={(event) => handleRetentionChange('retention_unconfirmed_claims_days', event.target.value)}
+            placeholder="14"
+            helperText={t('settings.unconfirmedDaysHelp')}
+            required
+          />
+          <div className="pt-2">
+            <Button type="submit" variant="primary" isLoading={isSavingRetention} icon={<FiSave aria-hidden="true" />}>{t('settings.saveRetention')}</Button>
           </div>
         </form>
       </section>
