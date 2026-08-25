@@ -9,11 +9,12 @@ const clientUrl = () => (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'h
   .split(',')[0].trim().replace(/\/$/, '');
 
 const processItems = async (Model, modelName, routeType, cutoff) => {
+  const batchLimit = Math.min(500, Math.max(10, Number(process.env.REMINDER_BATCH_LIMIT || 100)));
   const items = await Model.find({
     status: 'in_progress',
     connectedAt: { $lte: cutoff },
     reminderSent: false,
-  }).populate('userId connectedUserId', 'fullName email isActive notificationPreferences');
+  }).sort({ connectedAt: 1 }).limit(batchLimit).populate('userId connectedUserId', 'fullName email isActive notificationPreferences');
 
   let sent = 0;
   for (const item of items) {

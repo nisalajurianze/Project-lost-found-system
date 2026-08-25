@@ -55,12 +55,16 @@ const claimService = {
   },
 
   getVerificationQuestions: async (itemType, itemId) => {
-    const response = await api.get(`/claims/questions/${itemType}/${itemId}`);
+    const safeTargetId = typeof itemId === 'object' ? (itemId?._id || itemId?.id || '') : String(itemId || '');
+    if (!safeTargetId || safeTargetId === '[object Object]') return [];
+    const response = await api.get(`/claims/questions/${itemType}/${safeTargetId}`);
     return response.data.data;
   },
 
   checkClaim: async (itemId) => {
-    const response = await api.get(`/claims/check/${itemId}`);
+    const safeTargetId = typeof itemId === 'object' ? (itemId?._id || itemId?.id || '') : String(itemId || '');
+    if (!safeTargetId || safeTargetId === '[object Object]') return { hasClaim: false };
+    const response = await api.get(`/claims/check/${safeTargetId}`);
     return response.data.data;
   }
 };

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {
   MAX_SAVED_SEARCHES,
   SAVED_SEARCH_TTL_MS,
+  getSavedSearchesKey,
   loadSavedSearches,
   sanitizeSearchFilters,
   saveSearch,
@@ -27,15 +28,27 @@ test('saved search filters are bounded and invalid URL values fall back safely',
 test('saved searches deduplicate, expire and retain at most five browser-local entries', () => {
   const storage = createStorage();
   const now = Date.UTC(2026, 6, 26);
+  const options = { principalId: 'user-a', storage, now };
   let saved = [];
-  for (let index = 0; index < 7; index += 1) saved = saveSearch({ query: `query ${index}`, type: 'both' }, storage, now + index);
+  for (let index = 0; index < 7; index += 1) saved = saveSearch({ query: `query ${index}`, type: 'both' }, { ...options, now: now + index });
   assert.equal(saved.length, MAX_SAVED_SEARCHES);
-  saved = saveSearch({ query: 'query 6', type: 'both' }, storage, now + 100);
+  saved = saveSearch({ query: 'query 6', type: 'both' }, { ...options, now: now + 100 });
   assert.equal(saved.length, MAX_SAVED_SEARCHES);
-  const raw = JSON.parse(storage.getItem('lf-saved-searches-v1'));
+  const key = getSavedSearchesKey('user-a');
+  const raw = JSON.parse(storage.getItem(key));
   raw.push({ id: 'expired', filters: { query: 'old' }, updatedAt: new Date(now - SAVED_SEARCH_TTL_MS - 1).toISOString() });
-  storage.setItem('lf-saved-searches-v1', JSON.stringify(raw));
-  assert.equal(loadSavedSearches(storage, now + 200).some((entry) => entry.id === 'expired'), false);
+  storage.setItem(key, JSON.stringify(raw));
+  assert.equal(loadSavedSearches({ ...options, now: now + 200 }).some((entry) => entry.id === 'expired'), false);
+});
+
+test('saved searches are principal-scoped and unsafe legacy data is discarded', () => {
+  const storage = createStorage();
+  const now = Date.UTC(2026, 6, 26);
+  storage.setItem('lf-saved-searches-v1', JSON.stringify([{ id: 'legacy', filters: { query: 'private' } }]));
+  saveSearch({ query: 'user a' }, { principalId: 'user-a', storage, now });
+  assert.equal(loadSavedSearches({ principalId: 'user-b', storage, now }).length, 0);
+  assert.equal(loadSavedSearches({ principalId: 'user-a', storage, now })[0].filters.query, 'user a');
+  assert.equal(storage.getItem('lf-saved-searches-v1'), null);
 });
 
 test('search page synchronises URL state and exposes rerun/delete saved-search controls', () => {
@@ -45,4 +58,5 @@ test('search page synchronises URL state and exposes rerun/delete saved-search c
   assert.match(source, /applySavedSearch/);
   assert.match(source, /removeSavedSearch/);
   assert.match(source, /savedSearches\.map/);
+  assert.match(source, /loadSavedSearches\(\{ principalId \}\)/);
 });

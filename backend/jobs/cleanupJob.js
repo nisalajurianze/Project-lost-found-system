@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import mongoose from 'mongoose';
 import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
@@ -18,14 +19,20 @@ const cleanupModel = async (Model, statuses, cutoff, limit) => {
   for (const item of items) {
     try {
       await deleteMultipleImages(item.images || [], { strict: true });
-      const updated = await Model.updateOne(
-        { _id: item._id, isArchived: { $ne: true } },
-        { $set: { images: [], description: 'Resolved item details removed after the configured privacy-retention period.', isArchived: true } },
-      );
-      if (updated.modifiedCount) {
-        await ImageAnalysis.deleteMany({ itemId: item._id });
-        archived += 1;
-      }
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          const updated = await Model.updateOne(
+            { _id: item._id, isArchived: { $ne: true } },
+            { $set: { images: [], description: 'Resolved item details removed after the configured privacy-retention period.', isArchived: true } },
+            { session },
+          );
+          if (updated.modifiedCount) {
+            await ImageAnalysis.deleteMany({ itemId: item._id }, { session });
+            archived += 1;
+          }
+        });
+      } finally { await session.endSession(); }
     } catch (error) {
       failed += 1;
       console.error('[cleanup] item retained for retry', { itemId: String(item._id), error: error.message });

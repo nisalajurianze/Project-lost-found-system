@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {
   ASSISTANT_HISTORY_TTL_MS,
   createAssistantConversation,
+  getAssistantHistoryKey,
   loadAssistantConversations,
   saveAssistantConversations,
 } from '../src/utils/assistantHistory.js';
@@ -45,11 +46,24 @@ test('assistant history expires old sessions and keeps at most five recent conve
     now: now - ASSISTANT_HISTORY_TTL_MS - 1000,
     messages: [{ role: 'user', content: 'old query' }],
   }));
-  saveAssistantConversations(conversations, storage, now);
-  const loaded = loadAssistantConversations(storage, now);
+  saveAssistantConversations(conversations, { principalId: 'user-a', storage, now });
+  const loaded = loadAssistantConversations({ principalId: 'user-a', storage, now });
   assert.equal(loaded.length, 5);
   assert.equal(loaded.some((conversation) => conversation.id === 'expired'), false);
   assert.equal(loaded[0].id, 'session-0');
+});
+
+test('assistant history is isolated by principal and discards the legacy global key', () => {
+  const storage = createStorage();
+  const now = Date.UTC(2026, 6, 26);
+  storage.setItem('lf-assistant-conversations-v1', JSON.stringify([{ id: 'legacy' }]));
+  saveAssistantConversations([
+    createAssistantConversation({ id: 'private-a', now, messages: [{ role: 'user', content: 'my claim' }] }),
+  ], { principalId: 'user-a', storage, now });
+  assert.equal(loadAssistantConversations({ principalId: 'user-b', storage, now }).length, 0);
+  assert.equal(loadAssistantConversations({ principalId: 'user-a', storage, now })[0].id, 'private-a');
+  assert.equal(storage.getItem('lf-assistant-conversations-v1'), null);
+  assert.ok(storage.getItem(getAssistantHistoryKey('user-a')));
 });
 
 test('assistant UI exposes explicit local history and new-conversation controls', () => {
@@ -59,4 +73,5 @@ test('assistant UI exposes explicit local history and new-conversation controls'
   assert.match(source, /assistant\.historyDesc/);
   assert.match(source, /beginNewConversation/);
   assert.match(source, /clearAllConversationHistory/);
+  assert.match(source, /loadAssistantConversations\(\{ principalId \}\)/);
 });

@@ -43,9 +43,9 @@ test('assistant follows the mobile visual viewport when the on-screen keyboard o
 test('assistant creates a reviewable report draft and hands it to the shared wizard', () => {
   const wizard = fs.readFileSync(path.join(frontend, 'src/components/common/ReportItemWizard.jsx'), 'utf8');
   assert.match(source, /ReportDraftCard/);
-  assert.match(source, /lf-assistant-report-draft/);
+  assert.match(source, /saveAssistantReportDraft\(draft, \{ principalId \}\)/);
   assert.match(source, /assistant\.humanReview/);
   assert.match(source, /assistant\.openDraft/);
-  assert.match(wizard, /sessionStorage\.getItem\('lf-assistant-report-draft'\)/);
-  assert.match(wizard, /assistantDraft\?\.reportType === mode/);
+  assert.match(wizard, /consumeAssistantReportDraft\(\{ principalId, reportType: mode \}\)/);
+  assert.match(wizard, /if \(assistantDraft\)/);
 });

@@ -10,7 +10,8 @@ import { useLanguage } from '../../i18n/LanguageContext';
 export const ItemCard = React.memo(({ item, type = 'lost', onFeedback, view = 'grid' }) => {
   const { t } = useLanguage();
   const isLost = type === 'lost';
-  const detailPath = isLost ? `/lost-items/${item._id}` : `/found-items/${item._id}`;
+  const itemId = typeof item === 'object' ? (item?._id || item?.id || '') : String(item || '');
+  const detailPath = isLost ? `/lost-items/${itemId}` : `/found-items/${itemId}`;
   const displayLocation = isLost ? item.lostLocation : item.foundLocation;
   const displayDate = isLost ? item.lostDate : item.foundDate;
   const rawImage = item.images?.[0]?.url || null;

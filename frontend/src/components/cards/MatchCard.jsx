@@ -17,6 +17,8 @@ import { useLanguage } from '../../i18n/LanguageContext';
 export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = false }) => {
   const lost = match.lostItemId;
   const found = match.foundItemId;
+  const lostId = typeof lost === 'object' ? (lost?._id || lost?.id || '') : String(lost || '');
+  const foundId = typeof found === 'object' ? (found?._id || found?.id || '') : String(found || '');
   const [feedbackState, setFeedbackState] = useState('');
   const { t } = useLanguage();
 
@@ -45,7 +47,7 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
   // If the user posted the Lost item, they should visit the Found item to claim "This is mine"
   const isUserFinder = user && found.userId && found.userId._id === user._id;
 
-  const targetLink = isUserFinder ? `/lost-items/${lost._id}` : `/found-items/${found._id}`;
+  const targetLink = isUserFinder ? `/lost-items/${lostId}` : `/found-items/${foundId}`;
   const targetStatus = isUserFinder ? lost.status : found.status;
 
   return (
@@ -60,24 +62,48 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
             {t('match.confidence', { score: match.confidencePercentage })}
           </span>
         </div>
-        <span className="text-xs font-semibold capitalize bg-surface-100 text-surface-700 dark:bg-surface-800 dark:text-surface-300 px-2 py-0.5 rounded-md">
-          {t('match.status', { status: match.status })}
-        </span>
+
+        <div className="flex items-center gap-2">
+          {feedbackState === 'saved' ? (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">{t('match.feedbackSaved')}</span>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => submitCorrection('accurate')}
+                disabled={feedbackState === 'saving'}
+                className="text-xs px-2.5 py-1 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-surface-600 dark:text-surface-300 hover:text-emerald-600 transition-colors"
+                title={t('match.markAccurate')}
+              >
+                👍 {t('match.accurate')}
+              </button>
+              <button
+                type="button"
+                onClick={() => submitCorrection('inaccurate')}
+                disabled={feedbackState === 'saving'}
+                className="text-xs px-2.5 py-1 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-surface-600 dark:text-surface-300 hover:text-rose-600 transition-colors"
+                title={t('match.markInaccurate')}
+              >
+                👎 {t('match.notAMatch')}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Side-by-side comparison */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+      {/* Side-by-side cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {/* Lost Item */}
         <div className="p-4 rounded-xl bg-surface-50 dark:bg-surface-900/30 border border-surface-200/50 dark:border-surface-800/50 flex flex-col h-full">
-          <span className="text-[10px] font-bold text-red-500 dark:text-red-400 uppercase tracking-wide mb-2 block">
-            {t('match.reportedLost')}
+          <span className="text-[10px] font-bold text-rose-500 dark:text-rose-400 uppercase tracking-wide mb-2 block">
+            {t('match.lostListing')}
           </span>
           {lost.images && lost.images.length > 0 ? (
             <img src={optimizeImageUrl(lost.images[0].url, 300)} alt={lost.itemName} className="w-full h-32 object-contain bg-surface-100 dark:bg-surface-800 rounded-lg mb-3 shadow-sm border border-surface-200 dark:border-surface-800 p-1" />
           ) : (
             <div className="w-full h-32 bg-surface-200 dark:bg-surface-800 rounded-lg mb-3 flex items-center justify-center text-surface-400">{t('match.noImage')}</div>
           )}
-          <Link to={`/lost-items/${lost._id}`} className="hover:underline">
+          <Link to={`/lost-items/${lostId}`} className="hover:underline">
             <h5 className="text-sm font-bold text-surface-900 dark:text-white mt-1 line-clamp-1">
               {lost.itemName}
             </h5>
@@ -102,7 +128,7 @@ export const MatchCard = React.memo(({ match, onConfirm, onReject, isLoading = f
           ) : (
             <div className="w-full h-32 bg-surface-200 dark:bg-surface-800 rounded-lg mb-3 flex items-center justify-center text-surface-400">{t('match.noImage')}</div>
           )}
-          <Link to={`/found-items/${found._id}`} className="hover:underline">
+          <Link to={`/found-items/${foundId}`} className="hover:underline">
             <h5 className="text-sm font-bold text-surface-900 dark:text-white mt-1 line-clamp-1">
               {found.itemName}
             </h5>
