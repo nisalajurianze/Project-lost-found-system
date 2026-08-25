@@ -30,6 +30,9 @@ export const Modal = ({
   const generatedId = useId();
   const titleId = title ? `modal-title-${generatedId}` : undefined;
 
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -38,6 +41,7 @@ export const Modal = ({
     document.body.style.overflow = 'hidden';
 
     const focusDialog = window.setTimeout(() => {
+      if (dialogRef.current?.contains(document.activeElement)) return;
       const firstFocusable = dialogRef.current?.querySelector(focusableSelector);
       (firstFocusable || dialogRef.current)?.focus();
     }, 0);
@@ -45,7 +49,7 @@ export const Modal = ({
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose?.();
+        onCloseRef.current?.();
         return;
       }
 
@@ -75,7 +79,7 @@ export const Modal = ({
       const previous = previousFocusRef.current;
       if (previous && typeof previous.focus === 'function') previous.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const sizeClasses = {
     sm: 'max-w-md',

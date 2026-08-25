@@ -16,7 +16,7 @@ const statusStyle = (status) => status === 'university-approved'
 export const LocationKnowledge = () => {
   const { t, language } = useLanguage();
   const [records, setRecords] = useState([]);
-  const [status, setStatus] = useState('community-suggested');
+  const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState('');

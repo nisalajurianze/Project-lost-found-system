@@ -56,17 +56,17 @@ const Feedback = () => {
   })), [t]);
   const statusOptions = useMemo(() => FEEDBACK_STATUSES.map((value) => ({ value, label: t(`feedbackAdmin.status.${value}`) })), [t]);
 
-  const openResponse = (item) => {
+  const openResponse = useCallback((item) => {
     setResponseItem(item);
     setAdminResponse(item.adminResponse || '');
     setResponseStatus(item.status === 'resolved' ? 'resolved' : 'reviewed');
-  };
+  }, []);
 
-  const closeResponse = () => {
+  const closeResponse = useCallback(() => {
     setResponseItem(null);
     setAdminResponse('');
     setResponseStatus('reviewed');
-  };
+  }, []);
 
   const submitResponse = async (event) => {
     event.preventDefault();
