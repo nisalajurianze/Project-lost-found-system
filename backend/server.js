@@ -118,6 +118,7 @@ const startServer = async () => {
   app.use('/api/ai-feedback', aiFeedbackRoutes);
   app.use('/api/stats', statsRoutes);
   app.use('/api/settings', systemSettingRoutes);
+  app.use('/api/system-settings', systemSettingRoutes);
   app.use('/api/claims', claimRoutes);
   app.use('/api/locations', locationKnowledgeRoutes);
   app.get('/', (_req, res) => res.json({ message: 'Smart Lost & Found API', version: '2.0.0' }));

@@ -223,7 +223,7 @@ export const SiteSettings = () => {
   const handleRunCleanupNow = async () => {
     setIsRunningCleanup(true);
     try {
-      await api.post('/system-settings/run-cleanup');
+      await settingService.runCleanup();
       toast.success(t('settings.cleanupSuccess'));
     } catch {
       toast.error(t('settings.cleanupError'));

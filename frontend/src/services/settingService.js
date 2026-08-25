@@ -26,7 +26,12 @@ const settingService = {
   updateSetting: async (key, value, description = '', isPublic = false) => {
     const response = await api.put(`/settings/${key}`, { value, description, isPublic });
     return response.data;
-  }
+  },
+
+  runCleanup: async () => {
+    const response = await api.post('/settings/run-cleanup');
+    return response.data;
+  },
 };
 
 export default settingService;
