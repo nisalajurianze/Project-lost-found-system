@@ -393,6 +393,14 @@ const reviewClaimValidator = [
     .isIn(['approved', 'rejected'])
     .withMessage('Status must be approved or rejected'),
   body('adminRemark')
+    .if(body('status').equals('rejected'))
+    .trim()
+    .notEmpty()
+    .withMessage('A rejection reason is required')
+    .isLength({ max: 1000 })
+    .withMessage('Remark cannot exceed 1000 characters'),
+  body('adminRemark')
+    .if(body('status').equals('approved'))
     .optional()
     .trim()
     .isLength({ max: 1000 })

@@ -204,8 +204,10 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
       if (!claimant) throw ApiError.notFound('Claimant not found.');
 
       if (req.body.status === 'approved' && ['claimed', 'closed', 'in_progress'].includes(item.status)) throw ApiError.conflict('Item is no longer available.');
+      if (req.body.status === 'rejected' && !String(req.body.adminRemark || '').trim()) throw ApiError.badRequest('A rejection reason is required.');
       claim.status = req.body.status;
       claim.adminRemark = req.body.adminRemark || '';
+      if (req.body.status === 'rejected') claim.isContactShared = false;
       claim.reviewedBy = req.user._id;
       claim.reviewedAt = new Date();
       await claim.save({ session: dbSession });
@@ -233,7 +235,7 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
         const otherFilter = { _id: { $ne: claim._id }, status: 'pending', ...(itemType === 'FoundItem' ? { foundItemId: item._id } : { lostItemId: item._id }) };
         const others = await ClaimRequest.find(otherFilter).populate('claimantId', 'email fullName notificationPreferences').session(dbSession);
         for (const other of others) {
-          other.status = 'rejected'; other.adminRemark = 'Another claim was approved.'; other.reviewedBy = req.user._id; other.reviewedAt = new Date();
+          other.status = 'rejected'; other.adminRemark = 'Another claim was approved.'; other.isContactShared = false; other.reviewedBy = req.user._id; other.reviewedAt = new Date();
           await other.save({ session: dbSession });
           otherClaimants.push({ id: other.claimantId._id, email: other.claimantId.email, fullName: other.claimantId.fullName, notificationPreferences: other.claimantId.notificationPreferences, claimId: other._id });
         }
@@ -269,7 +271,7 @@ const reviewClaimRequest = asyncHandler(async (req, res) => {
 const shareClaimContact = asyncHandler(async (req, res) => {
   const claim = await populateClaim(ClaimRequest.findById(req.params.id));
   if (!claim) throw ApiError.notFound('Claim request not found.');
-  if (claim.status !== 'pending') throw ApiError.conflict('Contact sharing is only available for pending claims.');
+  if (claim.status !== 'approved') throw ApiError.conflict('Contact sharing is available only after the claim is approved.');
   const item = claim.foundItemId || claim.lostItemId;
   if (item.userId._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') throw ApiError.forbidden('Only the reporter or an administrator can share contact access.');
   if (!claim.isContactShared) { claim.isContactShared = true; await claim.save(); }

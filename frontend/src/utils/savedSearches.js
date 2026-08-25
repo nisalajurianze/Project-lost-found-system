@@ -7,6 +7,8 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 const safeText = (value, max = 120) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
 const safeDate = (value) => datePattern.test(String(value || '')) ? String(value) : '';
+const normalizePrincipalId = (principalId) => String(principalId || 'guest').trim() || 'guest';
+const getSavedSearchesKey = (principalId) => `${SAVED_SEARCHES_KEY}:${encodeURIComponent(normalizePrincipalId(principalId))}`;
 
 const sanitizeSearchFilters = (filters = {}) => ({
   query: safeText(filters.query, 200),
@@ -48,43 +50,56 @@ const normalizeSavedSearches = (value, now = Date.now()) => {
     .slice(0, MAX_SAVED_SEARCHES);
 };
 
-const loadSavedSearches = (storage = globalThis.localStorage, now = Date.now()) => {
+const loadSavedSearches = ({ principalId = 'guest', storage = globalThis.localStorage, now = Date.now() } = {}) => {
   if (!storage?.getItem) return [];
+  const key = getSavedSearchesKey(principalId);
+  storage.removeItem?.(SAVED_SEARCHES_KEY);
   try {
-    const normalized = normalizeSavedSearches(JSON.parse(storage.getItem(SAVED_SEARCHES_KEY) || '[]'), now);
-    storage.setItem?.(SAVED_SEARCHES_KEY, JSON.stringify(normalized));
+    const normalized = normalizeSavedSearches(JSON.parse(storage.getItem(key) || '[]'), now);
+    storage.setItem?.(key, JSON.stringify(normalized));
     return normalized;
   } catch {
-    storage.removeItem?.(SAVED_SEARCHES_KEY);
+    storage.removeItem?.(key);
     return [];
   }
 };
 
-const saveSearch = (filters, storage = globalThis.localStorage, now = Date.now()) => {
-  const current = loadSavedSearches(storage, now);
+const saveSearch = (filters, options = {}) => {
+  const { principalId = 'guest', storage = globalThis.localStorage, now = Date.now() } = options;
+  const key = getSavedSearchesKey(principalId);
+  const current = loadSavedSearches({ principalId, storage, now });
   const sanitized = sanitizeSearchFilters(filters);
   const signature = JSON.stringify(sanitized);
   const existing = current.find((entry) => JSON.stringify(entry.filters) === signature);
   const saved = createSavedSearch({ id: existing?.id, filters: sanitized, now });
   if (existing?.createdAt) saved.createdAt = existing.createdAt;
   const next = normalizeSavedSearches([saved, ...current.filter((entry) => entry.id !== saved.id)], now);
-  storage?.setItem?.(SAVED_SEARCHES_KEY, JSON.stringify(next));
+  storage?.setItem?.(key, JSON.stringify(next));
   return next;
 };
 
-const deleteSavedSearch = (id, storage = globalThis.localStorage, now = Date.now()) => {
-  const next = loadSavedSearches(storage, now).filter((entry) => entry.id !== id);
-  storage?.setItem?.(SAVED_SEARCHES_KEY, JSON.stringify(next));
+const deleteSavedSearch = (id, options = {}) => {
+  const { principalId = 'guest', storage = globalThis.localStorage, now = Date.now() } = options;
+  const key = getSavedSearchesKey(principalId);
+  const next = loadSavedSearches({ principalId, storage, now }).filter((entry) => entry.id !== id);
+  storage?.setItem?.(key, JSON.stringify(next));
   return next;
+};
+
+const clearSavedSearches = ({ principalId = 'guest', storage = globalThis.localStorage } = {}) => {
+  storage?.removeItem?.(getSavedSearchesKey(principalId));
+  storage?.removeItem?.(SAVED_SEARCHES_KEY);
 };
 
 export {
   SAVED_SEARCHES_KEY,
   MAX_SAVED_SEARCHES,
   SAVED_SEARCH_TTL_MS,
+  getSavedSearchesKey,
   sanitizeSearchFilters,
   createSavedSearch,
   loadSavedSearches,
   saveSearch,
   deleteSavedSearch,
+  clearSavedSearches,
 };

@@ -21,6 +21,7 @@ import { createPrivacySafeImage, IMAGE_REDACTION_ERROR_CODES, imageFileKey, norm
 import ConfirmDialog from './ConfirmDialog';
 import ProfileCompletionModal from '../modals/ProfileCompletionModal';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { consumeAssistantReportDraft } from '../../utils/assistantReportDraft';
 
 const stepDefinitions = [
   { id: 1, labelKey: 'report.stepPhoto', icon: ImageIcon },
@@ -75,7 +76,8 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
   const itemState = useSelector((state) => isLost ? state.lostItems : state.foundItems);
   const currentItem = itemState.currentItem;
   const itemLoading = itemState.isLoading;
-  const draftKey = `lf-report-draft:${mode}:${isEdit ? `edit:${itemId}` : 'create'}:${user?._id || 'guest'}`;
+  const principalId = user?._id || 'guest';
+  const draftKey = `lf-report-draft:${mode}:${isEdit ? `edit:${itemId}` : 'create'}:${principalId}`;
 
   const [form, setForm] = useState(emptyForm);
   const [images, setImages] = useState([]);
@@ -139,17 +141,11 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     let nextForm = sourceForm;
     let nextStep = 1;
     if (!isEdit) {
-      try {
-        const assistantRaw = sessionStorage.getItem('lf-assistant-report-draft');
-        const assistantDraft = assistantRaw ? JSON.parse(assistantRaw) : null;
-        if (assistantDraft?.reportType === mode && assistantDraft?.fields && typeof assistantDraft.fields === 'object') {
-          nextForm = { ...sourceForm, ...assistantDraft.fields };
-          nextStep = 2;
-          setDraftRestored(true);
-          sessionStorage.removeItem('lf-assistant-report-draft');
-        }
-      } catch {
-        sessionStorage.removeItem('lf-assistant-report-draft');
+      const assistantDraft = consumeAssistantReportDraft({ principalId, reportType: mode });
+      if (assistantDraft) {
+        nextForm = { ...sourceForm, ...assistantDraft.fields };
+        nextStep = 2;
+        setDraftRestored(true);
       }
     }
     try {
@@ -173,7 +169,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     setImages([]);
     setImagePrivacyReviews([]);
     setIsInitialised(true);
-  }, [currentItem, draftKey, isEdit, isInitialised, isLost, itemId]);
+  }, [currentItem, draftKey, isEdit, isInitialised, isLost, itemId, mode, principalId]);
 
   useEffect(() => {
     if (!isInitialised) return undefined;

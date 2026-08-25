@@ -130,6 +130,32 @@ test('claim evidence and both parties contacts stay private from outsiders', asy
   assert.equal(result.foundItemId.userId.email, undefined);
 });
 
+test('claim contact stays private until approval and explicit sharing are both present', async () => {
+  const base = {
+    claimantId: { _id: 'claimant', fullName: 'Claimant', email: 'claimant@example.com', phone: '+94222222222' },
+    foundItemId: { _id: 'item', userId: { _id: 'reporter', fullName: 'Reporter', email: 'reporter@example.com', phone: '+94333333333' } },
+    proofDescription: 'Private proof details', proofImages: [], verificationAnswers: [],
+  };
+  const rejected = await claimView({ ...base, status: 'rejected', isContactShared: true }, { _id: 'claimant', role: 'user' });
+  assert.equal(rejected.foundItemId.userId.email, undefined);
+  const approvedNotShared = await claimView({ ...base, status: 'approved', isContactShared: false }, { _id: 'claimant', role: 'user' });
+  assert.equal(approvedNotShared.foundItemId.userId.email, undefined);
+  const approvedShared = await claimView({ ...base, status: 'approved', isContactShared: true }, { _id: 'claimant', role: 'user' });
+  assert.equal(approvedShared.foundItemId.userId.email, 'reporter@example.com');
+});
+
+test('claim handover and global taxonomy enforce approved bindings and admin authority', () => {
+  const workflow = fs.readFileSync(new URL('../services/itemWorkflowService.js', import.meta.url), 'utf8');
+  const claims = fs.readFileSync(new URL('../controllers/claimController.js', import.meta.url), 'utf8');
+  const categories = fs.readFileSync(new URL('../routes/categoryRoutes.js', import.meta.url), 'utf8');
+  assert.match(workflow, /approvedClaimForItem/);
+  assert.match(workflow, /_id:\s*claim\.matchId/);
+  assert.match(workflow, /claim\.isContactShared = false/);
+  assert.match(claims, /claim\.status !== 'approved'/);
+  assert.match(claims, /other\.isContactShared = false/);
+  assert.match(categories, /router\.post\('\/auto-create', protect, authorize\('admin'\), autoCreateCategory\)/);
+});
+
 test('email templates escape untrusted values and unknown templates fail closed', async () => {
   const rendered = emailTemplates.claimRejected({ name: '<script>', itemName: 'Wallet', reason: '<img onerror=x>' });
   assert.ok(!rendered.html.includes('<script>'));

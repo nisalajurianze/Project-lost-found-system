@@ -39,7 +39,7 @@ router.get('/:id', mongoIdParam, validate, getClaimRequestById);
 // Claim verification reviews (Admin and Founder)
 router.put('/:id/review', mongoIdParam, reviewClaimValidator, validate, reviewClaimRequest);
 
-// Share contact info without approving
+// Share contact info only inside an approved human-reviewed claim
 router.patch('/:id/share-contact', mongoIdParam, validate, shareClaimContact);
 
 export default router;

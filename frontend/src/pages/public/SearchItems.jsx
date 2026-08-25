@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FiBookmark, FiGrid, FiList, FiPlay, FiSearch, FiTrash2, FiX, FiPlusCircle, FiSliders, FiChevronDown, FiCheck } from 'react-icons/fi';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import lostItemService from '../../services/lostItemService';
 import foundItemService from '../../services/foundItemService';
 import categoryService from '../../services/categoryService';
@@ -94,6 +95,7 @@ const normalizeResponse = (response, type) => (response?.items || []).map((item)
 
 export const SearchItems = () => {
   const { t } = useLanguage();
+  const principalId = useSelector((state) => state.auth.user?._id) || 'guest';
   const [searchParams, setSearchParams] = useSearchParams();
   const initialFilters = sanitizeSearchFilters({
     query: searchParams.get('q'),
@@ -117,10 +119,11 @@ export const SearchItems = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [savedSearches, setSavedSearches] = useState(() => loadSavedSearches());
+  const [savedSearches, setSavedSearches] = useState([]);
   const debouncedQuery = useDebounce(query, 450);
 
   useEffect(() => { categoryService.getCategories().then((data) => setCategories(data?.categories || data || [])).catch(() => setCategories([])); }, []);
+  useEffect(() => { setSavedSearches(loadSavedSearches({ principalId })); }, [principalId]);
   useEffect(() => { window.localStorage.setItem('lf-search-view', view); }, [view]);
   useEffect(() => { setPage(1); }, [debouncedQuery, type, category, startDate, endDate, sort]);
 
@@ -180,7 +183,7 @@ export const SearchItems = () => {
 
   const handleSaveSearch = () => {
     if (!canSaveSearch) return;
-    setSavedSearches(saveSearch(currentFilters));
+    setSavedSearches(saveSearch(currentFilters, { principalId }));
     toast.success(t('search.savedSuccess'));
   };
 
@@ -190,7 +193,7 @@ export const SearchItems = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const removeSavedSearch = (id) => setSavedSearches(deleteSavedSearch(id));
+  const removeSavedSearch = (id) => setSavedSearches(deleteSavedSearch(id, { principalId }));
   const hasMore = results.length < total;
   const filterCount = (category ? 1 : 0) + (startDate ? 1 : 0) + (endDate ? 1 : 0) + (sort !== '-createdAt' ? 1 : 0);
 

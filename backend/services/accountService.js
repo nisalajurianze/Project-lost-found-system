@@ -8,8 +8,9 @@ import Notification from '../models/Notification.js';
 import Feedback from '../models/Feedback.js';
 import RefreshSession from '../models/RefreshSession.js';
 import AdminLog from '../models/AdminLog.js';
+import ImageAnalysis from '../models/ImageAnalysis.js';
 import ApiError from '../utils/apiError.js';
-import { deleteMultipleImages } from './cloudinaryService.js';
+import { enqueueMediaDeletion } from './outboxService.js';
 
 const ensureNotLastActiveAdmin = async (user, session) => {
   if (user.role !== 'admin' || !user.isActive) return;
@@ -41,15 +42,26 @@ const anonymizeAccount = async ({ userId, actorId = null, ipAddress = '', reason
       claims.forEach((claim) => media.push(...(claim.proofImages || [])));
 
       const now = new Date();
+      await enqueueMediaDeletion(media, `account:${user._id}:${now.getTime()}`, session);
       await Promise.all([
         LostItem.updateMany(
           { userId: user._id },
-          { $set: { isDeleted: true, isArchived: true, status: 'closed', images: [], connectedUserId: null, connectedAt: null, reminderSent: false } },
+          { $set: {
+            isDeleted: true, isArchived: true, status: 'closed', images: [], connectedUserId: null, connectedAt: null, reminderSent: false,
+            description: 'Report content removed after account deletion.', lostLocation: 'Location removed after account deletion.',
+            brand: '', model: '', colors: [], material: '', uniqueFeatures: [], tags: [], aiKeywords: [], duplicateCandidates: [],
+            locationIntelligence: { canonicalId: '', canonicalName: '', area: '', verificationStatus: '', sensitivity: '', confidence: 0, needsReview: true },
+          } },
           { session },
         ),
         FoundItem.updateMany(
           { userId: user._id },
-          { $set: { isDeleted: true, isArchived: true, images: [], connectedUserId: null, connectedAt: null, reminderSent: false } },
+          { $set: {
+            isDeleted: true, isArchived: true, images: [], connectedUserId: null, connectedAt: null, reminderSent: false,
+            description: 'Report content removed after account deletion.', foundLocation: 'Location removed after account deletion.', storedAt: '',
+            brand: '', model: '', colors: [], material: '', uniqueFeatures: [], tags: [], aiKeywords: [], duplicateCandidates: [],
+            locationIntelligence: { canonicalId: '', canonicalName: '', area: '', verificationStatus: '', sensitivity: '', confidence: 0, needsReview: true },
+          } },
           { session },
         ),
         LostItem.updateMany(
@@ -104,6 +116,7 @@ const anonymizeAccount = async ({ userId, actorId = null, ipAddress = '', reason
         Notification.deleteMany({ userId: user._id }, { session }),
         RefreshSession.deleteMany({ userId: user._id }, { session }),
         Feedback.updateMany({ userId: user._id }, { $set: { subject: 'Feedback from deleted account', message: 'Content removed after account deletion.' } }, { session }),
+        ImageAnalysis.deleteMany({ itemId: { $in: [...lostReportIds, ...foundReportIds] } }, { session }),
       ]);
 
       const suffix = user._id.toString();
@@ -142,7 +155,6 @@ const anonymizeAccount = async ({ userId, actorId = null, ipAddress = '', reason
     await session.endSession();
   }
 
-  await deleteMultipleImages(media);
   return anonymizedUser;
 };
 

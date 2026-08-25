@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import os from 'node:os';
 import OutboxEvent from '../models/OutboxEvent.js';
 import { processItem } from './itemProcessingService.js';
+import { deleteMultipleImages } from './cloudinaryService.js';
 
 const workerId = `${os.hostname()}:${process.pid}`;
 let timer = null;
@@ -17,9 +18,26 @@ const enqueueItemProcessing = async (itemType, itemId, version = randomUUID(), s
   return event;
 };
 
+const enqueueMediaDeletion = async (assets, dedupePrefix, session = null) => {
+  const candidates = (assets || []).filter((asset) => asset?.publicId);
+  const events = [];
+  for (let offset = 0; offset < candidates.length; offset += 50) {
+    const chunk = candidates.slice(offset, offset + 50);
+    const [event] = await OutboxEvent.create([{
+      type: 'media.delete',
+      payload: { assets: chunk },
+      dedupeKey: `media.delete:${dedupePrefix}:${offset / 50}`,
+    }], session ? { session } : undefined);
+    events.push(event);
+  }
+  return events;
+};
+
 const claimOne = () => {
   const now = new Date();
-  const stale = new Date(Date.now() - 5 * 60 * 1000);
+  const staleMs = Math.max(60_000, Number(process.env.OUTBOX_STALE_MS || 5 * 60 * 1000));
+  const stale = new Date(Date.now() - staleMs);
+  const leaseId = `${workerId}:${randomUUID()}`;
   return OutboxEvent.findOneAndUpdate(
     {
       $or: [
@@ -28,7 +46,7 @@ const claimOne = () => {
       ],
     },
     {
-      $set: { status: 'processing', lockedAt: now, lockedBy: workerId },
+      $set: { status: 'processing', lockedAt: now, lockedBy: leaseId },
       $inc: { attempts: 1 },
     },
     { sort: { createdAt: 1 }, new: true },
@@ -38,25 +56,35 @@ const claimOne = () => {
 const processOneOutboxEvent = async () => {
   const event = await claimOne();
   if (!event) return false;
+  const leaseId = event.lockedBy;
+  const heartbeatMs = Math.max(10_000, Math.floor(Math.max(60_000, Number(process.env.OUTBOX_STALE_MS || 5 * 60 * 1000)) / 3));
+  const heartbeat = setInterval(() => {
+    OutboxEvent.updateOne({ _id: event._id, status: 'processing', lockedBy: leaseId }, { $set: { lockedAt: new Date() } })
+      .catch((error) => console.error('[outbox] heartbeat failed', { eventId: String(event._id), error: error.message }));
+  }, heartbeatMs);
+  heartbeat.unref();
+  let update;
   try {
     if (event.type === 'item.process') await processItem(event.payload.itemType, event.payload.itemId);
+    else if (event.type === 'media.delete') await deleteMultipleImages(event.payload.assets || [], { strict: true });
     else throw new Error(`Unsupported outbox event type: ${event.type}`);
-    event.status = 'completed';
-    event.completedAt = new Date();
-    event.lastError = '';
+    update = { status: 'completed', completedAt: new Date(), deadAt: null, lastError: '' };
   } catch (error) {
-    event.lastError = String(error?.message || error).slice(0, 2000);
+    const lastError = String(error?.message || error).slice(0, 2000);
     if (event.attempts >= 7) {
-      event.status = 'dead';
+      update = { status: 'dead', deadAt: new Date(), lastError };
     } else {
-      event.status = 'pending';
       const delay = Math.min(30 * 60 * 1000, 5_000 * (2 ** Math.max(0, event.attempts - 1)));
-      event.availableAt = new Date(Date.now() + delay);
+      update = { status: 'pending', deadAt: null, lastError, availableAt: new Date(Date.now() + delay) };
     }
+  } finally {
+    clearInterval(heartbeat);
   }
-  event.lockedAt = null;
-  event.lockedBy = '';
-  await event.save();
+  const finalized = await OutboxEvent.updateOne(
+    { _id: event._id, status: 'processing', lockedBy: leaseId },
+    { $set: { ...update, lockedAt: null, lockedBy: '' } },
+  );
+  if (!finalized.modifiedCount) console.warn('[outbox] lease lost before finalize', { eventId: String(event._id) });
   return true;
 };
 
@@ -87,4 +115,4 @@ const stopOutboxWorker = () => {
   timer = null;
 };
 
-export { enqueueItemProcessing, processOneOutboxEvent, processOutboxBatch, startOutboxWorker, stopOutboxWorker };
+export { enqueueItemProcessing, enqueueMediaDeletion, processOneOutboxEvent, processOutboxBatch, startOutboxWorker, stopOutboxWorker };

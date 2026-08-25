@@ -86,7 +86,7 @@ export const claimView = async (claim, viewer, privateAssetView) => {
   const isAdmin = viewer?.role === 'admin';
   const isClaimant = id(claimant) === viewerId;
   const isReporter = id(reporter) === viewerId;
-  const contactUnlocked = isAdmin || output.status === 'approved' || output.isContactShared;
+  const contactUnlocked = isAdmin || (output.status === 'approved' && output.isContactShared === true);
   output.claimantId = (isAdmin || isClaimant || (isReporter && contactUnlocked)) ? contactUser(claimant, { includeStudentId: isAdmin || isReporter }) : minimalUser(claimant);
   if (item) item.userId = (isAdmin || isReporter || (isClaimant && contactUnlocked)) ? contactUser(reporter, { includeStudentId: isAdmin }) : minimalUser(reporter);
   if (!isAdmin) {

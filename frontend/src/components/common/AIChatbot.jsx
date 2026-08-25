@@ -16,6 +16,7 @@ import {
 import { FaRobot } from 'react-icons/fa';
 import ReactMarkdown from 'react-markdown';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import api from '../../services/api';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -27,6 +28,7 @@ import {
   saveAssistantConversations,
 } from '../../utils/assistantHistory';
 import { isSafeInternalPath, toSafeInternalPath } from '../../utils/internalNavigation';
+import { saveAssistantReportDraft } from '../../utils/assistantReportDraft';
 
 const timestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const initialMessage = (t) => ({
@@ -158,6 +160,7 @@ const PersonalSummary = ({ summary, t }) => {
 const AIChatbot = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const principalId = useSelector((state) => state.auth.user?._id) || 'guest';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(() => [initialMessage(t)]);
   const [input, setInput] = useState('');
@@ -191,7 +194,9 @@ const AIChatbot = () => {
   }, [t]);
 
   useEffect(() => {
-    const conversations = loadAssistantConversations();
+    setHistoryReady(false);
+    suppressHistoryWriteRef.current = true;
+    const conversations = loadAssistantConversations({ principalId });
     setConversationHistory(conversations);
     if (conversations[0]) {
       suppressHistoryWriteRef.current = true;
@@ -199,9 +204,13 @@ const AIChatbot = () => {
       setMessages(conversations[0].messages.length ? conversations[0].messages : [initialMessage(t)]);
     } else {
       setConversationId(createAssistantConversation().id);
+      setMessages([initialMessage(t)]);
     }
+    setQuickReplies(DEFAULT_QUICK_REPLIES);
+    setInput('');
+    setHistoryOpen(false);
     setHistoryReady(true);
-  }, []);
+  }, [principalId, t]);
 
   useEffect(() => {
     if (!historyReady || !conversationId) return;
@@ -217,9 +226,12 @@ const AIChatbot = () => {
         messages,
         createdAt: existing?.createdAt,
       });
-      return saveAssistantConversations([current, ...previous.filter((conversation) => conversation.id !== conversationId)]);
+      return saveAssistantConversations(
+        [current, ...previous.filter((conversation) => conversation.id !== conversationId)],
+        { principalId },
+      );
     });
-  }, [conversationId, historyReady, messages]);
+  }, [conversationId, historyReady, messages, principalId]);
 
   const beginNewConversation = () => {
     suppressHistoryWriteRef.current = true;
@@ -241,20 +253,20 @@ const AIChatbot = () => {
   };
 
   const deleteConversation = (conversationIdToDelete) => {
-    const remaining = removeAssistantConversation(conversationIdToDelete);
+    const remaining = removeAssistantConversation(conversationIdToDelete, { principalId });
     setConversationHistory(remaining);
     if (conversationIdToDelete === conversationId) beginNewConversation();
   };
 
   const clearAllConversationHistory = () => {
-    clearAssistantConversations();
+    clearAssistantConversations({ principalId });
     setConversationHistory([]);
     beginNewConversation();
   };
 
   const startReportDraft = (draft) => {
     try {
-      sessionStorage.setItem('lf-assistant-report-draft', JSON.stringify({ ...draft, createdAt: new Date().toISOString() }));
+      saveAssistantReportDraft(draft, { principalId });
     } catch {
       toast.error(t('assistant.storageUnavailable'));
     }
@@ -403,7 +415,7 @@ const AIChatbot = () => {
 
   const handleClearChat = () => {
     if (conversationId) {
-      const remaining = removeAssistantConversation(conversationId);
+      const remaining = removeAssistantConversation(conversationId, { principalId });
       setConversationHistory(remaining);
     }
     beginNewConversation();

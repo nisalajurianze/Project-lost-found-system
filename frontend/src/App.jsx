@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -59,10 +59,10 @@ const SiteSettings = lazyWithRetry(() => import('./pages/admin/SiteSettings'));
 const LocationKnowledge = lazyWithRetry(() => import('./pages/admin/LocationKnowledge'));
 const AIFeedbackReview = lazyWithRetry(() => import('./pages/admin/AIFeedbackReview'));
 const ManageClaims = lazyWithRetry(() => import('./pages/admin/ManageClaims'));
+const AIChatbot = lazyWithRetry(() => import('./components/common/AIChatbot'));
 
 // Fallback loader
 import Loader from './components/common/Loader';
-import AIChatbot from './components/common/AIChatbot';
 import MobileBottomNav from './components/layout/MobileBottomNav';
 import ScrollToTopButton from './components/common/ScrollToTopButton';
 import AccessibilityPreferences from './components/common/AccessibilityPreferences';
@@ -97,6 +97,7 @@ const App = () => {
   const dispatch = useDispatch();
   const { user, getMe } = useAuth();
   const { mode } = useSelector((state) => state.theme);
+  const [assistantReady, setAssistantReady] = useState(false);
 
   // Restore the authenticated session from HTTP-only cookies.
   useEffect(() => {
@@ -133,6 +134,22 @@ const App = () => {
 
   // Initialize socket connections for authenticated users
   useSocket(user);
+
+  useEffect(() => {
+    const revealAssistant = () => setAssistantReady(true);
+    const idleId = window.requestIdleCallback
+      ? window.requestIdleCallback(revealAssistant, { timeout: 2000 })
+      : window.setTimeout(revealAssistant, 1200);
+
+    window.addEventListener('pointerdown', revealAssistant, { once: true });
+    window.addEventListener('keydown', revealAssistant, { once: true });
+    return () => {
+      if (window.cancelIdleCallback && typeof idleId === 'number') window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+      window.removeEventListener('pointerdown', revealAssistant);
+      window.removeEventListener('keydown', revealAssistant);
+    };
+  }, []);
 
   return (
     <>
@@ -197,7 +214,9 @@ const App = () => {
           </Route>
         </Route>
       </Routes>
-      <AIChatbot />
+      <Suspense fallback={null}>
+        {assistantReady && <AIChatbot />}
+      </Suspense>
       <MobileBottomNav />
       <ScrollToTopButton />
       <AccessibilityPreferences />

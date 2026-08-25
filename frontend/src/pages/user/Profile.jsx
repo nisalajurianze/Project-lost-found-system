@@ -142,9 +142,8 @@ export const Profile = () => {
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
 
-    const { isValid, message } = validatePassword(newPassword);
-    if (!isValid) {
-      toast.error(message);
+    if (!validatePassword(newPassword)) {
+      toast.error(t('profile.passwordHelper'));
       return;
     }
 
