@@ -125,7 +125,7 @@ const ManageUsers = () => {
         <EmptyState title={t('users.emptyTitle')} message={t('users.emptyMessage')} />
       ) : (
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/60 shadow-xs">
             <table className="w-full whitespace-nowrap text-left text-sm text-slate-500 dark:text-slate-400">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300">
                 <tr>
@@ -141,35 +141,56 @@ const ManageUsers = () => {
                 {users.map((user) => {
                   const isSelf = currentUser?._id === user._id;
                   const actionTitle = isSelf ? t('users.selfActionDisabled') : undefined;
+                  const joinedDate = new Date(user.createdAt).toLocaleDateString(locale);
                   return (
-                    <tr key={user._id} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-indigo-200 bg-indigo-100 font-bold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+                    <tr key={user._id} className="transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5" title={t('users.joined', { date: joinedDate })}>
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-indigo-200 bg-indigo-100 text-xs font-bold text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
                             {user.profileImage?.url ? <img src={optimizeImageUrl(user.profileImage.url, 150)} alt={user.fullName} className="h-full w-full object-cover" /> : getInitials(user.fullName)}
                           </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 dark:text-white">
-                              {user.fullName} {isSelf && <span className="ml-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-950 dark:text-indigo-400">{t('users.you')}</span>}
-                            </p>
-                            <p className="text-xs text-slate-400">{t('users.joined', { date: new Date(user.createdAt).toLocaleDateString(locale) })}</p>
-                          </div>
+                          <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            {user.fullName}
+                            {isSelf && <span className="rounded-full bg-indigo-100 dark:bg-indigo-950 px-1.5 py-0.2 text-[10px] font-bold text-indigo-700 dark:text-indigo-400">{t('users.you')}</span>}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-mono font-medium text-slate-700 dark:text-slate-300">{user.studentId || '—'}</td>
-                      <td className="space-y-1 px-4 py-3">
-                        <div className="flex items-center gap-1.5 text-xs"><Mail aria-hidden="true" className="h-3.5 w-3.5" />{user.email}</div>
-                        <div className="flex items-center gap-1.5 text-xs"><Phone aria-hidden="true" className="h-3.5 w-3.5" />{user.phone || t('users.noPhone')}</div>
+                      <td className="px-4 py-2.5 font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">{user.studentId || '—'}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                            <Mail aria-hidden="true" className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            {user.email}
+                          </span>
+                          {user.phone && (
+                            <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                              <span className="text-slate-300 dark:text-slate-700">•</span>
+                              <Phone aria-hidden="true" className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              {user.phone}
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-4 py-3"><span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold dark:bg-slate-800">{user.role === 'admin' ? t('users.roleAdmin') : t('users.roleUser')}</span></td>
-                      <td className="px-4 py-3"><span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${user.isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'}`}><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-amber-500'}`} />{user.isActive ? t('users.statusActive') : t('users.statusInactive')}</span></td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
+                      <td className="px-4 py-2.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${user.role === 'admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200/60 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/50' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}>
+                          {user.role === 'admin' ? t('users.roleAdmin') : t('users.roleUser')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${user.isActive ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400'}`}>
+                          <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          {user.isActive ? t('users.statusActive') : t('users.statusInactive')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex justify-end gap-1.5">
                           <Button variant={user.isActive ? 'danger' : 'success'} size="sm" disabled={isSelf} title={actionTitle || (user.isActive ? t('users.suspend') : t('users.activate'))} onClick={() => setToggleUser({ id: user._id, isActive: user.isActive, name: user.fullName })}>
-                            {user.isActive ? <UserX aria-hidden="true" className="h-4 w-4" /> : <UserCheck aria-hidden="true" className="h-4 w-4" />}<span className="hidden xl:inline">{user.isActive ? t('users.suspend') : t('users.activate')}</span>
+                            {user.isActive ? <UserX aria-hidden="true" className="h-4 w-4" /> : <UserCheck aria-hidden="true" className="h-4 w-4" />}
+                            <span className="hidden xl:inline">{user.isActive ? t('users.suspend') : t('users.activate')}</span>
                           </Button>
                           <Button variant="secondary" size="sm" disabled={isSelf} title={actionTitle || (user.role === 'admin' ? t('users.demoteAdmin') : t('users.makeAdmin'))} onClick={() => setRoleToggleUser({ id: user._id, name: user.fullName, currentRole: user.role })}>
-                            {user.role === 'admin' ? <ShieldOff aria-hidden="true" className="h-4 w-4 text-amber-600" /> : <Shield aria-hidden="true" className="h-4 w-4 text-indigo-600" />}<span className="hidden xl:inline">{user.role === 'admin' ? t('users.demoteAdmin') : t('users.makeAdmin')}</span>
+                            {user.role === 'admin' ? <ShieldOff aria-hidden="true" className="h-4 w-4 text-amber-600" /> : <Shield aria-hidden="true" className="h-4 w-4 text-indigo-600" />}
+                            <span className="hidden xl:inline">{user.role === 'admin' ? t('users.demoteAdmin') : t('users.makeAdmin')}</span>
                           </Button>
                           <Button variant="danger" size="sm" disabled={isSelf} title={actionTitle || t('users.anonymize')} onClick={() => setDeleteUser({ id: user._id, name: user.fullName })}>
                             <Trash2 aria-hidden="true" className="h-4 w-4" />
