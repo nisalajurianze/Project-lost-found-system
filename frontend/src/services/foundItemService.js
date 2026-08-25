@@ -15,7 +15,13 @@ const cleanParams = (params = {}) => {
   return cleaned;
 };
 
-const safeId = (id) => (typeof id === 'object' ? (id?._id || id?.id || '') : String(id || ''));
+const safeId = (id) => {
+  if (!id) return '';
+  if (typeof id === 'object') return String(id?._id || id?.id || '');
+  const str = String(id).trim();
+  if (str === 'undefined' || str === 'null' || str === '[object Object]') return '';
+  return str;
+};
 
 const foundItemService = {
   /**

@@ -57,10 +57,8 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(() => {
-      adminService.getAIHealth().then((data) => setAIHealth(data)).catch(() => {});
-    }, 60_000);
-    return () => clearInterval(timer);
+    const interval = setInterval(loadData, 30_000);
+    return () => clearInterval(interval);
   }, [loadData]);
 
   if (isLoading && !stats) return <Loader fullScreen />;

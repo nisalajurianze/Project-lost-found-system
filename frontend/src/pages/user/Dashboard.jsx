@@ -98,7 +98,11 @@ export const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user) fetchDashboardData();
+    if (user) {
+      fetchDashboardData();
+      const interval = setInterval(fetchDashboardData, 30_000);
+      return () => clearInterval(interval);
+    }
   }, [user]);
 
   const handleInstallApp = async () => {

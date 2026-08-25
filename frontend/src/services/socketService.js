@@ -5,7 +5,14 @@ let socket = null;
 const socketService = {
   connectSocket: () => {
     if (socket?.connected) return socket;
-    socket = io(SOCKET_URL, { withCredentials: true, autoConnect: true, reconnectionAttempts: 5, reconnectionDelay: 1000 });
+    socket = io(SOCKET_URL, {
+      withCredentials: true,
+      autoConnect: true,
+      transports: ['polling', 'websocket'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+    });
     return socket;
   },
   disconnectSocket: () => { if (socket) { socket.disconnect(); socket = null; } },
