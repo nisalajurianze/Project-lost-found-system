@@ -192,46 +192,99 @@ export const AdminDashboard = () => {
       )}
 
       {/* Urgent Operational Attention Queue */}
-      <section aria-labelledby="urgent-attention-title" className="rounded-2xl border border-amber-300/60 bg-gradient-to-br from-amber-50/90 via-amber-50/40 to-orange-50/30 p-5 dark:border-amber-900/50 dark:bg-gradient-to-br dark:from-amber-950/30 dark:via-amber-950/15 dark:to-surface-900 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="urgent-attention-title" className="flex items-center gap-2 text-lg sm:text-xl font-bold text-amber-950 dark:text-amber-100">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" aria-hidden="true" /> {t('admin.urgentTitle')}
-            </h2>
-            <p className="mt-0.5 text-xs sm:text-sm text-amber-800/80 dark:text-amber-200/70">{t('admin.urgentDesc')}</p>
+      <section
+        aria-labelledby="urgent-attention-title"
+        className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-surface-900/90 p-5 sm:p-6 backdrop-blur-xl shadow-xl shadow-amber-500/5 dark:from-amber-950/40 dark:via-surface-900/90 dark:to-surface-950"
+      >
+        {/* Top Accent Gradient Line */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400 opacity-80" />
+
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-500 dark:text-amber-400 shrink-0 shadow-inner">
+              <AlertTriangle className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <div>
+              <h2 id="urgent-attention-title" className="text-lg sm:text-xl font-black tracking-tight text-amber-950 dark:text-amber-100 flex items-center gap-2">
+                {t('admin.urgentTitle')}
+              </h2>
+              <p className="mt-0.5 text-xs sm:text-sm text-amber-800/80 dark:text-amber-200/75">
+                {t('admin.urgentDesc')}
+              </p>
+            </div>
           </div>
-          <span className="rounded-full bg-amber-500/20 text-amber-900 dark:bg-amber-500/30 dark:text-amber-100 border border-amber-500/30 px-3 py-1 text-xs sm:text-sm font-extrabold flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+
+          <span className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-black border transition-all duration-300 ${
+            operations.urgentTotal > 0
+              ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20'
+              : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${operations.urgentTotal > 0 ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'}`} />
             {t('admin.urgentCount', { count: operations.urgentTotal })}
           </span>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {urgentCards.map((card) => (
-            <Link
-              key={card.to}
-              to={card.to}
-              className={`group rounded-xl border bg-white/90 dark:bg-surface-900/90 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${card.border}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="p-2 rounded-lg bg-surface-100 dark:bg-surface-800 group-hover:scale-105 transition-transform">{card.icon}</div>
-                <span className="text-2xl font-black text-surface-900 dark:text-white">{card.value}</span>
-              </div>
-              <p className="mt-3 font-bold text-sm text-surface-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{card.title}</p>
-              <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">{card.description}</p>
-            </Link>
-          ))}
+        {/* 4 Primary Queue Cards */}
+        <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+          {urgentCards.map((card) => {
+            const hasItems = card.value > 0;
+            return (
+              <Link
+                key={card.to + card.title}
+                to={card.to}
+                className={`group relative overflow-hidden rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${
+                  hasItems
+                    ? 'border-violet-500/40 bg-gradient-to-b from-violet-500/15 via-violet-500/5 to-white/90 dark:to-surface-900/95 shadow-md shadow-violet-500/10'
+                    : 'border-surface-200/80 dark:border-surface-800/80 bg-white/70 dark:bg-surface-900/60 hover:border-surface-300 dark:hover:border-surface-700'
+                }`}
+              >
+                {hasItems && (
+                  <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-violet-500 to-indigo-600" />
+                )}
+                <div className="flex items-center justify-between">
+                  <div className={`p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-110 ${
+                    hasItems
+                      ? 'bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/30 shadow-xs'
+                      : 'bg-surface-100 dark:bg-surface-800/80 text-surface-500 dark:text-surface-400'
+                  }`}>
+                    {card.icon}
+                  </div>
+                  <span className={`text-3xl font-black tracking-tight ${
+                    hasItems
+                      ? 'text-violet-700 dark:text-violet-300 drop-shadow-xs'
+                      : 'text-surface-400 dark:text-surface-500'
+                  }`}>
+                    {card.value}
+                  </span>
+                </div>
+                <p className="mt-3.5 font-bold text-sm text-surface-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                  {card.title}
+                </p>
+                <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                  {card.description}
+                </p>
+              </Link>
+            );
+          })}
         </div>
 
-        <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+        {/* Review Queues Rows */}
+        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
           {reviewRows.map((row) => (
             <Link
               key={row.to + row.label}
               to={row.to}
-              className="flex items-center justify-between rounded-xl border border-amber-200/70 bg-white/80 px-4 py-2.5 text-xs sm:text-sm dark:border-amber-900/40 dark:bg-surface-900/80 hover:bg-amber-100/50 dark:hover:bg-amber-950/40 transition-colors"
+              className="group flex items-center justify-between rounded-xl border border-amber-500/20 bg-white/70 dark:bg-surface-900/70 px-4 py-2.5 text-xs sm:text-sm hover:border-amber-500/40 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 transition-all duration-200 shadow-2xs"
             >
-              <span className="flex items-center gap-2 text-surface-700 dark:text-surface-300 font-medium">{row.icon}{row.label}</span>
-              <strong className="px-2 py-0.5 rounded-md bg-surface-100 dark:bg-surface-800 text-surface-900 dark:text-white font-bold">{row.value}</strong>
+              <span className="flex items-center gap-2.5 text-surface-700 dark:text-surface-300 font-medium group-hover:text-surface-900 dark:group-hover:text-white transition-colors">
+                <span className="p-1.5 rounded-lg bg-surface-100 dark:bg-surface-800 text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+                  {row.icon}
+                </span>
+                {row.label}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-lg bg-surface-100 dark:bg-surface-800/90 text-surface-900 dark:text-white font-bold border border-surface-200 dark:border-surface-700/60 shadow-2xs group-hover:border-primary-500/40 transition-colors">
+                {row.value}
+              </span>
             </Link>
           ))}
         </div>
@@ -239,52 +292,55 @@ export const AdminDashboard = () => {
 
       {/* AI Telemetry & Health Subsystem */}
       <section className="grid gap-4 sm:grid-cols-3" aria-label={t('admin.aiHealth')}>
-        <div className="rounded-2xl border border-surface-200/70 bg-white/80 p-4 dark:border-surface-800 dark:bg-surface-900/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
+        <div className="group rounded-2xl border border-surface-200/70 bg-gradient-to-b from-white/90 to-surface-50/50 dark:from-surface-900/90 dark:to-surface-950/90 p-4 sm:p-5 backdrop-blur-md shadow-sm hover:border-violet-500/30 transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-surface-600 dark:text-surface-300">
-              <BrainCircuit className="h-4 w-4 text-violet-600 dark:text-violet-400" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-xs font-bold text-surface-600 dark:text-surface-300 uppercase tracking-wider">
+              <span className="p-1.5 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400"><BrainCircuit className="h-4 w-4" aria-hidden="true" /></span>
               <span>{t('admin.aiProvider')}</span>
             </div>
-            <span className={`h-2.5 w-2.5 rounded-full ${aiHealth?.configured ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+            <span className={`h-2.5 w-2.5 rounded-full ${aiHealth?.configured ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50 animate-pulse' : 'bg-amber-500'}`} />
           </div>
-          <p className="mt-2 text-xl sm:text-2xl font-black text-surface-900 dark:text-white">
+          <p className="mt-3 text-2xl sm:text-3xl font-black text-surface-900 dark:text-white tracking-tight">
             {aiHealth?.configured ? t('admin.configured') : t('admin.fallbackMode')}
           </p>
-          <p className="mt-1 text-xs text-surface-500">
-            {t('admin.vision')}: <strong className="text-surface-700 dark:text-surface-300">{aiHealth?.visionConfigured ? t('admin.ready') : t('admin.manualFallback')}</strong>
-          </p>
+          <div className="mt-2 pt-2 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 flex items-center justify-between">
+            <span>{t('admin.vision')}:</span>
+            <strong className="text-surface-800 dark:text-surface-200 font-semibold">{aiHealth?.visionConfigured ? t('admin.ready') : t('admin.manualFallback')}</strong>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-surface-200/70 bg-white/80 p-4 dark:border-surface-800 dark:bg-surface-900/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
+        <div className="group rounded-2xl border border-surface-200/70 bg-gradient-to-b from-white/90 to-surface-50/50 dark:from-surface-900/90 dark:to-surface-950/90 p-4 sm:p-5 backdrop-blur-md shadow-sm hover:border-emerald-500/30 transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-surface-600 dark:text-surface-300">
-              <Wifi className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-xs font-bold text-surface-600 dark:text-surface-300 uppercase tracking-wider">
+              <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"><Wifi className="h-4 w-4" aria-hidden="true" /></span>
               <span>{t('admin.providerSuccess')}</span>
             </div>
-            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Live</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">Healthy</span>
           </div>
-          <p className="mt-2 text-xl sm:text-2xl font-black text-surface-900 dark:text-white">
+          <p className="mt-3 text-2xl sm:text-3xl font-black text-surface-900 dark:text-white tracking-tight">
             {aiHealth?.successRate ?? 0}%
           </p>
-          <p className="mt-1 text-xs text-surface-500">
-            {t('admin.averageLatency', { value: aiHealth?.averageLatencyMs ?? 0 })}
-          </p>
+          <div className="mt-2 pt-2 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 flex items-center justify-between">
+            <span>Latency:</span>
+            <strong className="text-surface-800 dark:text-surface-200 font-mono font-semibold">{aiHealth?.averageLatencyMs ?? 0}ms</strong>
+          </div>
         </div>
 
-        <div className="rounded-2xl border border-surface-200/70 bg-white/80 p-4 dark:border-surface-800 dark:bg-surface-900/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
+        <div className="group rounded-2xl border border-surface-200/70 bg-gradient-to-b from-white/90 to-surface-50/50 dark:from-surface-900/90 dark:to-surface-950/90 p-4 sm:p-5 backdrop-blur-md shadow-sm hover:border-amber-500/30 transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-surface-600 dark:text-surface-300">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-xs font-bold text-surface-600 dark:text-surface-300 uppercase tracking-wider">
+              <span className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400"><AlertTriangle className="h-4 w-4" aria-hidden="true" /></span>
               <span>{t('admin.safeFallbacks')}</span>
             </div>
-            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">Resilient</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">Zero Downtime</span>
           </div>
-          <p className="mt-2 text-xl sm:text-2xl font-black text-surface-900 dark:text-white">
+          <p className="mt-3 text-2xl sm:text-3xl font-black text-surface-900 dark:text-white tracking-tight">
             {aiHealth?.fallbackUses ?? 0}
           </p>
-          <p className="mt-1 text-xs text-surface-500 truncate">
-            {t('admin.lastFailure', { value: aiHealth?.lastFailureCode || t('admin.noneRecorded') })}
-          </p>
+          <div className="mt-2 pt-2 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 flex items-center justify-between">
+            <span>{t('admin.lastFailure', { value: '' })}</span>
+            <strong className="text-surface-800 dark:text-surface-200 font-mono text-[11px] truncate max-w-[120px]">{aiHealth?.lastFailureCode || t('admin.noneRecorded')}</strong>
+          </div>
         </div>
       </section>
 
