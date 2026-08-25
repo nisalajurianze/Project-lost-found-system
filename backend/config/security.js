@@ -1,6 +1,12 @@
-const asBool = (value, fallback = false) => {
+const TRUE_BOOLEAN_VALUES = new Set(['1', 'true', 'yes', 'on']);
+const FALSE_BOOLEAN_VALUES = new Set(['0', 'false', 'no', 'off']);
+
+export const parseBooleanEnv = (name, value, fallback = false) => {
   if (value === undefined || value === '') return fallback;
-  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+  const normalized = String(value).toLowerCase();
+  if (TRUE_BOOLEAN_VALUES.has(normalized)) return true;
+  if (FALSE_BOOLEAN_VALUES.has(normalized)) return false;
+  throw new Error(`Invalid boolean environment value for ${name}; expected true/false, 1/0, yes/no, or on/off.`);
 };
 
 
@@ -37,7 +43,7 @@ export const accessMaxAgeMs = durationMs(accessExpire, 15 * 60 * 1_000);
 export const refreshDays = Math.min(90, Math.max(1, Number(process.env.REFRESH_TOKEN_DAYS || 7)));
 export const rememberedRefreshDays = Math.min(90, Math.max(1, Number(process.env.REMEMBERED_REFRESH_TOKEN_DAYS || 30)));
 export const nonRememberedRefreshDays = Math.min(90, Math.max(1, Number(process.env.NON_REMEMBERED_REFRESH_TOKEN_DAYS || 1)));
-export const cookieSecure = asBool(process.env.COOKIE_SECURE, isProduction);
+export const cookieSecure = parseBooleanEnv('COOKIE_SECURE', process.env.COOKIE_SECURE, isProduction);
 export const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 export const resolveCookieSameSite = (value, production = isProduction) => {
   const fallback = production ? 'none' : 'lax';
@@ -45,12 +51,12 @@ export const resolveCookieSameSite = (value, production = isProduction) => {
   return ['strict', 'lax', 'none'].includes(requested) ? requested : fallback;
 };
 export const cookieSameSite = resolveCookieSameSite(process.env.COOKIE_SAME_SITE);
-export const allowBearerAuth = asBool(process.env.ALLOW_BEARER_AUTH, false);
-export const jobsEnabled = asBool(process.env.JOBS_ENABLED, true);
-export const requireRedis = asBool(process.env.REQUIRE_REDIS, false);
-export const requireEmail = asBool(process.env.REQUIRE_EMAIL_PROVIDER, isProduction);
-export const requireCloudinary = asBool(process.env.REQUIRE_CLOUDINARY, isProduction);
-export const requireTransactions = asBool(process.env.REQUIRE_MONGO_REPLICA_SET, isProduction);
+export const allowBearerAuth = parseBooleanEnv('ALLOW_BEARER_AUTH', process.env.ALLOW_BEARER_AUTH, false);
+export const jobsEnabled = parseBooleanEnv('JOBS_ENABLED', process.env.JOBS_ENABLED, true);
+export const requireRedis = parseBooleanEnv('REQUIRE_REDIS', process.env.REQUIRE_REDIS, isProduction);
+export const requireEmail = parseBooleanEnv('REQUIRE_EMAIL_PROVIDER', process.env.REQUIRE_EMAIL_PROVIDER, isProduction);
+export const requireCloudinary = parseBooleanEnv('REQUIRE_CLOUDINARY', process.env.REQUIRE_CLOUDINARY, isProduction);
+export const requireTransactions = parseBooleanEnv('REQUIRE_MONGO_REPLICA_SET', process.env.REQUIRE_MONGO_REPLICA_SET, isProduction);
 
 export const validateSecurityEnvironment = () => {
   const problems = [];

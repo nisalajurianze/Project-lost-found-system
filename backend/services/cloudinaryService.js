@@ -13,7 +13,7 @@ const uploadImage = (fileBuffer, folder = 'smart-lf', options = {}) => {
       folder,
       resource_type: 'image',
       type: deliveryType,
-      transformation: [{ width: 1600, height: 1600, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
+      transformation: options.transformation || [{ width: 1600, height: 1600, crop: 'limit', quality: 85 }],
       context: { source: 'smart-lost-found' },
     }, (error, result) => {
       if (error) return reject(error);
@@ -28,6 +28,32 @@ const uploadImage = (fileBuffer, folder = 'smart-lf', options = {}) => {
   });
 };
 
+const uploadReportImage = async (fileBuffer, folder) => {
+  const original = await uploadImage(fileBuffer, `${folder}/originals`, {
+    authenticated: true,
+    transformation: [{ width: 2000, height: 2000, crop: 'limit', quality: 90, flags: 'strip_profile' }],
+  });
+  try {
+    // This is an incoming transformation: Cloudinary stores the transformed
+    // pixels as the public asset. The authenticated original remains separate.
+    const publicCopy = await uploadImage(fileBuffer, `${folder}/public-safe`, {
+      transformation: [{ width: 900, height: 900, crop: 'limit', effect: 'pixelate:60', quality: 75, flags: 'strip_profile' }],
+    });
+    return {
+      ...publicCopy,
+      privacyStatus: 'safe_public',
+      originalAsset: {
+        publicId: original.publicId,
+        format: original.format,
+        deliveryType: original.deliveryType || 'authenticated',
+      },
+    };
+  } catch (error) {
+    await deleteImage(original).catch(() => undefined);
+    throw error;
+  }
+};
+
 const deleteImage = async (imageOrPublicId) => {
   const image = typeof imageOrPublicId === 'string' ? { publicId: imageOrPublicId } : imageOrPublicId;
   if (!configured || !image?.publicId || image.publicId.startsWith('local_')) return true;
@@ -36,7 +62,7 @@ const deleteImage = async (imageOrPublicId) => {
 };
 
 const deleteMultipleImages = async (images = [], { strict = false } = {}) => {
-  const candidates = images.filter((image) => image?.publicId);
+  const candidates = images.flatMap((image) => [image, image?.originalAsset]).filter((image) => image?.publicId);
   const results = await Promise.allSettled(candidates.map(deleteImage));
   const failures = results.filter((result) => result.status === 'rejected' || result.value !== true);
   if (strict && failures.length) throw new Error(`Failed to delete ${failures.length} image asset(s).`);
@@ -55,6 +81,18 @@ const uploadMultipleImages = async (files = [], folder = 'smart-lf', options = {
   }
 };
 
+const uploadMultipleReportImages = async (files = [], folder = 'smart-lf') => {
+  if (!files.length) return [];
+  const uploaded = [];
+  try {
+    for (const file of files) uploaded.push(await uploadReportImage(file.buffer, folder));
+    return uploaded;
+  } catch (error) {
+    await deleteMultipleImages(uploaded);
+    throw error;
+  }
+};
+
 const privateAssetView = (image) => {
   if (!configured || !image?.publicId) return null;
   const url = cloudinary.utils.private_download_url(image.publicId, image.format || 'jpg', {
@@ -64,4 +102,4 @@ const privateAssetView = (image) => {
   return { url, expiresInSeconds: 300 };
 };
 
-export { initCloudinary, uploadImage, uploadMultipleImages, deleteImage, deleteMultipleImages, privateAssetView };
+export { initCloudinary, uploadImage, uploadMultipleImages, uploadReportImage, uploadMultipleReportImages, deleteImage, deleteMultipleImages, privateAssetView };

@@ -50,6 +50,14 @@ const lostItemSchema = new mongoose.Schema(
         {
           url: { type: String, required: true },
           publicId: { type: String, default: '' },
+          format: { type: String, default: '' },
+          deliveryType: { type: String, enum: ['upload', 'authenticated'], default: 'upload' },
+          privacyStatus: { type: String, enum: ['safe_public', 'legacy_unreviewed'], default: 'legacy_unreviewed' },
+          originalAsset: {
+            publicId: { type: String, default: '' },
+            format: { type: String, default: '' },
+            deliveryType: { type: String, enum: ['authenticated'], default: 'authenticated' },
+          },
         },
       ],
       validate: {

@@ -9,11 +9,11 @@ import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate, buildSort } from '../utils/pagination.js';
 import { deleteCache } from '../config/redis.js';
-import { uploadMultipleImages, deleteMultipleImages } from '../services/cloudinaryService.js';
+import { uploadMultipleReportImages, deleteMultipleImages } from '../services/cloudinaryService.js';
 import { enqueueItemProcessing } from '../services/outboxService.js';
 import { resolveItemHandover, cancelItemHandover } from '../services/itemWorkflowService.js';
 import { itemView } from '../utils/serializers.js';
-import { publicLocationView, resolveLocation } from '../services/locationIntelligenceService.js';
+import { locationIntelligenceView, resolveLocation } from '../services/locationIntelligenceService.js';
 
 const cacheKeys = ['foundItems:*', 'cache:/api/found-items*'];
 const parseTags = (value) => [...new Set((Array.isArray(value) ? value : String(value || '').split(','))
@@ -22,7 +22,7 @@ const parseList = (value, max = 12) => [...new Set((Array.isArray(value) ? value
   .map((entry) => String(entry).normalize('NFKC').trim()).filter(Boolean).slice(0, max))];
 const buildLocationIntelligence = (value) => {
   const resolved = resolveLocation(value);
-  const view = publicLocationView(resolved);
+  const view = locationIntelligenceView(resolved);
   return {
     canonicalId: view?.id || '',
     canonicalName: view?.canonicalName || '',
@@ -38,7 +38,7 @@ const activeCategory = (name) => Category.findOne({ normalizedName: normalizeCat
 const createFoundItem = asyncHandler(async (req, res) => {
   const category = await activeCategory(req.body.category);
   if (!category) throw ApiError.badRequest('Select an active category from the category list.');
-  const images = await uploadMultipleImages(req.files || [], 'found-items');
+  const images = await uploadMultipleReportImages(req.files || [], 'found-items');
   const session = await mongoose.startSession();
   let item;
   try {
@@ -121,7 +121,7 @@ const updateFoundItem = asyncHandler(async (req, res) => {
   const imagesToDelete = item.images.filter((image) => requestedDeletes.has(image.url));
   const imagesLeft = item.images.filter((image) => !requestedDeletes.has(image.url));
   if (imagesLeft.length + (req.files?.length || 0) > 5) throw ApiError.badRequest('Maximum 5 images allowed.');
-  const newImages = await uploadMultipleImages(req.files || [], 'found-items');
+  const newImages = await uploadMultipleReportImages(req.files || [], 'found-items');
   const session = await mongoose.startSession();
   try {
     await session.withTransaction(async () => {

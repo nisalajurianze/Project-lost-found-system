@@ -79,7 +79,7 @@ const compareLocations = (left, right) => {
   };
 };
 
-const publicLocationView = (resolved) => resolved?.best ? {
+const locationIntelligenceView = (resolved) => resolved?.best ? {
   id: resolved.best.id,
   canonicalName: resolved.best.canonicalName,
   area: resolved.best.area,
@@ -88,4 +88,28 @@ const publicLocationView = (resolved) => resolved?.best ? {
   confidence: resolved.confidence,
 } : null;
 
-export { compareLocations, normalise as normalizeLocation, publicLocationView, resolveLocation, setApprovedLocationKnowledge };
+const publicLocationView = (resolved) => {
+  const view = locationIntelligenceView(resolved);
+  if (!view) return null;
+  if (view.sensitivity === 'restricted') {
+    return {
+      area: 'Restricted university area',
+      verificationStatus: view.verificationStatus,
+      sensitivity: view.sensitivity,
+      confidence: view.confidence,
+      precision: 'withheld',
+    };
+  }
+  if (view.sensitivity === 'zone-only') {
+    return {
+      area: view.area || 'University area',
+      verificationStatus: view.verificationStatus,
+      sensitivity: view.sensitivity,
+      confidence: view.confidence,
+      precision: 'approximate',
+    };
+  }
+  return { ...view, precision: 'exact-public' };
+};
+
+export { compareLocations, locationIntelligenceView, normalise as normalizeLocation, publicLocationView, resolveLocation, setApprovedLocationKnowledge };

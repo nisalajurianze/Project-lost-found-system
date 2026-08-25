@@ -81,6 +81,18 @@ const emailTemplates = {
 let smtpTransporter = null;
 let provider = 'none';
 
+const buildSmtpTransportOptions = ({ host, port, user, pass }) => ({
+  host,
+  port,
+  secure: port === 465,
+  requireTLS: port !== 465,
+  auth: { user, pass },
+  tls: {
+    minVersion: 'TLSv1.2',
+    rejectUnauthorized: true,
+  },
+});
+
 const initEmailService = () => {
   smtpTransporter = null;
   provider = 'none';
@@ -96,7 +108,11 @@ const initEmailService = () => {
   const user = process.env.SMTP_USER || process.env.EMAIL_USER;
   const pass = process.env.SMTP_PASS || process.env.EMAIL_PASSWORD;
   if (host && user && pass) {
-    smtpTransporter = nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      console.warn('[email] SMTP_PORT is invalid. SMTP delivery remains disabled.');
+      return false;
+    }
+    smtpTransporter = nodemailer.createTransport(buildSmtpTransportOptions({ host, port, user, pass }));
     provider = 'smtp';
     console.log('[email] SMTP provider configured.');
     return true;
@@ -158,4 +174,4 @@ const sendEmail = async ({ to, template, data = {}, idempotencyKey }) => {
   return true;
 };
 
-export { initEmailService, isEmailConfigured, sendEmail, emailTemplates };
+export { buildSmtpTransportOptions, initEmailService, isEmailConfigured, sendEmail, emailTemplates };

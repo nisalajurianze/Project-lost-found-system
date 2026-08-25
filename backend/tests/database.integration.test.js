@@ -10,6 +10,7 @@ test('concurrent refresh reuse revokes the complete session family', { skip: !en
   const User = (await import('../models/User.js')).default;
   const RefreshSession = (await import('../models/RefreshSession.js')).default;
   const { createSession, rotateSession } = await import('../services/sessionService.js');
+  const { verifyAccessSession } = await import('../middlewares/authMiddleware.js');
 
   const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
   await mongoose.connect(uri, { dbName: `smart_lf_integration_${Date.now()}` });
@@ -28,7 +29,12 @@ test('concurrent refresh reuse revokes the complete session family', { skip: !en
     const res = { cookie: (name, value) => cookies.set(name, value) };
     await createSession(user, req, res);
     const raw = cookies.get('refreshToken');
+    const initialAccess = cookies.get('accessToken');
     assert.ok(raw);
+    assert.ok(initialAccess);
+    const initialSession = await RefreshSession.findOne({ userId: user._id }).lean();
+    assert.ok(initialSession.familyExpiresAt);
+    assert.equal(initialSession.expiresAt.getTime(), initialSession.familyExpiresAt.getTime());
 
     const firstCookies = new Map();
     const secondCookies = new Map();
@@ -40,6 +46,11 @@ test('concurrent refresh reuse revokes the complete session family', { skip: !en
     assert.equal(results.filter((entry) => entry.status === 'rejected').length, 1);
     const active = await RefreshSession.countDocuments({ userId: user._id, revokedAt: null, expiresAt: { $gt: new Date() } });
     assert.equal(active, 0, 'Reuse detection must revoke the replacement token too');
+    const family = await RefreshSession.find({ userId: user._id }).lean();
+    assert.ok(family.length >= 2);
+    assert.ok(family.every((entry) => entry.familyExpiresAt.getTime() === initialSession.familyExpiresAt.getTime()));
+    assert.ok(family.every((entry) => entry.compromisedAt instanceof Date));
+    await assert.rejects(() => verifyAccessSession(initialAccess), /no longer active/);
   } finally {
     await mongoose.connection.dropDatabase().catch(() => undefined);
     await mongoose.disconnect();

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
@@ -7,7 +8,7 @@ import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { uploadImage, deleteImage } from '../services/cloudinaryService.js';
-import { revokeAllUserSessions } from '../services/sessionService.js';
+import { disconnectRevokedUserSessions, revokeAllUserSessions } from '../services/sessionService.js';
 import { anonymizeAccount } from '../services/accountService.js';
 import { clearAuthCookies } from '../utils/cookies.js';
 
@@ -43,12 +44,20 @@ const updateProfile = asyncHandler(async (req, res) => {
 
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
-  const user = await User.findById(req.user._id).select('+password');
-  if (!user) throw ApiError.notFound('User not found.');
-  if (!await user.comparePassword(currentPassword)) throw ApiError.unauthorized('Incorrect current password.');
-  user.password = newPassword;
-  await user.save();
-  await revokeAllUserSessions(user._id);
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const user = await User.findById(req.user._id).select('+password').session(session);
+      if (!user) throw ApiError.notFound('User not found.');
+      if (!await user.comparePassword(currentPassword)) throw ApiError.unauthorized('Incorrect current password.');
+      user.password = newPassword;
+      await user.save({ session });
+      await revokeAllUserSessions(user._id, { session, disconnect: false });
+    });
+  } finally {
+    await session.endSession();
+  }
+  await disconnectRevokedUserSessions(req.user._id);
   clearAuthCookies(res);
   return ApiResponse.ok(null, 'Password changed successfully. Sign in again on all devices.').send(res);
 });

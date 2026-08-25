@@ -6,6 +6,8 @@ import { emailTemplates, initEmailService, sendEmail } from '../services/emailSe
 import { getFallbackAnalysis } from '../services/imageAnalysisService.js';
 import Notification from '../models/Notification.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
+import { publicLocationView } from '../services/locationIntelligenceService.js';
+import fs from 'node:fs';
 
 test('opaque security tokens have entropy and stable hashing', () => {
   const first = randomToken(48);
@@ -33,6 +35,57 @@ test('public item view hides reporter contact and connection metadata', () => {
   assert.equal(result.userId.studentId, undefined);
   assert.equal(result.connectedUserId, undefined);
   assert.equal(result.connectedAt, undefined);
+});
+
+test('public item view exposes only privacy-safe media and projected location', () => {
+  const item = {
+    _id: 'item',
+    userId: { _id: 'owner', fullName: 'Owner' },
+    lostLocation: 'Room 4, Restricted Research Lab',
+    storedAt: 'Locker behind the lab office',
+    locationIntelligence: {
+      canonicalId: 'secret-lab', canonicalName: 'Restricted Research Lab', area: 'Science block',
+      sensitivity: 'restricted', verificationStatus: 'university-approved', needsReview: false,
+    },
+    images: [
+      { url: 'https://cdn.example/legacy-original.jpg', publicId: 'legacy', privacyStatus: 'legacy_unreviewed' },
+      {
+        url: 'https://cdn.example/pixelated.jpg', publicId: 'safe-copy', privacyStatus: 'safe_public',
+        originalAsset: { publicId: 'private-original', deliveryType: 'authenticated' },
+      },
+    ],
+  };
+  const result = itemView(item, null);
+  assert.equal(result.lostLocation, 'Restricted university area');
+  assert.equal(result.storedAt, 'Secure handover point shared after approval');
+  assert.equal(result.locationIntelligence.canonicalId, undefined);
+  assert.equal(result.locationIntelligence.canonicalName, undefined);
+  assert.deepEqual(result.images, [{ url: 'https://cdn.example/pixelated.jpg', privacyStatus: 'safe_public' }]);
+});
+
+test('report uploads keep authenticated originals separate from stored public-safe pixels', () => {
+  const service = fs.readFileSync(new URL('../services/cloudinaryService.js', import.meta.url), 'utf8');
+  const lost = fs.readFileSync(new URL('../controllers/lostItemController.js', import.meta.url), 'utf8');
+  const found = fs.readFileSync(new URL('../controllers/foundItemController.js', import.meta.url), 'utf8');
+  assert.match(service, /authenticated:\s*true/);
+  assert.match(service, /effect:\s*'pixelate:60'/);
+  assert.match(service, /privacyStatus:\s*'safe_public'/);
+  assert.match(lost, /uploadMultipleReportImages/);
+  assert.match(found, /uploadMultipleReportImages/);
+});
+
+test('restricted public location intelligence withholds exact canonical identity', () => {
+  const result = publicLocationView({
+    best: {
+      id: 'secret-lab', canonicalName: 'Restricted Research Lab', area: 'Science block',
+      verificationStatus: 'university-approved', sensitivity: 'restricted',
+    },
+    confidence: 100,
+  });
+  assert.equal(result.id, undefined);
+  assert.equal(result.canonicalName, undefined);
+  assert.equal(result.area, 'Restricted university area');
+  assert.equal(result.precision, 'withheld');
 });
 
 test('anonymous viewers cannot match an absent connected-user identifier', () => {

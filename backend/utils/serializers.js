@@ -9,6 +9,43 @@ export const contactUser = (user, { includeStudentId = false } = {}) => {
   return output;
 };
 
+const publicLocationProjection = (output) => {
+  const location = output.locationIntelligence || {};
+  const verified = !location.needsReview && ['map-source-verified', 'field-verified', 'university-approved'].includes(location.verificationStatus);
+  if (!verified || !location.sensitivity) {
+    return { label: 'Location shared privately', intelligence: { precision: 'withheld', needsReview: true } };
+  }
+  if (location.sensitivity === 'restricted') {
+    return {
+      label: 'Restricted university area',
+      intelligence: { sensitivity: 'restricted', verificationStatus: location.verificationStatus, precision: 'withheld', needsReview: false },
+    };
+  }
+  if (location.sensitivity === 'zone-only') {
+    const area = location.area || 'University area';
+    return {
+      label: area,
+      intelligence: { area, sensitivity: 'zone-only', verificationStatus: location.verificationStatus, precision: 'approximate', needsReview: false },
+    };
+  }
+  const label = location.canonicalName || location.area || 'University area';
+  return {
+    label,
+    intelligence: {
+      canonicalName: location.canonicalName || '',
+      area: location.area || '',
+      sensitivity: 'public',
+      verificationStatus: location.verificationStatus,
+      precision: 'exact-public',
+      needsReview: false,
+    },
+  };
+};
+
+const publicImages = (images) => (images || [])
+  .filter((image) => image?.privacyStatus === 'safe_public' && image?.url)
+  .map((image) => ({ url: image.url, privacyStatus: 'safe_public' }));
+
 export const itemView = (item, viewer) => {
   const output = plain(item);
   const reporter = output.userId;
@@ -25,6 +62,16 @@ export const itemView = (item, viewer) => {
   if (!owner && !connected && !admin) {
     delete output.connectedUserId;
     delete output.connectedAt;
+    output.images = publicImages(output.images);
+    const publicLocation = publicLocationProjection(output);
+    if (Object.hasOwn(output, 'lostLocation')) output.lostLocation = publicLocation.label;
+    if (Object.hasOwn(output, 'foundLocation')) output.foundLocation = publicLocation.label;
+    if (Object.hasOwn(output, 'storedAt')) output.storedAt = 'Secure handover point shared after approval';
+    output.locationIntelligence = publicLocation.intelligence;
+  } else {
+    // Never serialize provider identifiers for originals. Even privileged
+    // viewers use a dedicated short-lived signed delivery path when needed.
+    output.images = (output.images || []).map(({ originalAsset: _originalAsset, ...image }) => image);
   }
   delete output.__v;
   return output;

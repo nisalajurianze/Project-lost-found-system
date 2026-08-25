@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
 import SystemSetting from '../models/SystemSetting.js';
@@ -9,7 +10,9 @@ import { sendEmail } from '../services/emailService.js';
 import { createNotification } from '../services/notificationService.js';
 import { randomToken, hashToken } from '../utils/security.js';
 import { clearAuthCookies } from '../utils/cookies.js';
-import { createSession, rotateSession, revokeSession, revokeAllUserSessions } from '../services/sessionService.js';
+import {
+  createSession, rotateSession, revokeSession, revokeAllUserSessions, disconnectRevokedUserSessions,
+} from '../services/sessionService.js';
 import { clientOrigins } from '../config/security.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || undefined);
@@ -216,17 +219,27 @@ const forgotPassword = asyncHandler(async (req, res) => {
 const resetPassword = asyncHandler(async (req, res) => {
   const token = String(req.body.token || '');
   if (!token) throw ApiError.badRequest('Reset token is required.');
-  const user = await User.findOne({
-    resetPasswordTokenHash: hashToken(token),
-    resetPasswordExpire: { $gt: new Date() },
-  }).select('+resetPasswordTokenHash +resetPasswordExpire +googleId');
-  if (!user) throw ApiError.badRequest('Reset link is invalid or expired.');
-  user.password = req.body.password;
-  user.authProvider = user.googleId ? 'both' : 'local';
-  user.resetPasswordTokenHash = undefined;
-  user.resetPasswordExpire = undefined;
-  await user.save();
-  await revokeAllUserSessions(user._id);
+  const session = await mongoose.startSession();
+  let userId;
+  try {
+    await session.withTransaction(async () => {
+      const user = await User.findOne({
+        resetPasswordTokenHash: hashToken(token),
+        resetPasswordExpire: { $gt: new Date() },
+      }).select('+resetPasswordTokenHash +resetPasswordExpire +googleId').session(session);
+      if (!user) throw ApiError.badRequest('Reset link is invalid or expired.');
+      user.password = req.body.password;
+      user.authProvider = user.googleId ? 'both' : 'local';
+      user.resetPasswordTokenHash = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save({ session });
+      await revokeAllUserSessions(user._id, { session, disconnect: false });
+      userId = user._id;
+    });
+  } finally {
+    await session.endSession();
+  }
+  await disconnectRevokedUserSessions(userId);
   clearAuthCookies(res);
   return ApiResponse.ok(null, 'Password reset successful. Sign in again.').send(res);
 });

@@ -44,3 +44,13 @@ Current stance: the exact source revision, Railway/Vercel routing, core live aut
 - [x] Phase 5: Security/performance verification and final report
 
 Audit stance: current source is not security-certified until all phases and checklist rows are closed. Human/institutional sign-off remains a separate pending gate.
+
+## 2026-08-25 remediation of validated findings (`5939785` baseline)
+
+- [/] Phase 1: Reconfirm vulnerable paths and encode focused regressions
+- [ ] Phase 2: Fix P1 public media/location privacy boundary
+- [ ] Phase 3: Fix session/refresh/Socket.IO lifecycle
+- [ ] Phase 4: Fix workflow, operations, frontend, CI and dependency findings
+- [ ] Phase 5: Run targeted and full verification; update exact evidence
+
+Remediation scope: validated P1/P2 issues plus deterministic release blockers. Production deployment, external provider mutation, and institutional sign-off are not implied by local source fixes.
