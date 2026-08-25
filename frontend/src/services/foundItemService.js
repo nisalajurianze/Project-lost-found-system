@@ -5,6 +5,16 @@
 
 import api from './api';
 
+const cleanParams = (params = {}) => {
+  const cleaned = {};
+  for (const [key, val] of Object.entries(params)) {
+    if (val !== undefined && val !== null && val !== '') {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+};
+
 const foundItemService = {
   /**
    * Create a new found item listing (supports image upload).
@@ -24,7 +34,7 @@ const foundItemService = {
    * Get found items with optional filters.
    */
   getFoundItems: async (params = {}) => {
-    const res = await api.get('/found-items', { params });
+    const res = await api.get('/found-items', { params: cleanParams(params) });
     return res.data.data; // { items, pagination }
   },
 

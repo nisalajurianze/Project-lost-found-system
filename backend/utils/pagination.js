@@ -51,6 +51,11 @@ const buildSort = (
   defaultSort = { createdAt: -1 }
 ) => {
   if (!sortString) return defaultSort;
+  if (sortString === 'newest') return defaultSort;
+  if (sortString === 'oldest') {
+    const firstField = Object.keys(allowedFields)[0] || 'createdAt';
+    return { [firstField]: 1 };
+  }
 
   const sort = {};
   const fields = sortString.split(',');
@@ -58,6 +63,12 @@ const buildSort = (
   for (const field of fields) {
     const trimmed = field.trim();
     if (!trimmed) continue;
+
+    if (trimmed === 'newest') return defaultSort;
+    if (trimmed === 'oldest') {
+      const firstField = Object.keys(allowedFields)[0] || 'createdAt';
+      return { [firstField]: 1 };
+    }
 
     const isDesc = trimmed.startsWith('-');
     const fieldName = isDesc ? trimmed.slice(1) : trimmed;

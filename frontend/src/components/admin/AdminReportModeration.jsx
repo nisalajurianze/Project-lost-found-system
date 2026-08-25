@@ -50,7 +50,7 @@ const AdminReportModeration = ({ type }) => {
 
   useEffect(() => { dispatch(fetchCategories()); }, [dispatch]);
   useEffect(() => {
-    dispatch(config.fetchAction({ search, category, status, sort: 'newest', page, limit: 10 }));
+    dispatch(config.fetchAction({ search, category, status, sort: '-createdAt', page, limit: 10 }));
   }, [dispatch, config, search, category, status, page]);
 
   const archiveReport = async () => {

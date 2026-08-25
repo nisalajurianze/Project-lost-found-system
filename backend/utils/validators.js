@@ -507,7 +507,7 @@ const itemListQueryValidator = (statuses, sortableFields) => [
   query('startDate').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid start date'),
   query('endDate').optional({ checkFalsy: true }).isISO8601().withMessage('Invalid end date'),
   query('sort').optional({ checkFalsy: true }).isString().isLength({ max: 100 }).custom((value) => {
-    const allowed = new Set(sortableFields);
+    const allowed = new Set([...sortableFields, 'newest', 'oldest']);
     const fields = value.split(',').map((entry) => entry.trim()).filter(Boolean);
     if (fields.length === 0 || fields.some((field) => !allowed.has(field.replace(/^-/, '')))) {
       throw new Error('Invalid sort field');

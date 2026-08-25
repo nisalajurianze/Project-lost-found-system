@@ -1,16 +1,17 @@
 # Finding Discovery — Repository-wide ecf54c1
 
-Status: in progress. Candidates are plausible discovery items, not validated findings.
+Status: Phase 2 complete at committed target `7499a19`. All 242 checklist files were read; candidates remain plausible until Phase-3 validation.
 
 ## Target evolution
 
 - Discovery began at `ecf54c1`.
-- Current committed source is `e5f410d`; `backend/config/security.js` changed `requireRedis` production default from true to false and was re-reviewed as `CF-01` through `CF-06` config/socket evidence.
-- The current worktree also changes six application files. `backend/server.js` adds Helmet `crossOriginOpenerPolicy: same-origin-allow-popups`; this is a response-isolation hardening change and creates no candidate in the reviewed server path. The five changed frontend files were fully re-read line-by-line and reconciled against committed source `e5f410d`: `frontend/src/components/cards/ClaimCard.jsx`, `frontend/src/components/cards/NotificationCard.jsx`, `frontend/src/components/layout/Navbar.jsx`, `frontend/src/pages/public/FoundItemDetail.jsx`, and `frontend/src/pages/public/LostItemDetail.jsx`.
+- Current committed source is `7499a19`; `backend/config/security.js` changed `requireRedis` production default from true to false and was re-reviewed as `CF-01` through `CF-06` config/socket evidence.
+- The earlier six-file worktree delta was committed and fully re-read line-by-line: `backend/server.js`, `frontend/src/components/cards/ClaimCard.jsx`, `frontend/src/components/cards/NotificationCard.jsx`, `frontend/src/components/layout/Navbar.jsx`, `frontend/src/pages/public/FoundItemDetail.jsx`, and `frontend/src/pages/public/LostItemDetail.jsx`.
 - Frontend delta disposition: no new security candidate or regression. `ClaimCard`, `NotificationCard`, and `Navbar` now normalize populated object references (`_id`/`id`) and scalar ids before constructing fixed internal lost/found routes, and suppress lost/found navigation when no id exists (`frontend/src/components/cards/ClaimCard.jsx:18-24`; `frontend/src/components/cards/NotificationCard.jsx:37-49`; `frontend/src/components/layout/Navbar.jsx:88-99`). Runtime provenance remains backend Mongo references; this fixes `[object Object]`/broken internal navigation and does not introduce an external-navigation source. Notification-supplied free-form links still pass through `toSafeInternalPath`.
 - Public-detail delta disposition: both pages now require a 24-hex item id before issuing the public item fetch or authenticated claim-check request (`frontend/src/pages/public/FoundItemDetail.jsx:44-67`; `frontend/src/pages/public/LostItemDetail.jsx:39-63`). This reduces malformed-route requests/error noise and aligns with backend Mongo-id validation, but it is client hardening rather than authorization. Existing backend object/claim controls remain authoritative.
 - Candidate reconciliation: the delta does not change `PC-01` pending contact sharing, claim proof visibility, `ST-01` failed-logout behavior, `EI-01` public evidence, or `LP-01`/`LP-02` raw public location/custody sinks (`frontend/src/components/cards/ClaimCard.jsx:53-115,131-168`; `frontend/src/components/layout/Navbar.jsx:74-77`; `frontend/src/pages/public/FoundItemDetail.jsx:266-318,320-406`; `frontend/src/pages/public/LostItemDetail.jsx:190-308,310-404`). Those findings retain their current dispositions and updated worktree line references.
-- Evidence/checklist/task changes are audit artifacts. Final validation must run after application source is frozen at an exact tree.
+- Later committed deltas through `7499a19` add empty-query cleanup/validator `checkFalsy` handling and admin layout/CSS refinements. The account-delete controller still independently requires a current password for local-password users, and admin-service cleanup only removes empty filters; no new candidate resulted.
+- Phase-2 closure: `main == origin/main == 7499a19`, clean worktree, 242 checked rows, zero open rows, zero missing paths, and clean `git diff --check`. Evidence/checklist/task changes are audit artifacts.
 
 ## Reviewed shards
 

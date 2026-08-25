@@ -5,6 +5,16 @@
 
 import api from './api';
 
+const cleanParams = (params = {}) => {
+  const cleaned = {};
+  for (const [key, val] of Object.entries(params)) {
+    if (val !== undefined && val !== null && val !== '') {
+      cleaned[key] = val;
+    }
+  }
+  return cleaned;
+};
+
 const lostItemService = {
   /**
    * Create a new lost item report (supports image upload).
@@ -25,7 +35,7 @@ const lostItemService = {
    * @param {object} params - search, category, status, page, limit, userId
    */
   getLostItems: async (params = {}) => {
-    const res = await api.get('/lost-items', { params });
+    const res = await api.get('/lost-items', { params: cleanParams(params) });
     return res.data.data; // { items, pagination }
   },
 
