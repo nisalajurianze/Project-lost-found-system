@@ -3,14 +3,6 @@
   --font-ui-multilingual: 'Inter', 'Noto Sans Sinhala', 'Noto Sans Tamil', 'Segoe UI', Arial, sans-serif;
 }
 
-html {
-  font-size: 90%;
-}
-
-body {
-  zoom: 0.9;
-}
-
 html, body, button, input, textarea, select {
   font-family: var(--font-ui-multilingual);
 }
