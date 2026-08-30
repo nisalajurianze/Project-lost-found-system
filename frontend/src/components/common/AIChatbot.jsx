@@ -159,7 +159,7 @@ const PersonalSummary = ({ summary, t }) => {
 
 const AIChatbot = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const principalId = useSelector((state) => state.auth.user?._id) || 'guest';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(() => [initialMessage(t)]);
@@ -350,6 +350,7 @@ const AIChatbot = () => {
     const trimmed = String(message || '').trim();
     if (!trimmed || isLoading) return;
     const history = messages.slice(-10).map(({ role, content }) => ({ role: role === 'ai' ? 'assistant' : role, content }));
+    const conversationStyle = [...messages].reverse().find((entry) => entry.responseStyle)?.responseStyle;
     if (displayUser) {
       setMessages((previous) => [...previous, { role: 'user', content: trimmed, timestamp: timestamp() }]);
       setInput('');
@@ -358,11 +359,12 @@ const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/ai/chat', { message: trimmed, history, page, pageSize: 6 });
+      const response = await api.post('/ai/chat', { message: trimmed, history, locale: language, conversationStyle, page, pageSize: 6 });
       const data = response.data?.data || {};
       setMessages((previous) => [...previous, {
         role: 'ai',
         content: data.text || t('assistant.noResponse'),
+        responseStyle: data.responseStyle,
         timestamp: timestamp(),
         items: data.items || [],
         actions: data.actions || [],

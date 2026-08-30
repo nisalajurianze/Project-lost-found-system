@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   boundedFuzzyMatch,
+  detectConversationStyle,
   detectLanguage,
   expandKeywords,
   inferIntent,
   resolveConversationLanguage,
+  resolveConversationStyle,
   resolveSearchMessage,
   scoreCandidate,
 } from '../services/chatSearchService.js';
@@ -34,6 +36,29 @@ test('follow-up responses preserve the language of the material conversation con
     { role: 'ai', content: 'results' },
   ]);
   assert.equal(language, 'si');
+});
+
+test('Singlish is detected as a response style without changing search language', () => {
+  assert.equal(detectConversationStyle('mata kalu phone ekak nathi una'), 'singlish');
+  assert.equal(detectLanguage('mata kalu phone ekak nathi una'), 'en');
+  assert.equal(detectConversationStyle('black phone near library'), 'en');
+});
+
+test('generic follow-ups keep Singlish until the user explicitly switches language', () => {
+  const history = [
+    { role: 'user', content: 'mata kalu phone ekak nathi una' },
+    { role: 'assistant', content: 'Hari, mama reports tika balannam.' },
+  ];
+  assert.equal(resolveConversationStyle('hari', history), 'singlish');
+  assert.equal(resolveConversationStyle('show more', history), 'singlish');
+  assert.equal(resolveConversationStyle('ok', [], 'en', 'singlish'), 'singlish');
+  assert.equal(resolveConversationStyle('please reply in English', history), 'en');
+});
+
+test('UI locale is used only when a generic conversation has no material history', () => {
+  assert.equal(resolveConversationStyle('hi', [], 'si'), 'si');
+  assert.equal(resolveConversationStyle('hi', [], 'ta'), 'ta');
+  assert.equal(resolveConversationStyle('find a black phone', [], 'si'), 'en');
 });
 
 test('weighted ranking rewards matching name, colour and location', () => {

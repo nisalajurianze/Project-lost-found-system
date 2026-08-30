@@ -8,7 +8,8 @@ import { useLanguage } from '../../i18n/LanguageContext';
 export const MobileBottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const responsiveVisibility = language === 'en' ? 'xl:hidden' : '2xl:hidden';
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [isReportMenuOpen, setIsReportMenuOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -44,7 +45,7 @@ export const MobileBottomNav = () => {
 
   return (
     <>
-      <nav aria-label={t('nav.mobilePrimary')} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-surface-200/80 bg-white/95 px-1 h-16 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg dark:border-surface-800/80 dark:bg-surface-950/95 xl:hidden no-print">
+      <nav aria-label={t('nav.mobilePrimary')} className={`fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-surface-200/80 bg-white/95 px-1 h-16 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-lg dark:border-surface-800/80 dark:bg-surface-950/95 no-print ${responsiveVisibility}`}>
         {links.slice(0, 2).map(({ id, label, path, icon: Icon }) => (
           <Link key={id} to={path} aria-current={isActive(path) ? 'page' : undefined} className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-1 text-xs font-semibold ${isActive(path) ? 'text-primary-600 dark:text-primary-300' : 'text-surface-500 dark:text-surface-400'}`}>
             <Icon className="h-5 w-5" aria-hidden="true" />

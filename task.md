@@ -54,3 +54,11 @@ Audit stance: current source is not security-certified until all phases and chec
 - [ ] Phase 5: Run targeted and full verification; update exact evidence
 
 Remediation scope: validated P1/P2 issues plus deterministic release blockers. Production deployment, external provider mutation, and institutional sign-off are not implied by local source fixes.
+
+## 2026-08-30 Tamil responsive navigation overflow
+
+- [x] Reproduce the 1280 CSS-pixel Tamil desktop-header overflow from the supplied screenshot
+- [x] Keep multilingual navigation compact until the 2xl breakpoint
+- [x] Stack long translated Home listing actions safely on narrow mobile screens
+- [/] Bound long translated Footer links on narrow mobile screens
+- [ ] Run focused tests, lint, production build, and desktop/mobile visual overflow checks

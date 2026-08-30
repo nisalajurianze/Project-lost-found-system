@@ -10,6 +10,7 @@ import {
   inferIntent,
   isPersonalQuery,
   resolveConversationLanguage,
+  resolveConversationStyle,
   resolveSearchMessage,
   scoreCandidate,
 } from '../services/chatSearchService.js';
@@ -29,6 +30,18 @@ const copy = {
     results: (count) => `${count} relevant public report${count === 1 ? '' : 's'} found. Best matches are shown first.`,
     signIn: 'Please sign in to view your reports, claims, matches, and unread notifications.',
     personal: 'Here is your current Smart L&F activity.',
+    saySomething: 'Please say something.',
+    tooLong: 'Please keep the message under 500 characters.',
+  },
+  singlish: {
+    greeting: 'Mata lost saha found reports hoyanna, match ekak galapenne ai kiyala explain karanna, report ekak patan ganna saha sign in unama oyage activity pennanna puluwan.',
+    ask: 'Hariyata hoyanna item eke nama, paata, brand eka, category eka hari location eka hari denna.',
+    none: 'Galapena public report ekak thawama hambune na. Thawa detail ekak denna, nathnam matching service ekata digatama balanna report ekak hadanna.',
+    results: (count) => `Galapena public reports ${count}k hambuna. Hodama matches tika issarahin pennanawa.`,
+    signIn: 'Oyage reports, claims, matches saha unread notifications balanna sign in wenna.',
+    personal: 'Oyage danata thiyena Smart L&F activity eka meka.',
+    saySomething: 'Message ekak type karanna.',
+    tooLong: 'Message eka characters 500kata aduwen thiyanna.',
   },
   si: {
     greeting: 'මට lost සහ found reports සොයන්න, match එකක් ගැලපෙන්නේ ඇයි කියලා පැහැදිලි කරන්න, report එකක් පටන්ගන්න සහ sign in වුණාම ඔබගේ activity පෙන්වන්න පුළුවන්.',
@@ -37,6 +50,8 @@ const copy = {
     results: (count) => `ගැලපෙන public reports ${count}ක් හමු වුණා. හොඳම results මුලින් පෙන්වනවා.`,
     signIn: 'ඔබගේ reports, claims, matches සහ unread notifications බලන්න sign in වෙන්න.',
     personal: 'ඔබගේ Smart L&F activity එක මෙන්න.',
+    saySomething: 'කරුණාකර පණිවිඩයක් ලියන්න.',
+    tooLong: 'පණිවිඩය අක්ෂර 500කට අඩුවෙන් තබන්න.',
   },
   ta: {
     greeting: 'காணாமல் போன மற்றும் கண்டெடுக்கப்பட்ட பதிவுகளை தேடவும், பொருத்தம் ஏன் பரிந்துரைக்கப்பட்டது என்பதை விளக்கவும், புதிய பதிவை தொடங்கவும், உள்நுழைந்த பின் உங்கள் செயல்பாட்டை காட்டவும் முடியும்.',
@@ -45,8 +60,29 @@ const copy = {
     results: (count) => `தொடர்புடைய பொது பதிவுகள் ${count} கிடைத்தன. சிறந்த பொருத்தங்கள் முதலில் காட்டப்படுகின்றன.`,
     signIn: 'உங்கள் reports, claims, matches மற்றும் unread notifications பார்க்க sign in செய்யவும்.',
     personal: 'உங்கள் தற்போதைய Smart L&F activity இதோ.',
+    saySomething: 'தயவுசெய்து ஒரு செய்தியை எழுதவும்.',
+    tooLong: 'செய்தியை 500 எழுத்துகளுக்குள் வைத்திருக்கவும்.',
   },
 };
+
+const quickReplies = {
+  en: {
+    greeting: ['Lost a black phone', 'Found a wallet', 'My reports'],
+    ask: ['Black phone', 'Blue wallet', 'Laptop near library'],
+    search: ['Search for an item'],
+    retry: ['Try another search'],
+    refine: ['Refine search'],
+  },
+  singlish: {
+    greeting: ['Kalu phone ekak nathi una', 'Wallet ekak hambuna', 'Mage reports'],
+    ask: ['Kalu phone ekak', 'Nil wallet ekak', 'Library eka laga laptop ekak'],
+    search: ['Item ekak hoyanna'],
+    retry: ['Wena details walin balanna'],
+    refine: ['Search eka refine karanna'],
+  },
+};
+
+const q = (style, key) => quickReplies[style]?.[key] ?? quickReplies.en[key];
 
 const t = (language, key, ...args) => {
   const value = copy[language]?.[key] ?? copy.en[key];
@@ -110,18 +146,26 @@ const personalSummary = async (userId) => {
   return { lostReports, foundReports, pendingClaims, totalClaims, suggestedMatches, unreadNotifications };
 };
 
-const generateAssistantResponse = async (userMessage, history, items, reportDraft, language) => {
+const responseStyleInstruction = {
+  en: 'English only',
+  si: 'Sinhala script',
+  ta: 'Tamil script',
+  singlish: 'natural Romanized Sinhala (Singlish) only; do not switch to English or Sinhala script unless the user explicitly switches language',
+};
+
+const generateAssistantResponse = async (userMessage, history, items, reportDraft, responseStyle) => {
   if (!aiConfigured()) return null;
   try {
     const itemSummaries = items.slice(0, 3).map((item) => `- ${item.itemName} (${item.category}) at ${item.location}, match: ${item.relevanceScore}%`).join('\n');
     const systemPrompt = `You are the smart, helpful AI assistant for the South Eastern University of Sri Lanka (SEUSL) Smart Lost & Found system.
-Respond naturally in ${language === 'si' ? 'Sinhala' : language === 'ta' ? 'Tamil' : 'English / Singlish'} based on user language.
+Respond in ${responseStyleInstruction[responseStyle] || responseStyleInstruction.en}.
+Keep the conversation in that same language and writing style across follow-up turns.
 Keep response concise and helpful (2-3 sentences). If matching reports are found, mention them. If no reports match, guide the user to report or search again.
 Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...history.slice(-4).map((m) => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content })),
+      ...history.slice(-8).map((m) => ({ role: m.role === 'ai' ? 'assistant' : m.role, content: m.content })),
       { role: 'user', content: `User query: ${userMessage}\nMatched items in system:\n${itemSummaries || 'None'}\nReport draft: ${reportDraft ? JSON.stringify(reportDraft.fields) : 'None'}` },
     ];
 
@@ -135,17 +179,21 @@ Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
 export const handleAIChat = asyncHandler(async (req, res) => {
   const incoming = String(req.body?.message || '').normalize('NFKC').trim();
   const history = Array.isArray(req.body?.history) ? req.body.history.slice(-10) : [];
-  if (!incoming) return ApiResponse.ok({ text: 'Please say something.', quickReplies: ['Lost an item', 'Found an item'], items: [] }).send(res);
-  if (incoming.length > 500) return ApiResponse.ok({ text: 'Please keep the message under 500 characters.', quickReplies: [], items: [] }).send(res);
+  const locale = ['en', 'si', 'ta'].includes(req.body?.locale) ? req.body.locale : 'en';
+  const preferredStyle = ['en', 'si', 'ta', 'singlish'].includes(req.body?.conversationStyle) ? req.body.conversationStyle : '';
+  const responseStyle = resolveConversationStyle(incoming, history, locale, preferredStyle);
+  if (!incoming) return ApiResponse.ok({ text: t(responseStyle, 'saySomething'), responseStyle, quickReplies: q(responseStyle, 'greeting'), items: [] }).send(res);
+  if (incoming.length > 500) return ApiResponse.ok({ text: t(responseStyle, 'tooLong'), responseStyle, quickReplies: [], items: [] }).send(res);
 
   const language = resolveConversationLanguage(incoming, history);
   const greetingOnly = /^(hi|hello|hey|ආයුබෝවන්|வணக்கம்)[!.\s]*$/iu.test(incoming);
   if (greetingOnly) {
-    const aiGreeting = await generateAssistantResponse(incoming, history, [], null, language);
+    const aiGreeting = await generateAssistantResponse(incoming, history, [], null, responseStyle);
     return ApiResponse.ok({
-      text: aiGreeting?.reply || t(language, 'greeting'),
+      text: aiGreeting?.reply || t(responseStyle, 'greeting'),
       language,
-      quickReplies: aiGreeting?.quickReplies?.length ? aiGreeting.quickReplies : ['Lost a black phone', 'Found a wallet', 'My reports'],
+      responseStyle,
+      quickReplies: aiGreeting?.quickReplies?.length ? aiGreeting.quickReplies : q(responseStyle, 'greeting'),
       items: [],
       actions: [{ type: 'report_lost', label: 'Report lost item', url: '/dashboard/report-lost' }, { type: 'report_found', label: 'Report found item', url: '/dashboard/report-found' }],
     }).send(res);
@@ -153,11 +201,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
 
   if (isPersonalQuery(incoming)) {
     if (!req.user?._id) {
-      return ApiResponse.ok({ text: t(language, 'signIn'), language, quickReplies: [], items: [], actions: [{ type: 'sign_in', label: 'Sign in', url: '/login' }] }).send(res);
+      return ApiResponse.ok({ text: t(responseStyle, 'signIn'), language, responseStyle, quickReplies: [], items: [], actions: [{ type: 'sign_in', label: 'Sign in', url: '/login' }] }).send(res);
     }
     const summary = await personalSummary(req.user._id);
     return ApiResponse.ok({
-      text: t(language, 'personal'), language, personalSummary: summary, items: [], quickReplies: ['Search for an item'],
+      text: t(responseStyle, 'personal'), language, responseStyle, personalSummary: summary, items: [], quickReplies: q(responseStyle, 'search'),
       actions: [
         { type: 'reports', label: 'My lost reports', url: '/dashboard/my-lost' },
         { type: 'claims', label: 'My claims', url: '/dashboard/claims' },
@@ -170,7 +218,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const searchMessage = resolveSearchMessage(incoming, history);
   const terms = expandKeywords(searchMessage);
   if (!terms.length) {
-    return ApiResponse.ok({ text: t(language, 'ask'), language, quickReplies: ['Black phone', 'Blue wallet', 'Laptop near library'], items: [] }).send(res);
+    return ApiResponse.ok({ text: t(responseStyle, 'ask'), language, responseStyle, quickReplies: q(responseStyle, 'ask'), items: [] }).send(res);
   }
 
   const requestedPage = Number.parseInt(req.body?.page, 10);
@@ -201,16 +249,17 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const items = ranked.slice(start, start + pageSize);
 
   if (!total) {
-    const aiGenerated = await generateAssistantResponse(searchMessage, history, [], reportDraft, language);
+    const aiGenerated = await generateAssistantResponse(searchMessage, history, [], reportDraft, responseStyle);
     return ApiResponse.ok({
-      text: aiGenerated?.reply || t(language, 'none'),
+      text: aiGenerated?.reply || t(responseStyle, 'none'),
       language,
+      responseStyle,
       intent,
       query: { message: searchMessage, terms, page: 1, pageSize },
       total: 0,
       totalPages: 0,
       hasMore: false,
-      quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : ['Try another search'],
+      quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'retry'),
       items: [],
       actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
       reportDraft,
@@ -218,10 +267,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     }).send(res);
   }
 
-  const aiGenerated = await generateAssistantResponse(searchMessage, history, items, reportDraft, language);
+  const aiGenerated = await generateAssistantResponse(searchMessage, history, items, reportDraft, responseStyle);
   return ApiResponse.ok({
-    text: aiGenerated?.reply || t(language, 'results', total),
+    text: aiGenerated?.reply || t(responseStyle, 'results', total),
     language,
+    responseStyle,
     intent,
     query: { message: searchMessage, terms, page: safePage, pageSize },
     total,
@@ -230,7 +280,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     totalPages,
     hasMore: safePage < totalPages,
     items,
-    quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : ['Refine search'],
+    quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'refine'),
     reportDraft,
     actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
     meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },

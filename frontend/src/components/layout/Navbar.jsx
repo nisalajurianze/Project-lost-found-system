@@ -21,7 +21,9 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const desktopNavigationVisibility = language === 'en' ? 'hidden xl:flex' : 'hidden 2xl:flex';
+  const compactNavigationVisibility = language === 'en' ? 'flex xl:hidden' : 'flex 2xl:hidden';
 
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -275,7 +277,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
               </button>
             ) : null}
 
-            <Link to="/" className={`min-h-11 min-w-11 items-center justify-center gap-1.5 ${onMenuClick ? 'hidden xl:flex' : 'flex'}`}>
+            <Link to="/" className={`min-h-11 min-w-11 items-center justify-center gap-1.5 ${onMenuClick ? desktopNavigationVisibility : 'flex'}`}>
               <img src="/logo.png" alt={t('common.logoAlt')} className="h-8 w-8 sm:h-10 sm:w-10 object-contain translate-y-0.5" />
             </Link>
 
@@ -287,7 +289,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
           {/* Desktop Nav Links */}
-          <div className="hidden xl:flex items-center gap-4 2xl:gap-7 shrink-0">
+          <div className={`${desktopNavigationVisibility} items-center gap-4 2xl:gap-7 shrink-0`}>
             {navLinks.map((link) => (
               <Link
                 key={link.path}
@@ -304,7 +306,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
           {/* Action Icons */}
-          <div className="hidden xl:flex items-center gap-3 shrink-0">
+          <div className={`${desktopNavigationVisibility} items-center gap-3 shrink-0`}>
             <LanguageSwitcher compact />
             {/* Theme Toggle */}
             <button type="button"
@@ -392,7 +394,7 @@ export const Navbar = ({ onMenuClick, isMenuOpen }) => {
           </div>
 
             {/* Mobile Actions */}
-          <div className="flex xl:hidden items-center gap-2 sm:gap-3">
+          <div className={`${compactNavigationVisibility} items-center gap-2 sm:gap-3`}>
             {!isAuthenticated && <LanguageSwitcher compact />}
             {/* Mobile Notification Bell */}
             {isAuthenticated && (

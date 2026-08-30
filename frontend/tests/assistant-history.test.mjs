@@ -53,6 +53,17 @@ test('assistant history expires old sessions and keeps at most five recent conve
   assert.equal(loaded[0].id, 'session-0');
 });
 
+test('assistant history preserves only a validated conversation response style', () => {
+  const conversation = createAssistantConversation({
+    messages: [
+      { role: 'ai', content: 'Hari, mama balannam.', responseStyle: 'singlish' },
+      { role: 'user', content: 'continue', responseStyle: 'invalid' },
+    ],
+  });
+  assert.equal(conversation.messages[0].responseStyle, 'singlish');
+  assert.equal('responseStyle' in conversation.messages[1], false);
+});
+
 test('assistant history is isolated by principal and discards the legacy global key', () => {
   const storage = createStorage();
   const now = Date.UTC(2026, 6, 26);

@@ -33,17 +33,17 @@ export const Footer = () => {
 
           {/* Quick Links Column */}
           <div className="md:col-span-6 lg:col-span-7 flex justify-center md:justify-end md:pr-44">
-            <div className="grid grid-cols-2 gap-x-8 sm:gap-x-12 gap-y-1 text-sm font-semibold text-surface-600 dark:text-surface-400 text-left">
-              <Link to="/about" className="inline-flex min-h-11 items-center px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors whitespace-nowrap">
+            <div className="grid w-full max-w-sm grid-cols-1 gap-x-8 gap-y-1 text-sm font-semibold text-surface-600 dark:text-surface-400 text-left sm:grid-cols-2 sm:gap-x-12">
+              <Link to="/about" className="inline-flex min-h-11 min-w-0 items-center break-words px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors">
                 {t('common.about')}
               </Link>
-              <Link to="/search" className="inline-flex min-h-11 items-center px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors whitespace-nowrap">
+              <Link to="/search" className="inline-flex min-h-11 min-w-0 items-center break-words px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors">
                 {t('nav.searchItems')}
               </Link>
-              <Link to="/contact" className="inline-flex min-h-11 items-center px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors whitespace-nowrap">
+              <Link to="/contact" className="inline-flex min-h-11 min-w-0 items-center break-words px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors">
                 {t('common.contact')}
               </Link>
-              <Link to="/dashboard/report-found" className="inline-flex min-h-11 items-center px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors whitespace-nowrap">
+              <Link to="/dashboard/report-found" className="inline-flex min-h-11 min-w-0 items-center break-words px-2.5 rounded-xl hover:text-primary-600 dark:hover:text-primary-400 hover:bg-surface-100/70 dark:hover:bg-surface-900/70 transition-colors">
                 {t('nav.reportFound')}
               </Link>
             </div>

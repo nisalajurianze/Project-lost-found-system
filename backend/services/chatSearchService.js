@@ -53,6 +53,66 @@ export const detectLanguage = (value) => {
   return 'en';
 };
 
+const SINGLISH_MARKERS = new Set([
+  'mama', 'mata', 'mage', 'oya', 'oyata', 'oyage', 'api', 'ape',
+  'eka', 'ekak', 'meka', 'mokak', 'monawada', 'monwda', 'koheda',
+  'kohomada', 'kohomd', 'kiyala', 'kiyl', 'kiyanne', 'karanna',
+  'krnna', 'karala', 'wenawa', 'una', 'nathi', 'nane', 'naane',
+  'thiyenawa', 'tiyenawa', 'one', 'ona', 'puluwan', 'berida',
+  'laga', 'gawa', 'issarahata', 'issrht', 'hariyata', 'harida',
+  'balanna', 'blnna', 'denna', 'dnna', 'hoyanna', 'hambuna',
+]);
+
+const STRONG_SINGLISH_MARKERS = new Set([
+  'mama', 'mata', 'mage', 'oyata', 'oyage', 'monawada', 'monwda',
+  'kohomada', 'kohomd', 'kiyala', 'kiyl', 'karanna', 'krnna',
+  'thiyenawa', 'tiyenawa', 'puluwan', 'hoyanna', 'hambuna',
+]);
+
+const GENERIC_CONVERSATION_TURN = /^(?:hi|hello|hey|ok|okay|yes|no|thanks|thank you|show more|more|same|again|continue|go on|hari|hari da|ow|owu|nae|na|එහෙනම්|හරි|ඔව්|නැහැ|තව|තවත්|வணக்கம்|சரி|ஆம்|இல்லை|மேலும்|இன்னும்)[!.?\s]*$/iu;
+
+const explicitStyleRequest = (value) => {
+  const text = normalizeText(value);
+  if (/\b(?:singlish|romanized sinhala|romanised sinhala)\b/u.test(text)) return 'singlish';
+  if (/\b(?:reply|respond|answer|speak|continue)\s+(?:to me\s+)?in english\b/u.test(text)) return 'en';
+  return null;
+};
+
+export const detectConversationStyle = (value) => {
+  const explicit = explicitStyleRequest(value);
+  if (explicit) return explicit;
+
+  const scriptLanguage = detectLanguage(value);
+  if (scriptLanguage !== 'en') return scriptLanguage;
+
+  const tokens = normalizeText(value).split(' ').filter(Boolean);
+  const markers = new Set(tokens.filter((token) => SINGLISH_MARKERS.has(token)));
+  if (tokens.some((token) => STRONG_SINGLISH_MARKERS.has(token)) || markers.size >= 2) return 'singlish';
+  return 'en';
+};
+
+export const resolveConversationStyle = (message, history = [], locale = 'en', preferredStyle = '') => {
+  const current = String(message || '').trim();
+  const explicit = explicitStyleRequest(current);
+  if (explicit) return explicit;
+
+  const detected = detectConversationStyle(current);
+  const shouldUseHistory = !current || GENERIC_CONVERSATION_TURN.test(current);
+  if (!shouldUseHistory || detected !== 'en') return detected;
+
+  if (['en', 'si', 'ta', 'singlish'].includes(preferredStyle)) return preferredStyle;
+
+  const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
+  for (let index = safeHistory.length - 1; index >= 0; index -= 1) {
+    const entry = safeHistory[index];
+    if (entry?.role !== 'user' || !entry.content) continue;
+    const historicalStyle = detectConversationStyle(entry.content);
+    if (historicalStyle !== 'en' || !GENERIC_CONVERSATION_TURN.test(String(entry.content).trim())) return historicalStyle;
+  }
+
+  return ['si', 'ta'].includes(locale) ? locale : 'en';
+};
+
 export const inferIntent = (value) => {
   const text = normalizeText(value);
   const foundSignals = ['found', 'hambuna', 'hambu una', 'හමු', 'கண்ட', 'கிடைத்த'];

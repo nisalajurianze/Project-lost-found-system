@@ -16,6 +16,7 @@ const sanitizeStoredMessages = (messages = []) => messages
     role: message.role,
     content: String(message.content || '').slice(0, 1000),
     timestamp: String(message.timestamp || '').slice(0, 32),
+    ...(['en', 'si', 'ta', 'singlish'].includes(message.responseStyle) ? { responseStyle: message.responseStyle } : {}),
   }))
   .filter((message) => message.content)
   .slice(-MAX_ASSISTANT_MESSAGES);

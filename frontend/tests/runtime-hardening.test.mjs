@@ -53,6 +53,31 @@ test('desktop navigation keeps primary links and actions at 44px minimum height'
   assert.ok((navbar.match(/flex min-h-11 min-w-11 items-center justify-center/g)?.length || 0) >= 5);
 });
 
+test('multilingual navigation stays compact until the wider desktop breakpoint', () => {
+  const navbar = read('src/components/layout/Navbar.jsx');
+  const mobile = read('src/components/layout/MobileBottomNav.jsx');
+  const publicLayout = read('src/components/layout/PublicLayout.jsx');
+  assert.match(navbar, /desktopNavigationVisibility = language === 'en'/);
+  assert.match(navbar, /'hidden 2xl:flex'/);
+  assert.match(navbar, /'flex 2xl:hidden'/);
+  assert.match(mobile, /responsiveVisibility = language === 'en'/);
+  assert.match(mobile, /'2xl:hidden'/);
+  assert.match(publicLayout, /'2xl:pb-0'/);
+});
+
+test('home listing headers stack before long translated actions can overflow mobile', () => {
+  const home = read('src/pages/public/Home.jsx');
+  assert.match(home, /flex flex-col items-start gap-3 sm:flex-row/);
+  assert.match(home, /inline-flex min-h-11 max-w-full items-center/);
+});
+
+test('footer links use one bounded column before translated labels can overflow mobile', () => {
+  const footer = read('src/components/layout/Footer.jsx');
+  assert.match(footer, /max-w-sm grid-cols-1/);
+  assert.match(footer, /sm:grid-cols-2/);
+  assert.doesNotMatch(footer, /transition-colors whitespace-nowrap/);
+});
+
 test('public search and authentication secondary actions expose 44px hit targets', () => {
   const search = read('src/pages/public/SearchItems.jsx');
   const login = read('src/pages/public/Login.jsx');
