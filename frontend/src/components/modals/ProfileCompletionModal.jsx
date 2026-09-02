@@ -85,18 +85,20 @@ const ProfileCompletionModal = ({ isOpen, onClose, onSuccess }) => {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('profileCompletion.title')} closeLabel={t('profileCompletion.close')} size="md">
       <div className="space-y-5">
-        <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
           <FiAlertCircle aria-hidden="true" className="mt-0.5 flex-none text-xl" />
           <p>{t('profileCompletion.description')}</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center gap-4 rounded-xl border border-surface-200 bg-surface-50 p-3 dark:border-surface-700 dark:bg-surface-800/50">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-surface-100 bg-surface-200 dark:border-surface-600 dark:bg-surface-700">
-              {avatarPreview ? <img src={avatarPreview} alt={t('profileCompletion.avatarAlt')} className="h-full w-full object-cover" /> : <FiCamera aria-hidden="true" className="text-xl text-surface-400" />}
+          <div className="flex flex-col gap-3 rounded-xl border border-surface-200 bg-surface-50 p-3 dark:border-surface-700 dark:bg-surface-800/50 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex min-w-0 items-center gap-3 sm:contents">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-surface-100 bg-surface-200 dark:border-surface-600 dark:bg-surface-700">
+                {avatarPreview ? <img src={avatarPreview} alt={t('profileCompletion.avatarAlt')} className="h-full w-full object-cover" /> : <FiCamera aria-hidden="true" className="text-xl text-surface-400" />}
+              </div>
+              <div className="min-w-0 flex-1"><p className="break-words text-sm font-bold text-surface-900 dark:text-white">{t('profileCompletion.addPicture')} <span className="font-normal text-surface-400">({t('profileCompletion.optional')})</span></p><p className="mt-0.5 break-words text-xs leading-relaxed text-surface-500 dark:text-surface-400">{t('profileCompletion.pictureDesc')}</p></div>
             </div>
-            <div className="min-w-0 flex-1"><p className="text-sm font-bold text-surface-900 dark:text-white">{t('profileCompletion.addPicture')} <span className="font-normal text-surface-400">({t('profileCompletion.optional')})</span></p><p className="mt-0.5 text-xs text-surface-500 dark:text-surface-400">{t('profileCompletion.pictureDesc')}</p></div>
             <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
-            <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} aria-label={t('profileCompletion.choosePicture')} icon={<FiCamera aria-hidden="true" />}>{t('profileCompletion.choosePicture')}</Button>
+            <Button type="button" variant="secondary" size="sm" className="min-h-11 w-full justify-center whitespace-normal text-center sm:w-auto sm:flex-none sm:whitespace-nowrap" onClick={() => fileInputRef.current?.click()} aria-label={t('profileCompletion.choosePicture')} icon={<FiCamera aria-hidden="true" />}>{t('profileCompletion.choosePicture')}</Button>
           </div>
           <Input label={t('profileCompletion.phone')} name="phone" autoComplete="tel" inputMode="tel" placeholder={t('profileCompletion.phonePlaceholder')} value={phone} onChange={(event) => { setPhone(event.target.value); setFieldErrors((current) => ({ ...current, phone: '' })); }} error={fieldErrors.phone} required helperText={t('profileCompletion.phoneHelp')} />
           <Input label={t('profileCompletion.studentId')} name="studentId" autoComplete="off" placeholder={t('profileCompletion.studentPlaceholder')} value={studentId} onChange={(event) => { setStudentId(event.target.value); setFieldErrors((current) => ({ ...current, studentId: '' })); }} error={fieldErrors.studentId} required />

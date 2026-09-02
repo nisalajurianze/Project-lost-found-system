@@ -28,6 +28,9 @@ test('dashboard and profile completion use localized accessible controls without
   assert.match(profile, /<Modal/);
   assert.match(profile, /profileCompletion\.choosePicture/);
   assert.match(profile, /autoComplete="tel"/);
+  assert.match(profile, /flex flex-col gap-3[^"]*sm:flex-row sm:items-center/);
+  assert.match(profile, /sm:contents/);
+  assert.match(profile, /min-h-11 w-full justify-center[^"]*sm:w-auto/);
   assert.doesNotMatch(profile, /Complete Your Profile|Profile completed successfully|Please select an image file/);
 });
 

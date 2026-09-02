@@ -69,3 +69,19 @@ Remediation scope: validated P1/P2 issues plus deterministic release blockers. P
 - [x] Normalize `_id` and `id` record shapes before deletion
 - [x] Block invalid IDs before opening confirmation or calling the API
 - [x] Run focused tests, lint, and production build
+
+## 2026-09-03 chatbot conversational fallback
+
+- [x] Trace the screenshots to the AI-unavailable greeting fallback and draft parser
+- [x] Replace the capability dump with localized conversational greetings and actions
+- [x] Keep report-draft labels, missing fields, and privacy copy in the message language
+- [x] Recognize the user-entered `cateen` typo as a canteen location hint
+- [x] Record provider fallback metrics and validate generated chat JSON
+- [x] Run focused chatbot tests and full frontend/backend verification
+
+## 2026-09-03 profile-completion mobile layout
+
+- [x] Trace the narrow text column to the three-item horizontal avatar row
+- [x] Stack the image picker action below the avatar description on mobile
+- [x] Preserve the compact horizontal layout from the `sm` breakpoint
+- [x] Run focused tests, lint, build, and mobile browser verification
