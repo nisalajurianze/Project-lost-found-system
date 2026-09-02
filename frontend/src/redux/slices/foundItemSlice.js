@@ -5,6 +5,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import foundItemService from '../../services/foundItemService';
+import { resolveItemId } from '../../utils/itemId';
 
 export const fetchFoundItems = createAsyncThunk(
   'foundItems/fetchAll',
@@ -56,7 +57,7 @@ export const deleteFoundReport = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       await foundItemService.deleteFoundItem(id);
-      return id;
+      return resolveItemId(id);
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -141,8 +142,8 @@ const foundItemSlice = createSlice({
       })
       // Delete
       .addCase(deleteFoundReport.fulfilled, (state, action) => {
-        state.items = state.items.filter(item => item._id !== action.payload);
-        if (state.currentItem?._id === action.payload) {
+        state.items = state.items.filter(item => resolveItemId(item) !== action.payload);
+        if (resolveItemId(state.currentItem) === action.payload) {
           state.currentItem = null;
         }
       });

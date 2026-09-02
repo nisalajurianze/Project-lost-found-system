@@ -16,6 +16,7 @@ import Pagination from '../../components/common/Pagination';
 import FeedbackModal from '../../components/common/FeedbackModal';
 import { useLanguage } from '../../i18n/LanguageContext';
 import toast from 'react-hot-toast';
+import { resolveItemId } from '../../utils/itemId';
 
 export const MyFoundItems = () => {
   const dispatch = useDispatch();
@@ -41,17 +42,28 @@ export const MyFoundItems = () => {
     };
   }, [dispatch]);
 
-  const handleDeleteClick = (id) => {
-    setDeleteId(id);
+  const handleDeleteClick = (item) => {
+    const itemId = resolveItemId(item);
+    if (!itemId) {
+      toast.error(t('myItems.deleteListingError'));
+      return;
+    }
+    setDeleteId(itemId);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = async () => {
+    if (!deleteId) {
+      toast.error(t('myItems.deleteListingError'));
+      setDeleteDialogOpen(false);
+      return;
+    }
     setIsDeleting(true);
     try {
       await dispatch(deleteFoundReport(deleteId)).unwrap();
       toast.success(t('myItems.foundDeleted'));
       setDeleteDialogOpen(false);
+      setDeleteId(null);
     } catch (err) {
       toast.error(err || t('myItems.deleteListingError'));
     } finally {
@@ -139,7 +151,7 @@ export const MyFoundItems = () => {
                           <FiEdit2 />
                         </Link>
                         <button type="button"
-                          onClick={() => handleDeleteClick(item._id)}
+                          onClick={() => handleDeleteClick(item)}
                           className="p-1.5 text-surface-500 hover:text-red-500 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-750 transition-all"
                           title={t('myItems.delete')}
                           aria-label={t('myItems.delete')}
@@ -176,7 +188,10 @@ export const MyFoundItems = () => {
       {/* Delete Dialog */}
       <ConfirmDialog
         isOpen={deleteDialogOpen}
-        onClose={() => setDeleteDialogOpen(false)}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDeleteId(null);
+        }}
         onConfirm={handleDeleteConfirm}
         message={t('myItems.deleteFoundConfirm')}
         isLoading={isDeleting}
@@ -187,4 +202,3 @@ export const MyFoundItems = () => {
 };
 
 export default MyFoundItems;
-

@@ -60,5 +60,12 @@ Remediation scope: validated P1/P2 issues plus deterministic release blockers. P
 - [x] Reproduce the 1280 CSS-pixel Tamil desktop-header overflow from the supplied screenshot
 - [x] Keep multilingual navigation compact until the 2xl breakpoint
 - [x] Stack long translated Home listing actions safely on narrow mobile screens
-- [/] Bound long translated Footer links on narrow mobile screens
-- [ ] Run focused tests, lint, production build, and desktop/mobile visual overflow checks
+- [x] Bound long translated Footer links on narrow mobile screens
+- [x] Run focused tests, lint, production build, and desktop/mobile visual overflow checks
+
+## 2026-09-02 found-listing deletion route
+
+- [x] Trace the empty `DELETE /api/found-items/` request to missing frontend ID validation
+- [x] Normalize `_id` and `id` record shapes before deletion
+- [x] Block invalid IDs before opening confirmation or calling the API
+- [x] Run focused tests, lint, and production build

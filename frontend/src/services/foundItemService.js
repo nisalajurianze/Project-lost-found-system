@@ -4,6 +4,7 @@
 // ============================================
 
 import api from './api';
+import { requireItemId } from '../utils/itemId';
 
 const cleanParams = (params = {}) => {
   const cleaned = {};
@@ -13,14 +14,6 @@ const cleanParams = (params = {}) => {
     }
   }
   return cleaned;
-};
-
-const safeId = (id) => {
-  if (!id) return '';
-  if (typeof id === 'object') return String(id?._id || id?.id || '');
-  const str = String(id).trim();
-  if (str === 'undefined' || str === 'null' || str === '[object Object]') return '';
-  return str;
 };
 
 const foundItemService = {
@@ -50,8 +43,7 @@ const foundItemService = {
    * Get found item details.
    */
   getFoundItemById: async (id) => {
-    const targetId = safeId(id);
-    if (!targetId || targetId === '[object Object]') throw new Error('Invalid item ID');
+    const targetId = requireItemId(id);
     const res = await api.get(`/found-items/${targetId}`);
     return res.data.data;
   },
@@ -60,7 +52,7 @@ const foundItemService = {
    * Update a found item (supports multipart form).
    */
   updateFoundItem: async (id, formData, onUploadProgress) => {
-    const targetId = safeId(id);
+    const targetId = requireItemId(id);
     const res = await api.put(`/found-items/${targetId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -74,25 +66,25 @@ const foundItemService = {
    * Soft delete a found item.
    */
   deleteFoundItem: async (id) => {
-    const targetId = safeId(id);
+    const targetId = requireItemId(id);
     const res = await api.delete(`/found-items/${targetId}`);
     return res.data;
   },
 
   connectFoundItem: async (id) => {
-    const targetId = safeId(id);
+    const targetId = requireItemId(id);
     const res = await api.post(`/found-items/${targetId}/connect`);
     return res.data.data;
   },
 
   cancelConnection: async (id, reason) => {
-    const targetId = safeId(id);
+    const targetId = requireItemId(id);
     const res = await api.post(`/found-items/${targetId}/cancel-connection`, { reason });
     return res.data.data;
   },
 
   resolveFoundItem: async (id) => {
-    const targetId = safeId(id);
+    const targetId = requireItemId(id);
     const res = await api.post(`/found-items/${targetId}/resolve`);
     return res.data.data;
   }
