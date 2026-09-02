@@ -26,3 +26,13 @@ test('draft parser does not create a report for a neutral search and does not in
   assert.ok(draft.missing.includes('item name'));
   assert.ok(draft.missing.includes('specific location'));
 });
+
+test('draft parser keeps a typo-tolerant user-provided canteen location', () => {
+  const draft = buildConversationalReportDraft({
+    message: 'mge bag ek nathi una cateen ekedi',
+    intent: 'lost',
+  });
+  assert.equal(draft.fields.itemName, 'Bag');
+  assert.equal(draft.fields.location, 'Canteen');
+  assert.equal(draft.missing.includes('specific location'), false);
+});

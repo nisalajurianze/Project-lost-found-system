@@ -27,6 +27,10 @@ const COLOURS = [
   { canonical: 'Pink', aliases: ['pink', 'රෝස', 'இளஞ்சிவப்பு'] },
 ];
 
+const LOCATION_HINTS = [
+  { canonical: 'Canteen', aliases: ['canteen', 'cateen', 'canteen eka', 'kantin', 'ආපනශාලාව', 'கேன்டீன்', 'உணவகம்'] },
+];
+
 const includesAlias = (normalized, alias) => normalized.includes(normalizeText(alias));
 
 const localDateTime = (date) => {
@@ -49,9 +53,10 @@ export const buildConversationalReportDraft = ({ message, intent, now = new Date
   const normalized = normalizeText(original);
   const item = ITEM_TYPES.find((candidate) => candidate.aliases.some((alias) => includesAlias(normalized, alias)));
   const colours = COLOURS.filter((colour) => colour.aliases.some((alias) => includesAlias(normalized, alias))).map((colour) => colour.canonical);
+  const locationHint = LOCATION_HINTS.find((candidate) => candidate.aliases.some((alias) => includesAlias(normalized, alias)));
   const resolved = resolveLocation(original);
   const locationView = publicLocationView(resolved);
-  const location = resolved.confidence >= 55 ? locationView?.canonicalName || '' : '';
+  const location = locationHint?.canonical || (resolved.confidence >= 55 ? locationView?.canonicalName || '' : '');
   const date = inferDate(normalized, now);
   const fields = {
     itemName: item?.canonical || '',

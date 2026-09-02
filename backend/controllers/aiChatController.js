@@ -15,7 +15,7 @@ import {
   scoreCandidate,
 } from '../services/chatSearchService.js';
 import { buildConversationalReportDraft } from '../services/conversationalReportService.js';
-import { aiConfigured, requestAIJson } from '../services/aiProviderService.js';
+import { aiConfigured, recordFallbackUse, requestAIJson } from '../services/aiProviderService.js';
 
 const DEFAULT_PAGE_SIZE = 6;
 const MAX_PAGE_SIZE = 12;
@@ -24,7 +24,7 @@ const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const copy = {
   en: {
-    greeting: 'I can search lost and found reports, explain likely matches, help you start a report, and show your account activity after you sign in.',
+    greeting: 'Hi! Are you looking for something you lost, or would you like to report an item you found?',
     ask: 'Please add an item name, colour, brand, category, or location so I can search accurately.',
     none: 'I could not find a close public report yet. Try another detail or create a report so the matching service can keep checking.',
     results: (count) => `${count} relevant public report${count === 1 ? '' : 's'} found. Best matches are shown first.`,
@@ -34,7 +34,7 @@ const copy = {
     tooLong: 'Please keep the message under 500 characters.',
   },
   singlish: {
-    greeting: 'Mata lost saha found reports hoyanna, match ekak galapenne ai kiyala explain karanna, report ekak patan ganna saha sign in unama oyage activity pennanna puluwan.',
+    greeting: 'Hi! Oya nathi una deyak hoyanawada, nathnam hambuna item ekak report karanawada?',
     ask: 'Hariyata hoyanna item eke nama, paata, brand eka, category eka hari location eka hari denna.',
     none: 'Galapena public report ekak thawama hambune na. Thawa detail ekak denna, nathnam matching service ekata digatama balanna report ekak hadanna.',
     results: (count) => `Galapena public reports ${count}k hambuna. Hodama matches tika issarahin pennanawa.`,
@@ -44,7 +44,7 @@ const copy = {
     tooLong: 'Message eka characters 500kata aduwen thiyanna.',
   },
   si: {
-    greeting: 'මට lost සහ found reports සොයන්න, match එකක් ගැලපෙන්නේ ඇයි කියලා පැහැදිලි කරන්න, report එකක් පටන්ගන්න සහ sign in වුණාම ඔබගේ activity පෙන්වන්න පුළුවන්.',
+    greeting: 'ආයුබෝවන්! ඔබ නැති වූ දෙයක් සොයනවාද, නැත්නම් හමුවූ භාණ්ඩයක් වාර්තා කරනවාද?',
     ask: 'නිවැරදිව සොයන්න භාණ්ඩයේ නම, පාට, brand එක, category එක හෝ ස්ථානයක් දෙන්න.',
     none: 'ගැලපෙන public report එකක් තවම හමු වුණේ නැහැ. වෙනත් විස්තරයක් දෙන්න හෝ matching service එක දිගටම බලන්න report එකක් සාදන්න.',
     results: (count) => `ගැලපෙන public reports ${count}ක් හමු වුණා. හොඳම results මුලින් පෙන්වනවා.`,
@@ -54,7 +54,7 @@ const copy = {
     tooLong: 'පණිවිඩය අක්ෂර 500කට අඩුවෙන් තබන්න.',
   },
   ta: {
-    greeting: 'காணாமல் போன மற்றும் கண்டெடுக்கப்பட்ட பதிவுகளை தேடவும், பொருத்தம் ஏன் பரிந்துரைக்கப்பட்டது என்பதை விளக்கவும், புதிய பதிவை தொடங்கவும், உள்நுழைந்த பின் உங்கள் செயல்பாட்டை காட்டவும் முடியும்.',
+    greeting: 'வணக்கம்! நீங்கள் தொலைத்த பொருளை தேடுகிறீர்களா, அல்லது கண்டெடுத்த பொருளை பதிவு செய்ய விரும்புகிறீர்களா?',
     ask: 'துல்லியமாக தேட பொருளின் பெயர், நிறம், brand, category அல்லது இடத்தைச் சேர்க்கவும்.',
     none: 'நெருக்கமான பொது பதிவு இன்னும் கிடைக்கவில்லை. வேறு விவரத்தை முயற்சிக்கவும் அல்லது தொடர்ந்த matching காக புதிய report உருவாக்கவும்.',
     results: (count) => `தொடர்புடைய பொது பதிவுகள் ${count} கிடைத்தன. சிறந்த பொருத்தங்கள் முதலில் காட்டப்படுகின்றன.`,
@@ -80,9 +80,32 @@ const quickReplies = {
     retry: ['Wena details walin balanna'],
     refine: ['Search eka refine karanna'],
   },
+  si: {
+    greeting: ['කළු දුරකථනයක් නැති වුණා', 'පසුම්බියක් හමු වුණා', 'මගේ වාර්තා'],
+    ask: ['කළු දුරකථනයක්', 'නිල් පසුම්බියක්', 'පුස්තකාලය අසල ලැප්ටොප් එකක්'],
+    search: ['භාණ්ඩයක් සොයන්න'],
+    retry: ['වෙනත් විස්තරයකින් සොයන්න'],
+    refine: ['සෙවීම වැඩිදියුණු කරන්න'],
+  },
+  ta: {
+    greeting: ['கருப்பு தொலைபேசி தொலைந்தது', 'பணப்பை கிடைத்தது', 'என் பதிவுகள்'],
+    ask: ['கருப்பு தொலைபேசி', 'நீல பணப்பை', 'நூலகம் அருகே மடிக்கணினி'],
+    search: ['ஒரு பொருளை தேடவும்'],
+    retry: ['வேறு விவரங்களுடன் தேடவும்'],
+    refine: ['தேடலை செம்மைப்படுத்தவும்'],
+  },
 };
 
 const q = (style, key) => quickReplies[style]?.[key] ?? quickReplies.en[key];
+
+const actionLabels = {
+  en: { reportLost: 'Report lost item', reportFound: 'Report found item', signIn: 'Sign in', reports: 'My lost reports', claims: 'My claims', matches: 'My matches', notifications: 'Notifications' },
+  singlish: { reportLost: 'Nathi una item eka report karanna', reportFound: 'Hambuna item eka report karanna', signIn: 'Sign in wenna', reports: 'Mage lost reports', claims: 'Mage claims', matches: 'Mage matches', notifications: 'Notifications' },
+  si: { reportLost: 'නැති වූ භාණ්ඩය වාර්තා කරන්න', reportFound: 'හමුවූ භාණ්ඩය වාර්තා කරන්න', signIn: 'පිවිසෙන්න', reports: 'මගේ නැති වූ වාර්තා', claims: 'මගේ හිමිකම් ඉල්ලීම්', matches: 'මගේ ගැළපීම්', notifications: 'දැනුම්දීම්' },
+  ta: { reportLost: 'தொலைந்த பொருளை பதிவு செய்யவும்', reportFound: 'கண்டெடுத்த பொருளை பதிவு செய்யவும்', signIn: 'உள்நுழையவும்', reports: 'என் தொலைந்த பதிவுகள்', claims: 'என் உரிமைக் கோரிக்கைகள்', matches: 'என் பொருத்தங்கள்', notifications: 'அறிவிப்புகள்' },
+};
+
+const actionLabel = (style, key) => actionLabels[style]?.[key] ?? actionLabels.en[key];
 
 const t = (language, key, ...args) => {
   const value = copy[language]?.[key] ?? copy.en[key];
@@ -154,7 +177,10 @@ const responseStyleInstruction = {
 };
 
 const generateAssistantResponse = async (userMessage, history, items, reportDraft, responseStyle) => {
-  if (!aiConfigured()) return null;
+  if (!aiConfigured()) {
+    recordFallbackUse();
+    return null;
+  }
   try {
     const itemSummaries = items.slice(0, 3).map((item) => `- ${item.itemName} (${item.category}) at ${item.location}, match: ${item.relevanceScore}%`).join('\n');
     const systemPrompt = `You are the smart, helpful AI assistant for the South Eastern University of Sri Lanka (SEUSL) Smart Lost & Found system.
@@ -169,9 +195,17 @@ Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
       { role: 'user', content: `User query: ${userMessage}\nMatched items in system:\n${itemSummaries || 'None'}\nReport draft: ${reportDraft ? JSON.stringify(reportDraft.fields) : 'None'}` },
     ];
 
-    const response = await requestAIJson(messages, { purpose: 'assistant-chat' });
+    const response = await requestAIJson(messages, {
+      purpose: 'assistant-chat',
+      validator: (value) => typeof value.reply === 'string'
+        && value.reply.trim().length > 0
+        && Array.isArray(value.quickReplies)
+        && value.quickReplies.every((entry) => typeof entry === 'string'),
+    });
     return response?.data;
-  } catch {
+  } catch (error) {
+    recordFallbackUse();
+    console.warn('[ai] assistant chat fallback used', { code: error.code || error.name });
     return null;
   }
 };
@@ -195,22 +229,22 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       responseStyle,
       quickReplies: aiGreeting?.quickReplies?.length ? aiGreeting.quickReplies : q(responseStyle, 'greeting'),
       items: [],
-      actions: [{ type: 'report_lost', label: 'Report lost item', url: '/dashboard/report-lost' }, { type: 'report_found', label: 'Report found item', url: '/dashboard/report-found' }],
+      actions: [{ type: 'report_lost', label: actionLabel(responseStyle, 'reportLost'), url: '/dashboard/report-lost' }, { type: 'report_found', label: actionLabel(responseStyle, 'reportFound'), url: '/dashboard/report-found' }],
     }).send(res);
   }
 
   if (isPersonalQuery(incoming)) {
     if (!req.user?._id) {
-      return ApiResponse.ok({ text: t(responseStyle, 'signIn'), language, responseStyle, quickReplies: [], items: [], actions: [{ type: 'sign_in', label: 'Sign in', url: '/login' }] }).send(res);
+      return ApiResponse.ok({ text: t(responseStyle, 'signIn'), language, responseStyle, quickReplies: [], items: [], actions: [{ type: 'sign_in', label: actionLabel(responseStyle, 'signIn'), url: '/login' }] }).send(res);
     }
     const summary = await personalSummary(req.user._id);
     return ApiResponse.ok({
       text: t(responseStyle, 'personal'), language, responseStyle, personalSummary: summary, items: [], quickReplies: q(responseStyle, 'search'),
       actions: [
-        { type: 'reports', label: 'My lost reports', url: '/dashboard/my-lost' },
-        { type: 'claims', label: 'My claims', url: '/dashboard/claims' },
-        { type: 'matches', label: 'My matches', url: '/dashboard/my-matches' },
-        { type: 'notifications', label: 'Notifications', url: '/dashboard/notifications' },
+        { type: 'reports', label: actionLabel(responseStyle, 'reports'), url: '/dashboard/my-lost' },
+        { type: 'claims', label: actionLabel(responseStyle, 'claims'), url: '/dashboard/claims' },
+        { type: 'matches', label: actionLabel(responseStyle, 'matches'), url: '/dashboard/my-matches' },
+        { type: 'notifications', label: actionLabel(responseStyle, 'notifications'), url: '/dashboard/notifications' },
       ],
     }).send(res);
   }
@@ -261,7 +295,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       hasMore: false,
       quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'retry'),
       items: [],
-      actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
+      actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: actionLabel(responseStyle, intent === 'found' ? 'reportFound' : 'reportLost'), url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
       reportDraft,
       meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
     }).send(res);
@@ -282,7 +316,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     items,
     quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'refine'),
     reportDraft,
-    actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: intent === 'found' ? 'Report found item' : 'Report lost item', url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
+    actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: actionLabel(responseStyle, intent === 'found' ? 'reportFound' : 'reportLost'), url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
     meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
   }).send(res);
 });

@@ -44,8 +44,16 @@ test('assistant creates a reviewable report draft and hands it to the shared wiz
   const wizard = fs.readFileSync(path.join(frontend, 'src/components/common/ReportItemWizard.jsx'), 'utf8');
   assert.match(source, /ReportDraftCard/);
   assert.match(source, /saveAssistantReportDraft\(draft, \{ principalId \}\)/);
-  assert.match(source, /assistant\.humanReview/);
-  assert.match(source, /assistant\.openDraft/);
+  assert.match(source, /review: 'Human review required'/);
+  assert.match(source, /open: 'Open guided report and review fields'/);
   assert.match(wizard, /consumeAssistantReportDraft\(\{ principalId, reportType: mode \}\)/);
   assert.match(wizard, /if \(assistantDraft\)/);
+});
+
+test('assistant report draft follows each conversation response style', () => {
+  assert.match(source, /REPORT_DRAFT_COPY/);
+  assert.match(source, /responseStyle=\{message\.responseStyle\}/);
+  assert.match(source, /copy\.missing\[entry\]/);
+  assert.match(source, /Guided report eka arala details balanna/);
+  assert.match(source, /வழிகாட்டப்பட்ட அறிக்கையைத் திறந்து/);
 });
