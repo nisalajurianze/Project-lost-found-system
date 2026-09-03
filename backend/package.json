@@ -13,7 +13,8 @@
     "eval:ai": "node scripts/runAiEvals.mjs",
     "seed:defaults": "node scripts/seedDefaults.js",
     "admin:bootstrap": "node scripts/bootstrapAdmin.js",
-    "migrate": "node scripts/migrateProduction.js"
+    "migrate": "node scripts/migrateProduction.js",
+    "migrate:ai": "node scripts/migrateAIPlatform.js"
   },
   "keywords": [
     "lost-and-found",

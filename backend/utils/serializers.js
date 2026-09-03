@@ -44,7 +44,11 @@ const publicLocationProjection = (output) => {
 
 const publicImages = (images) => (images || [])
   .filter((image) => image?.privacyStatus === 'safe_public' && image?.url)
-  .map((image) => ({ url: image.url, privacyStatus: 'safe_public' }));
+  .map((image) => ({
+    url: image.url,
+    privacyStatus: 'safe_public',
+    ...(image.accessibilityAlt?.status === 'approved' ? { accessibilityAlt: image.accessibilityAlt } : {}),
+  }));
 
 export const itemView = (item, viewer) => {
   const output = plain(item);

@@ -10,7 +10,9 @@ test('privacy redaction creates pixelated replacement files without uploading or
   assert.match(utility, /createPrivacySafeImage/);
   assert.match(utility, /imageSmoothingEnabled = false/);
   assert.match(utility, /privacy-safe/);
-  assert.match(wizard, /replacements\.set\(review\.key, await createPrivacySafeImage/);
+  assert.match(wizard, /replacement = await createPrivacySafeImage/);
+  assert.match(wizard, /replacements\.set\(review\.key, replacement\)/);
+  assert.match(wizard, /suggestDetailsFromImage\(replacement\)/);
   assert.match(wizard, /report\.privacyRedacted/);
 });
 

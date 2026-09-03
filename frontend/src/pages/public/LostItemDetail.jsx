@@ -20,6 +20,8 @@ import toast from 'react-hot-toast';
 import { formatAbsoluteDate, formatRelativeTime } from '../../utils/formatDate';
 import WorkflowTimeline from '../../components/common/WorkflowTimeline';
 import ItemEvidenceSummary from '../../components/common/ItemEvidenceSummary';
+import PosterGenerator from '../../components/common/PosterGenerator';
+import AccessibilityCaptionReview from '../../components/common/AccessibilityCaptionReview';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 export const LostItemDetail = () => {
@@ -128,7 +130,7 @@ export const LostItemDetail = () => {
               {hasImages && activeImage ? (
                 <img
                   src={optimizeImageUrl(activeImage, 1200)}
-                  alt={currentItem.itemName}
+                  alt={currentItem.images.find((image) => image.url === activeImage)?.accessibilityAlt?.text || currentItem.itemName}
                   className="w-full h-full object-contain drop-shadow-md"
                 />
               ) : (
@@ -158,7 +160,7 @@ export const LostItemDetail = () => {
                         : 'border-transparent hover:border-surface-300 dark:hover:border-surface-600'
                     }`}
                   >
-                    <img src={optimizeImageUrl(img.url, 200)} alt="" className="w-full h-full object-contain" />
+                    <img src={optimizeImageUrl(img.url, 200)} alt={img.accessibilityAlt?.text || `${currentItem.itemName} ${index + 1}`} className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>
@@ -269,6 +271,8 @@ export const LostItemDetail = () => {
             </div>
 
             <ItemEvidenceSummary item={currentItem} />
+            {isOwner && <AccessibilityCaptionReview reportType="lost" reportId={currentItem._id} image={currentItem.images?.[0]} />}
+            {isOwner && <PosterGenerator reportType="lost" reportId={currentItem._id} />}
 
             {/* Location & Tags details */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

@@ -13,6 +13,20 @@ export const mergeBuckets = (...groups) => {
   return [...totals.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, 8);
 };
 
+export const mergeHourBuckets = (...groups) => {
+  const ranges = [
+    { label: '00:00-05:59', from: 0, to: 5 },
+    { label: '06:00-11:59', from: 6, to: 11 },
+    { label: '12:00-17:59', from: 12, to: 17 },
+    { label: '18:00-23:59', from: 18, to: 23 },
+  ];
+  return ranges.map((range) => ({
+    label: range.label,
+    count: groups.flat().filter((entry) => Number(entry?._id) >= range.from && Number(entry?._id) <= range.to)
+      .reduce((sum, entry) => sum + clampCount(entry?.count), 0),
+  })).sort((left, right) => right.count - left.count);
+};
+
 const clampCount = (value) => Math.max(0, Math.floor(Number(value) || 0));
 const roundOne = (value) => Math.round(Number(value) * 10) / 10;
 
@@ -75,6 +89,7 @@ export const buildOperationalIntelligence = ({
   approvedClaims30 = 0,
   locations = [],
   categories = [],
+  times = [],
   averageRecoveryHours = null,
   recoverySampleSize = 0,
   categoryOutcomeCohorts = [],
@@ -162,7 +177,7 @@ export const buildOperationalIntelligence = ({
       sampleSize: Number(recoverySampleSize) || 0,
       approvedClaimsLast30Days: Number(approvedClaims30) || 0,
     },
-    hotspots: { locations, categories },
+    hotspots: { locations, categories, times },
     recommendations: {
       classification: 'experimental-advisory-not-fact',
       dataSufficient,
@@ -183,5 +198,54 @@ export const buildOperationalIntelligence = ({
         ? 'These ranges describe historical aggregate outcomes and do not predict or decide any individual report.'
         : `Historical cohort guidance is withheld until at least ${predictionMinimumSample} verified lost-report outcomes exist in a category or governed location cohort.`,
     },
+    groundedNarrative: buildGroundedAdminNarrative({
+      recovery: { totalReports, recoveries, recoveryRate },
+      hotspots: { locations, categories, times },
+      operations,
+    }),
   };
+};
+
+export const buildGroundedAdminNarrative = ({ recovery = {}, hotspots = {}, operations = {} } = {}) => {
+  const statements = [];
+  const evidence = [];
+  if (hotspots.locations?.[0]?.count > 0) {
+    statements.push(`${hotspots.locations[0].label} has the highest recent report volume with ${hotspots.locations[0].count} reports.`);
+    evidence.push({ metric: 'top-location', value: hotspots.locations[0] });
+  }
+  if (hotspots.categories?.[0]?.count > 0) {
+    statements.push(`${hotspots.categories[0].label} is the most common recent category with ${hotspots.categories[0].count} reports.`);
+    evidence.push({ metric: 'top-category', value: hotspots.categories[0] });
+  }
+  if (hotspots.times?.[0]?.count > 0) {
+    statements.push(`${hotspots.times[0].label} is the highest-volume reported time band with ${hotspots.times[0].count} reports.`);
+    evidence.push({ metric: 'top-time-band', value: hotspots.times[0] });
+  }
+  statements.push(`${Number(recovery.recoveries) || 0} of ${Number(recovery.totalReports) || 0} reports are recorded as recovered; the current aggregate recovery rate is ${Number(recovery.recoveryRate) || 0}%.`);
+  evidence.push({ metric: 'recovery', value: { recovered: Number(recovery.recoveries) || 0, total: Number(recovery.totalReports) || 0, rate: Number(recovery.recoveryRate) || 0 } });
+  if (Number(operations.overdueClaims) > 0) {
+    statements.push(`${operations.overdueClaims} claims are overdue and require human review.`);
+    evidence.push({ metric: 'overdue-claims', value: Number(operations.overdueClaims) });
+  }
+  return {
+    statements,
+    evidence,
+    classification: 'deterministic-grounded-aggregate-explanation',
+    limitations: 'Describes aggregate records only; it does not infer causes, profile users, or make individual predictions.',
+  };
+};
+
+export const answerAdminAnalyticsQuestion = (intelligence = {}, question = '') => {
+  const text = String(question).normalize('NFKC').toLocaleLowerCase('en-US');
+  const narrative = intelligence.groundedNarrative || buildGroundedAdminNarrative({ recovery: intelligence.recovery, hotspots: intelligence.hotspots });
+  const indexes = /location|place|where|thana|இட/u.test(text) ? ['top-location']
+    : /categor|item|what|mona|வகை/u.test(text) ? ['top-category']
+      : /time|when|wela|நேர/u.test(text) ? ['top-time-band']
+        : /recover|return|success|hamuna|மீட/u.test(text) ? ['recovery']
+          : [];
+  const evidence = indexes.length ? narrative.evidence.filter((entry) => indexes.includes(entry.metric)) : narrative.evidence;
+  const statements = indexes.length
+    ? narrative.statements.filter((_statement, index) => indexes.includes(narrative.evidence[index]?.metric))
+    : narrative.statements;
+  return { answer: statements.join(' ') || 'There is not enough aggregate evidence to answer that question yet.', evidence, classification: narrative.classification, limitations: narrative.limitations };
 };

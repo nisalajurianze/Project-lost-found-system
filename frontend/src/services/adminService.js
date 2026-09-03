@@ -29,6 +29,31 @@ const adminService = {
     return res.data.data;
   },
 
+  explainAnalytics: async (question) => {
+    const res = await api.post('/admin/analytics/explain', { question });
+    return res.data.data;
+  },
+
+  getDuplicateReviews: async (params = {}) => {
+    const res = await api.get('/admin/duplicate-reviews', { params: cleanParams(params) });
+    return res.data.data;
+  },
+
+  reviewDuplicate: async (id, status, reviewNote = '') => {
+    const res = await api.put(`/admin/duplicate-reviews/${id}`, { status, reviewNote });
+    return res.data.data;
+  },
+
+  getAssistantHandoffs: async (params = {}) => {
+    const res = await api.get('/admin/assistant-handoffs', { params: cleanParams(params) });
+    return res.data.data;
+  },
+
+  reviewAssistantHandoff: async (id, status, adminNote = '') => {
+    const res = await api.put(`/admin/assistant-handoffs/${id}`, { status, adminNote });
+    return res.data.data;
+  },
+
   /**
    * Get list of users (Admin only).
    */

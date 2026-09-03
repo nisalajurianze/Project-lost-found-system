@@ -12,6 +12,10 @@ import { publicLocationView, resolveLocation } from '../services/locationIntelli
 import { assessReport } from '../services/reportIntelligenceService.js';
 import { runGoldenEvals } from '../evals/runGoldenEvals.js';
 import { issueReportConfirmation, submitApprovedAssistantReport } from '../services/assistantReportSubmissionService.js';
+import LostItem from '../models/LostItem.js';
+import FoundItem from '../models/FoundItem.js';
+import ImageAnalysis from '../models/ImageAnalysis.js';
+import { getOwnHandoff, requestAssistantHandoff } from './assistantHandoffController.js';
 
 export const suggestItemDetails = asyncHandler(async (req, res) => {
   if (!req.file) throw ApiError.badRequest('No image provided for AI analysis.');
@@ -73,6 +77,24 @@ export const submitAssistantReport = asyncHandler(async (req, res) => {
   return ApiResponse.created(receipt, 'Approved assistant report submitted successfully.').send(res);
 });
 
+export const approveAccessibilityCaption = asyncHandler(async (req, res) => {
+  const type = String(req.params.type || '').toLowerCase();
+  const Model = type === 'lost' ? LostItem : type === 'found' ? FoundItem : null;
+  const itemType = type === 'lost' ? 'LostItem' : type === 'found' ? 'FoundItem' : '';
+  if (!Model) throw ApiError.badRequest('Image caption type must be lost or found.');
+  const item = await Model.findById(req.params.id);
+  if (!item) throw ApiError.notFound('Report not found.');
+  if (String(item.userId) !== String(req.user._id) && req.user.role !== 'admin') throw ApiError.forbidden('Only the report owner or an admin may approve image descriptions.');
+  const text = String(req.body?.text || '').normalize('NFKC').replace(/\s+/g, ' ').trim().slice(0, 500);
+  const language = ['en', 'si', 'ta', 'singlish'].includes(req.body?.language) ? req.body.language : 'en';
+  if (text.length < 5) throw ApiError.badRequest('Image description must contain at least five characters.');
+  if (!item.images?.[0]) throw ApiError.badRequest('This report has no image to describe.');
+  item.images[0].accessibilityAlt = { text, language, status: 'approved' };
+  await item.save();
+  await ImageAnalysis.updateOne({ itemType, itemId: item._id }, { $set: { 'accessibilityCaption.approved': text, 'accessibilityCaption.language': language, 'accessibilityCaption.status': 'approved' } });
+  return ApiResponse.ok({ text, language, status: 'approved' }, 'Accessibility image description approved.').send(res);
+});
+
 
 export const assessReportDraft = asyncHandler(async (req, res) => {
   const reportType = String(req.body?.reportType || '').toLowerCase();
@@ -99,3 +121,5 @@ export const assessReportDraft = asyncHandler(async (req, res) => {
   });
   return ApiResponse.ok(result, 'Report quality and duplicate preflight completed.').send(res);
 });
+
+export { getOwnHandoff, requestAssistantHandoff };

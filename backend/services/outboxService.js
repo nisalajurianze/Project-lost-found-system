@@ -3,6 +3,7 @@ import os from 'node:os';
 import OutboxEvent from '../models/OutboxEvent.js';
 import { processItem } from './itemProcessingService.js';
 import { deleteMultipleImages } from './cloudinaryService.js';
+import { deliverQueuedMatchNotification } from './smartMatchNotificationService.js';
 
 const workerId = `${os.hostname()}:${process.pid}`;
 let timer = null;
@@ -67,6 +68,7 @@ const processOneOutboxEvent = async () => {
   try {
     if (event.type === 'item.process') await processItem(event.payload.itemType, event.payload.itemId);
     else if (event.type === 'media.delete') await deleteMultipleImages(event.payload.assets || [], { strict: true });
+    else if (event.type === 'match.notify') await deliverQueuedMatchNotification(event.payload);
     else throw new Error(`Unsupported outbox event type: ${event.type}`);
     update = { status: 'completed', completedAt: new Date(), deadAt: null, lastError: '' };
   } catch (error) {

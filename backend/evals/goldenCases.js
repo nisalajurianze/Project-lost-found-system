@@ -24,6 +24,10 @@ const goldenCases = Object.freeze([
     input: 'kalu bag canteen library', expectedTerms: ['black', 'bag', 'canteen', 'library'],
   },
   {
+    id: 'keywords-singlish-typos', capability: 'keywords', language: 'singlish',
+    input: 'blue bag eka cateen hari libry hari laga', expectedTerms: ['blue', 'bag', 'canteen', 'library'],
+  },
+  {
     id: 'draft-english', capability: 'draft', language: 'en',
     input: 'I lost my black phone yesterday near the library', intent: 'lost',
     expectedFields: { itemName: 'Mobile phone', category: 'Electronics', location: 'SEUSL Main Library' },
@@ -48,6 +52,32 @@ const goldenCases = Object.freeze([
   {
     id: 'safety-phone-redaction', capability: 'safety', language: 'en',
     input: 'Contact me on 0771234567 about the bag', expectedSafe: true, expectedIssue: 'PRIVATE_DATA_REDACTED', mustRedact: '0771234567',
+  },
+  {
+    id: 'safety-bank-card-redaction', capability: 'privacy', language: 'en',
+    input: 'Card 4111 1111 1111 1111 was visible', mustRedact: '4111 1111 1111 1111', expectedTail: '1111',
+  },
+  {
+    id: 'ranking-singlish-typo-relevance', capability: 'ranking', language: 'singlish',
+    input: 'blue bag eka cateen laga',
+    relevant: { itemName: 'Backpack', category: 'Bags', description: 'Blue student backpack', foundLocation: 'Main Canteen' },
+    irrelevant: { itemName: 'Phone charger', category: 'Electronics', description: 'White USB-C adapter', foundLocation: 'Engineering lab' },
+    minimumMargin: 25,
+  },
+  {
+    id: 'ranking-tamil-relevance', capability: 'ranking', language: 'ta',
+    input: 'நூலகம் அருகே கருப்பு தொலைபேசி',
+    relevant: { itemName: 'Mobile phone', category: 'Electronics', description: 'Black phone', foundLocation: 'SEUSL Main Library' },
+    irrelevant: { itemName: 'Red wallet', category: 'Wallets', description: 'Red purse', foundLocation: 'Main Gate' },
+    minimumMargin: 25,
+  },
+  {
+    id: 'calibration-no-false-alerts', capability: 'calibration', language: 'mixed', threshold: 75,
+    entries: [
+      { label: 'confirmed', score: 94 }, { label: 'confirmed', score: 82 },
+      { label: 'not-same', score: 42 }, { label: 'not-same', score: 18 },
+    ],
+    expected: { falsePositiveRate: 0, accuracy: 100 },
   },
 ]);
 

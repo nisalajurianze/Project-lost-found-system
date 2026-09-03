@@ -311,21 +311,47 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     try {
       const reviewByKey = new Map(imagePrivacyReviews.map((review) => [review.key, review]));
       const replacements = new Map();
+      const rescans = new Map();
       for (const file of images) {
         const review = reviewByKey.get(imageFileKey(file));
         if (review?.status === 'redaction-required') {
-          replacements.set(review.key, await createPrivacySafeImage(file, review.regions));
+          const replacement = await createPrivacySafeImage(file, review.regions);
+          replacements.set(review.key, replacement);
+          try {
+            const response = await aiService.suggestDetailsFromImage(replacement);
+            const result = response?.data || {};
+            const remainingRegions = normalizeRedactionRegions(result.redactionRegions);
+            const remainingWarnings = (result.privacyWarnings || []).filter(Boolean);
+            rescans.set(review.key, {
+              safe: remainingRegions.length === 0 && remainingWarnings.length === 0 && result.moderationDecision === 'allow',
+              regions: remainingRegions,
+              warnings: remainingWarnings.slice(0, 10),
+            });
+          } catch {
+            rescans.set(review.key, { safe: false, regions: [], warnings: [t('report.redactionRescanUnavailable')] });
+          }
         }
       }
       const nextImages = images.map((file) => replacements.get(imageFileKey(file)) || file);
       const nextReviews = imagePrivacyReviews.map((review) => {
         const replacement = replacements.get(review.key);
-        return replacement ? { ...review, key: imageFileKey(replacement), fileName: replacement.name, status: 'redacted' } : review;
+        const rescan = rescans.get(review.key);
+        return replacement ? {
+          ...review,
+          key: imageFileKey(replacement),
+          fileName: replacement.name,
+          status: rescan?.safe ? 'redacted' : 'manual-review',
+          regions: rescan?.regions || [],
+          warnings: rescan?.warnings || [],
+          rescannedAt: new Date().toISOString(),
+        } : review;
       });
       setImages(nextImages);
       setImagePrivacyReviews(nextReviews);
       setErrors((current) => ({ ...current, images: undefined }));
-      toast.success(t('report.privacyRedacted'), { id: toastId });
+      const needsManualReview = [...rescans.values()].some((entry) => !entry.safe);
+      if (needsManualReview) toast(t('report.redactionNeedsReview'), { id: toastId });
+      else toast.success(t('report.privacyRedacted'), { id: toastId });
     } catch (error) {
       const errorKey = {
         [IMAGE_REDACTION_ERROR_CODES.FILE_REQUIRED]: 'report.privacyFileRequired',

@@ -13,6 +13,13 @@ const normalizedRegionSchema = new mongoose.Schema({
   reason: { type: String, maxlength: 80, default: 'sensitive-text' },
 }, { _id: false });
 
+const ocrRegionSchema = new mongoose.Schema({
+  ...normalizedRegionSchema.obj,
+  textMasked: { type: String, maxlength: 120, default: '' },
+  confidence: { type: Number, min: 0, max: 100, default: 0 },
+  category: { type: String, enum: ['general', 'phone', 'email', 'student-id', 'bank-card', 'address', 'serial', 'qr', 'other'], default: 'general' },
+}, { _id: false });
+
 const imageAnalysisSchema = new mongoose.Schema(
   {
     itemType: {
@@ -32,10 +39,18 @@ const imageAnalysisSchema = new mongoose.Schema(
     visibleTextMasked: { type: [String], default: [] },
     privacyFlags: { type: [String], default: [] },
     redactionRegions: { type: [normalizedRegionSchema], default: [] },
+    ocrRegions: { type: [ocrRegionSchema], default: [] },
     imageQuality: {
       type: String,
       enum: ['unknown', 'poor', 'fair', 'good'],
       default: 'unknown',
+    },
+    qualityScores: {
+      blur: { type: Number, min: 0, max: 100, default: 0 },
+      exposure: { type: Number, min: 0, max: 100, default: 0 },
+      resolution: { type: Number, min: 0, max: 100, default: 0 },
+      occlusion: { type: Number, min: 0, max: 100, default: 0 },
+      guidance: { type: [String], default: [] },
     },
     moderationDecision: {
       type: String,
@@ -44,6 +59,13 @@ const imageAnalysisSchema = new mongoose.Schema(
       index: true,
     },
     description: { type: String, default: '', maxlength: [1000, 'Description cannot exceed 1000 characters'] },
+    accessibilityCaption: {
+      draft: { type: String, default: '', maxlength: 500 },
+      approved: { type: String, default: '', maxlength: 500 },
+      language: { type: String, enum: ['en', 'si', 'ta', 'singlish'], default: 'en' },
+      status: { type: String, enum: ['draft', 'approved', 'rejected'], default: 'draft' },
+    },
+    visualFingerprint: { type: String, default: '', maxlength: 256, select: false },
     confidence: { type: Number, min: 0, max: 100, default: 0 },
     provider: {
       type: String,
@@ -52,7 +74,7 @@ const imageAnalysisSchema = new mongoose.Schema(
     },
     providerModel: { type: String, default: '', maxlength: 150 },
     providerLatencyMs: { type: Number, min: 0, default: 0 },
-    analysisVersion: { type: String, default: 'vision-v2', maxlength: 40 },
+    analysisVersion: { type: String, default: 'vision-v3', maxlength: 40 },
   },
   { timestamps: true }
 );

@@ -2,10 +2,8 @@ import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
 import Match from '../models/Match.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
-import User from '../models/User.js';
-import { createNotification } from './notificationService.js';
-import { sendWorkflowEmail } from './workflowEmailService.js';
-import { compareItemImages, isSafeRemoteImageUrl } from './imageComparisonService.js';
+import { compareItemImages, fuseVisualEvidence, isSafeRemoteImageUrl } from './imageComparisonService.js';
+import { queueStrongMatchNotifications } from './smartMatchNotificationService.js';
 import {
   calculateArrayOverlap,
   calculateTextSimilarity,
@@ -13,36 +11,6 @@ import {
   dateTimeDimension,
   evaluateMatch,
 } from './matchScoringService.js';
-
-const notifyStrongMatch = async (match, lost, found) => {
-  const [lostUser, foundUser] = await Promise.all([
-    User.findById(lost.userId).select('fullName email isActive notificationPreferences'),
-    User.findById(found.userId).select('fullName email isActive notificationPreferences'),
-  ]);
-  const baseUrl = String(process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].replace(/\/$/, '');
-  const url = `${baseUrl}/dashboard/matches`;
-  const recipients = [
-    { user: lostUser, itemName: lost.itemName, message: `A found report has a ${match.similarityScore}% similarity score with “${lost.itemName}”.` },
-    { user: foundUser, itemName: found.itemName, message: `A lost report has a ${match.similarityScore}% similarity score with “${found.itemName}”.` },
-  ];
-  await Promise.allSettled(recipients.filter(({ user }) => user?.isActive).flatMap(({ user, itemName, message }) => [
-    createNotification({
-      userId: user._id,
-      title: 'Potential match found',
-      message,
-      type: 'match_found',
-      relatedItem: { itemType: 'Match', itemId: match._id },
-      dedupeKey: `strong-match:${match._id}:${user._id}`,
-    }),
-    sendWorkflowEmail({
-      user,
-      category: 'matches',
-      template: 'matchFound',
-      data: { itemName, score: match.similarityScore, url, eventId: `strong-match:${match._id}:${user._id}` },
-      idempotencyKey: `strong-match:${match._id}:${user._id}`,
-    }),
-  ]));
-};
 
 const executeMatching = async (item, itemType) => {
   if (!item || item.isDeleted || item.isArchived) return [];
@@ -67,7 +35,7 @@ const executeMatching = async (item, itemType) => {
   }).sort({ createdAt: -1 }).limit(candidateLimit);
 
   const ids = [item._id, ...candidates.map((candidate) => candidate._id)];
-  const analyses = await ImageAnalysis.find({ itemId: { $in: ids } }).lean();
+  const analyses = await ImageAnalysis.find({ itemId: { $in: ids } }).select('+visualFingerprint').lean();
   const analysisMap = new Map(analyses.map((analysis) => [String(analysis.itemId), analysis]));
   const preliminary = candidates.map((candidate) => {
     const lost = itemType === 'LostItem' ? item : candidate;
@@ -99,7 +67,11 @@ const executeMatching = async (item, itemType) => {
 
   for (const entry of preliminary) {
     const { lost, found, lostAnalysis, foundAnalysis } = entry;
-    const visualComparison = visualMap.get(`${lost._id}:${found._id}`) || null;
+    const visualComparison = fuseVisualEvidence(
+      visualMap.get(`${lost._id}:${found._id}`) || null,
+      lostAnalysis,
+      foundAnalysis,
+    );
     const result = visualComparison
       ? evaluateMatch(lost, found, lostAnalysis, foundAnalysis, visualComparison)
       : entry.preliminaryResult;
@@ -125,9 +97,11 @@ const executeMatching = async (item, itemType) => {
       if (lost.status === 'pending') { lost.status = 'matched'; await lost.save(); }
       if (found.status === 'available') { found.status = 'matched'; await found.save(); }
       if (wasNew || !match.notifiedAt) {
-        match.notifiedAt = new Date();
-        await match.save();
-        await notifyStrongMatch(match, lost, found);
+        const alertDecisions = await queueStrongMatchNotifications({ match, lost, found });
+        if (alertDecisions.some((decision) => decision.eligible)) {
+          match.notifiedAt = new Date();
+          await match.save();
+        }
       }
     }
   }

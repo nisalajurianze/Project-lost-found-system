@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   compareItemImages,
+  fuseVisualEvidence,
   isSafeRemoteImageUrl,
   sanitizeComparison,
+  tokenSimilarity,
 } from '../services/imageComparisonService.js';
 import { resetAiProviderStateForTests } from '../services/aiProviderService.js';
 
@@ -25,9 +27,32 @@ test('comparison output clamps scores and masks sensitive provider evidence', ()
   }, { model: 'vision-test', latencyMs: 42 });
   assert.equal(result.score, 100);
   assert.equal(result.confidence, 0);
-  assert.match(result.sharedFeatures[1], /\*{4}/);
+  assert.equal(result.sharedFeatures[1], '[masked identifier]');
+  assert.doesNotMatch(result.sharedFeatures[1], /ICT\/2024\/123/);
   assert.doesNotMatch(result.explanation, /0712345678/);
   assert.equal(result.providerModel, 'vision-test');
+});
+
+test('visual fusion combines provider, fingerprint and metadata evidence without treating it as proof', () => {
+  const fingerprint = tokenSimilarity('blue:canvas:round-sticker', 'blue:canvas:round-sticker:zip');
+  assert.equal(fingerprint.available, true);
+  assert.ok(fingerprint.score > 0.5);
+  const result = fuseVisualEvidence(
+    sanitizeComparison({ similarity: 82, confidence: 78, sharedFeatures: ['blue bag'], differences: [], reason: 'Similar shape.' }),
+    { visualFingerprint: 'blue:canvas:round-sticker', labels: ['bag'], colors: ['blue'], material: 'canvas' },
+    { visualFingerprint: 'blue:canvas:round-sticker:zip', labels: ['bag'], colors: ['blue'], material: 'canvas' },
+  );
+  assert.equal(result.source, 'visual-fusion-v1');
+  assert.ok(result.score >= 75);
+  assert.deepEqual(Object.keys(result.componentScores), ['provider', 'fingerprint', 'metadata']);
+  assert.match(result.explanation, /privacy-safe fingerprint/i);
+});
+
+test('local-only fusion is bounded and returns null without comparable evidence', () => {
+  const result = fuseVisualEvidence(null, { visualFingerprint: 'same-mark' }, { visualFingerprint: 'same-mark' });
+  assert.equal(result.score, 75);
+  assert.equal(result.componentScores.provider, undefined);
+  assert.equal(fuseVisualEvidence(null, {}, {}), null);
 });
 
 test('provider comparison sends exactly two images with a one-attempt budget', async () => {

@@ -2,9 +2,12 @@ import {
   expandKeywords,
   inferIntent,
   resolveConversationStyle,
+  scoreCandidate,
 } from '../services/chatSearchService.js';
 import { buildConversationalReportDraft } from '../services/conversationalReportService.js';
 import { inspectAIInput } from '../services/aiSafetyService.js';
+import { calculateCalibrationMetrics } from '../services/aiCalibrationService.js';
+import { maskSensitiveText } from '../services/imagePrivacyService.js';
 import goldenCases from './goldenCases.js';
 
 const evaluateCase = (entry) => {
@@ -28,6 +31,19 @@ const evaluateCase = (entry) => {
     if (result.safe !== entry.expectedSafe) failures.push(`safe expected ${entry.expectedSafe}, received ${result.safe}`);
     if (entry.expectedIssue && !result.issues.includes(entry.expectedIssue)) failures.push(`missing issue ${entry.expectedIssue}`);
     if (entry.mustRedact && result.redactedText.includes(entry.mustRedact)) failures.push('private value was not redacted');
+  } else if (entry.capability === 'privacy') {
+    const masked = maskSensitiveText(entry.input);
+    if (entry.mustRedact && masked.includes(entry.mustRedact)) failures.push('sensitive image text was not masked');
+    if (entry.expectedTail && !masked.includes(entry.expectedTail)) failures.push(`masked value did not preserve expected tail ${entry.expectedTail}`);
+  } else if (entry.capability === 'ranking') {
+    const relevant = scoreCandidate(entry.relevant, entry.input);
+    const irrelevant = scoreCandidate(entry.irrelevant, entry.input);
+    if (relevant.score - irrelevant.score < entry.minimumMargin) failures.push(`relevance margin ${relevant.score - irrelevant.score} is below ${entry.minimumMargin}`);
+  } else if (entry.capability === 'calibration') {
+    const metrics = calculateCalibrationMetrics(entry.entries, entry.threshold);
+    for (const [field, expected] of Object.entries(entry.expected || {})) {
+      if (metrics[field] !== expected) failures.push(`${field} expected ${expected}, received ${metrics[field]}`);
+    }
   } else {
     failures.push(`unsupported capability ${entry.capability}`);
   }
@@ -47,7 +63,7 @@ const runGoldenEvals = (cases = goldenCases) => {
   }
   const passed = results.filter((result) => result.passed).length;
   return {
-    datasetVersion: 'golden-v1',
+    datasetVersion: 'golden-v2',
     total: results.length,
     passed,
     failed: results.length - passed,

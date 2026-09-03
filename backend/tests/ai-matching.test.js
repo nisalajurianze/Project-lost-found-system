@@ -79,6 +79,6 @@ test('SEUSL aliases resolve and compare without exposing private precision', () 
 
 test('sensitive OCR values are masked before storage or matching', () => {
   assert.match(maskSensitiveText('0712345678'), /\*{4,}/);
-  assert.match(maskSensitiveText('student ID ICT/2024/123'), /\*{4}/);
+  assert.equal(maskSensitiveText('student ID ICT/2024/123'), '[masked identifier]');
   assert.match(maskSensitiveText('person@example.com'), /\*{3}@/);
 });

@@ -8,6 +8,7 @@ import OutboxEvent from '../models/OutboxEvent.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
 import AdminLog from '../models/AdminLog.js';
 import AIDecisionFeedback from '../models/AIDecisionFeedback.js';
+import DuplicateReviewCluster from '../models/DuplicateReviewCluster.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -16,7 +17,12 @@ import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { ensureNotLastActiveAdmin, anonymizeAccount } from '../services/accountService.js';
 import { revokeAllUserSessions } from '../services/sessionService.js';
 import { sendEmail } from '../services/emailService.js';
-import { buildOperationalIntelligence, mergeBuckets } from '../services/operationalIntelligenceService.js';
+import {
+  answerAdminAnalyticsQuestion,
+  buildOperationalIntelligence,
+  mergeBuckets,
+  mergeHourBuckets,
+} from '../services/operationalIntelligenceService.js';
 
 const CACHE_KEY_DASHBOARD = 'admin:dashboard:stats';
 const CACHE_TTL_SECONDS = 60;
@@ -47,7 +53,8 @@ const getDashboardStats = asyncHandler(async (_req, res) => {
     overdueLostHandovers, overdueFoundHandovers, pendingAIFeedback,
     newLost24, newFound24, approvedClaims30, lostLocationBuckets, foundLocationBuckets,
     lostCategoryBuckets, foundCategoryBuckets, recoveryDurationAgg,
-    categoryOutcomeCohorts, locationOutcomeCohorts,
+    categoryOutcomeCohorts, locationOutcomeCohorts, pendingDuplicateReviews,
+    lostHourBuckets, foundHourBuckets,
   ] = await Promise.all([
     User.countDocuments({ deletedAt: null }),
     LostItem.countDocuments({ isDeleted: { $ne: true } }),
@@ -139,6 +146,15 @@ const getDashboardStats = asyncHandler(async (_req, res) => {
       } },
       { $sort: { sampleSize: -1 } }, { $limit: 20 },
     ]),
+    DuplicateReviewCluster.countDocuments({ status: 'pending' }),
+    LostItem.aggregate([
+      { $match: { lostDate: { $gte: thirtyDaysAgo }, isDeleted: { $ne: true } } },
+      { $group: { _id: { $hour: { date: '$lostDate', timezone: 'Asia/Colombo' } }, count: { $sum: 1 } } },
+    ]),
+    FoundItem.aggregate([
+      { $match: { foundDate: { $gte: thirtyDaysAgo }, isDeleted: { $ne: true } } },
+      { $group: { _id: { $hour: { date: '$foundDate', timezone: 'Asia/Colombo' } }, count: { $sum: 1 } } },
+    ]),
   ]);
 
   const summary = {
@@ -161,16 +177,18 @@ const getDashboardStats = asyncHandler(async (_req, res) => {
     privacyReviewItems,
     highRiskClaims,
     pendingAIFeedback,
+    pendingDuplicateReviews,
     aiRiskPolicy: 'human-review-only',
     aiFeedbackPolicy: 'admin-approved-dataset-only',
-    urgentTotal: overdueClaims + strongSuggestedMatches + overdueLostHandovers + overdueFoundHandovers + deadOutboxEvents + privacyReviewItems + highRiskClaims + pendingAIFeedback,
+    urgentTotal: overdueClaims + strongSuggestedMatches + overdueLostHandovers + overdueFoundHandovers + deadOutboxEvents + privacyReviewItems + highRiskClaims + pendingAIFeedback + pendingDuplicateReviews,
     generatedAt: new Date().toISOString(),
   };
   const locations = mergeBuckets(lostLocationBuckets, foundLocationBuckets);
   const categories = mergeBuckets(lostCategoryBuckets, foundCategoryBuckets);
+  const times = mergeHourBuckets(lostHourBuckets, foundHourBuckets);
   const recoveryAggregate = recoveryDurationAgg[0] || {};
   const intelligence = buildOperationalIntelligence({
-    summary, operations, newLost24, newFound24, approvedClaims30, locations, categories,
+    summary, operations, newLost24, newFound24, approvedClaims30, locations, categories, times,
     averageRecoveryHours: recoveryAggregate.averageHours, recoverySampleSize: recoveryAggregate.sampleSize,
     categoryOutcomeCohorts, locationOutcomeCohorts, predictionMinimumSample, predictionLookbackDays,
   });
@@ -188,6 +206,15 @@ const getDashboardStats = asyncHandler(async (_req, res) => {
   };
   await setCache(CACHE_KEY_DASHBOARD, stats, CACHE_TTL_SECONDS);
   return ApiResponse.ok(stats, 'Dashboard statistics compiled.').send(res);
+});
+
+const explainAdminAnalytics = asyncHandler(async (req, res) => {
+  const question = String(req.body?.question || '').normalize('NFKC').trim().slice(0, 300);
+  if (!question) throw ApiError.badRequest('An analytics question is required.');
+  const stats = await getCache(CACHE_KEY_DASHBOARD);
+  if (!stats?.intelligence) throw ApiError.conflict('Load the analytics dashboard once to compile the latest aggregate evidence.');
+  const explanation = answerAdminAnalyticsQuestion(stats.intelligence, question);
+  return ApiResponse.ok(explanation, 'Grounded aggregate analytics explanation generated.').send(res);
 });
 
 const getUsers = asyncHandler(async (req, res) => {
@@ -297,4 +324,4 @@ const deleteUser = asyncHandler(async (req, res) => {
   return ApiResponse.ok(null, 'User account anonymized successfully.').send(res);
 });
 
-export { getDashboardStats, getUsers, updateUserStatus, updateUserRole, getAdminLogs, deleteUser };
+export { deleteUser, explainAdminAnalytics, getAdminLogs, getDashboardStats, getUsers, updateUserRole, updateUserStatus };

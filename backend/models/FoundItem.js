@@ -54,6 +54,11 @@ const foundItemSchema = new mongoose.Schema(
           format: { type: String, default: '' },
           deliveryType: { type: String, enum: ['upload', 'authenticated'], default: 'upload' },
           privacyStatus: { type: String, enum: ['safe_public', 'legacy_unreviewed'], default: 'legacy_unreviewed' },
+          accessibilityAlt: {
+            text: { type: String, default: '', maxlength: 500 },
+            language: { type: String, enum: ['en', 'si', 'ta', 'singlish'], default: 'en' },
+            status: { type: String, enum: ['draft', 'approved', 'rejected'], default: 'draft' },
+          },
           originalAsset: {
             publicId: { type: String, default: '' },
             format: { type: String, default: '' },

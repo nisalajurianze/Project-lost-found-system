@@ -18,6 +18,14 @@ const userSchema = new mongoose.Schema({
   notificationPreferences: {
     pushEnabled: { type: Boolean, default: true },
     emailEnabled: { type: Boolean, default: true },
+    smartMatchesEnabled: { type: Boolean, default: true },
+    minimumMatchConfidence: { type: Number, min: 50, max: 95, default: 75 },
+    quietHours: {
+      enabled: { type: Boolean, default: false },
+      start: { type: String, default: '22:00', match: /^([01]\d|2[0-3]):[0-5]\d$/u },
+      end: { type: String, default: '07:00', match: /^([01]\d|2[0-3]):[0-5]\d$/u },
+      timezone: { type: String, enum: ['Asia/Colombo'], default: 'Asia/Colombo' },
+    },
     categories: {
       matches: { type: Boolean, default: true },
       claims: { type: Boolean, default: true },

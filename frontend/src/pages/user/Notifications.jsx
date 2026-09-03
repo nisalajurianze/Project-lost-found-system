@@ -57,6 +57,10 @@ export const Notifications = () => {
         const key = field.split('.')[1];
         return { ...current, categories: { ...current.categories, [key]: value } };
       }
+      if (field.startsWith('quietHours.')) {
+        const key = field.split('.')[1];
+        return { ...current, quietHours: { ...current.quietHours, [key]: value } };
+      }
       return { ...current, [field]: value };
     });
   };
@@ -191,6 +195,27 @@ export const Notifications = () => {
                     </label>
                   ))}
                 </div>
+              </fieldset>
+
+              <fieldset className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 dark:border-indigo-900/60 dark:bg-indigo-950/20">
+                <legend className="px-2 text-sm font-bold text-surface-900 dark:text-white">{t('notifications.smartMatches')}</legend>
+                <label className="mt-2 flex min-h-11 items-center gap-3 text-sm font-semibold">
+                  <input type="checkbox" checked={Boolean(preferences.smartMatchesEnabled)} onChange={(event) => updatePreference('smartMatchesEnabled', event.target.checked)} className="h-5 w-5 accent-primary-600" />
+                  {t('notifications.smartMatchesEnabled')}
+                </label>
+                <label className="mt-3 block text-sm font-semibold">
+                  {t('notifications.minimumConfidence', { value: preferences.minimumMatchConfidence })}
+                  <input type="range" min="50" max="95" step="5" value={preferences.minimumMatchConfidence} onChange={(event) => updatePreference('minimumMatchConfidence', Number(event.target.value))} className="mt-2 w-full accent-primary-600" />
+                </label>
+                <label className="mt-3 flex min-h-11 items-center gap-3 text-sm font-semibold">
+                  <input type="checkbox" checked={Boolean(preferences.quietHours?.enabled)} onChange={(event) => updatePreference('quietHours.enabled', event.target.checked)} className="h-5 w-5 accent-primary-600" />
+                  {t('notifications.quietHours')}
+                </label>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-semibold">{t('notifications.quietStart')}<input type="time" value={preferences.quietHours?.start || '22:00'} onChange={(event) => updatePreference('quietHours.start', event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-surface-300 bg-white px-3 dark:border-surface-700 dark:bg-surface-900" /></label>
+                  <label className="text-xs font-semibold">{t('notifications.quietEnd')}<input type="time" value={preferences.quietHours?.end || '07:00'} onChange={(event) => updatePreference('quietHours.end', event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-surface-300 bg-white px-3 dark:border-surface-700 dark:bg-surface-900" /></label>
+                </div>
+                <p className="mt-2 text-xs text-surface-500">{t('notifications.smartPolicy')}</p>
               </fieldset>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-surface-100 dark:border-surface-700/50">

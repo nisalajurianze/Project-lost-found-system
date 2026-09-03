@@ -1,14 +1,13 @@
 const maskSensitiveText = (value) => {
   const input = String(value || '').trim();
   if (!input) return '';
-  if (/\b(?:\d[ -]*?){12,19}\b/.test(input)) return '**** **** **** ' + input.replace(/\D/g, '').slice(-4);
-  if (/\b(?:\+?94|0)?\d{9}\b/.test(input.replace(/[ -]/g, ''))) return `******${input.replace(/\D/g, '').slice(-4)}`;
-  if (/\b(?:student|id|reg|registration)[\s:#-]*[a-z0-9/-]{4,}\b/i.test(input)) return `${input.slice(0, Math.min(3, input.length))}****${input.slice(-2)}`;
-  if (/@/.test(input)) {
-    const [name, domain] = input.split('@');
-    return `${name?.slice(0, 2) || ''}***@${domain || 'hidden'}`;
-  }
-  return input.length > 32 ? `${input.slice(0, 8)}…${input.slice(-4)}` : input;
+  const masked = input
+    .replace(/\b(?:\d[ -]*?){12,19}\b/gu, (match) => `**** **** **** ${match.replace(/\D/g, '').slice(-4)}`)
+    .replace(/\b(?:\+?94|0)[\d -]{8,12}\b/gu, (match) => `******${match.replace(/\D/g, '').slice(-4)}`)
+    .replace(/\b(?:student\s*)?(?:id|reg(?:istration)?)[\s:#-]*[a-z0-9/-]{4,}\b/giu, '[masked identifier]')
+    .replace(/\b([A-Z0-9._%+-]{1,2})[A-Z0-9._%+-]*@([A-Z0-9.-]+\.[A-Z]{2,})\b/giu, '$1***@$2');
+  if (masked !== input) return masked;
+  return input.length > 120 ? `${input.slice(0, 108)}…${input.slice(-8)}` : input;
 };
 
 const sanitizeRegion = (region) => {

@@ -1,11 +1,12 @@
-import React, { useEffect } from 'react';
-import { Award, BarChart3, Calendar, CheckCircle2, Lightbulb, MapPin, ShieldAlert, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Award, BarChart3, Calendar, CheckCircle2, Lightbulb, MapPin, Send, ShieldAlert, TrendingUp } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import MonthlyReportsChart from '../../components/charts/MonthlyReportsChart';
 import StatusPieChart from '../../components/charts/StatusPieChart';
 import Loader from '../../components/common/Loader';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { fetchAdminStats } from '../../redux/slices/adminSlice';
+import adminService from '../../services/adminService';
 
 const BRIEF_KEYS = {
   'reports-created-24h': 'analytics.brief.reportsCreated',
@@ -18,6 +19,9 @@ const Analytics = () => {
   const dispatch = useDispatch();
   const { t } = useLanguage();
   const { stats, isLoading, error } = useSelector((state) => state.admin);
+  const [question, setQuestion] = useState('');
+  const [explanation, setExplanation] = useState(null);
+  const [isExplaining, setIsExplaining] = useState(false);
 
   useEffect(() => { dispatch(fetchAdminStats()); }, [dispatch]);
   if (isLoading && !stats) return <Loader fullScreen />;
@@ -50,6 +54,17 @@ const Analytics = () => {
     { Icon: Award, label: 'analytics.returnRate', value: `${recoveryRate}%`, help: 'analytics.returnRateHelp', iconClass: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400' },
     { Icon: CheckCircle2, label: 'analytics.successCount', value: summary.successfulRecoveries || 0, help: 'analytics.successCountHelp', iconClass: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400' },
   ];
+
+  const explain = async (event) => {
+    event.preventDefault();
+    if (!question.trim()) return;
+    setIsExplaining(true);
+    try {
+      setExplanation(await adminService.explainAnalytics(question.trim()));
+    } catch (requestError) {
+      setExplanation({ answer: requestError.response?.data?.message || t('analytics.aiError'), evidence: [] });
+    } finally { setIsExplaining(false); }
+  };
 
   const CohortList = ({ title, cohorts }) => (
     <div>
@@ -96,6 +111,23 @@ const Analytics = () => {
         </article>
       </section>
 
+      <section className="card border border-violet-200 bg-violet-50/70 p-5 dark:border-violet-900/50 dark:bg-violet-950/20" aria-labelledby="grounded-analytics-title">
+        <h2 id="grounded-analytics-title" className="flex items-center gap-2 text-lg font-bold text-slate-950 dark:text-white"><Lightbulb aria-hidden="true" className="h-5 w-5 text-violet-600" />{t('analytics.aiTitle')}</h2>
+        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{t('analytics.aiNotice')}</p>
+        <form onSubmit={explain} className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="analytics-question" className="sr-only">{t('analytics.aiQuestion')}</label>
+          <input id="analytics-question" value={question} onChange={(event) => setQuestion(event.target.value.slice(0, 300))} placeholder={t('analytics.aiPlaceholder')} className="min-h-11 flex-1 rounded-xl border border-violet-200 bg-white px-4 text-sm dark:border-violet-900 dark:bg-slate-950" />
+          <button type="submit" disabled={isExplaining || !question.trim()} className="btn btn-primary btn-md"><Send aria-hidden="true" className="h-4 w-4" />{isExplaining ? t('analytics.aiWorking') : t('analytics.aiAsk')}</button>
+        </form>
+        {explanation?.answer && (
+          <div className="mt-4 rounded-xl border border-violet-200 bg-white/90 p-4 text-sm dark:border-violet-900 dark:bg-slate-950/80">
+            <p>{explanation.answer}</p>
+            <p className="mt-2 text-xs text-slate-500">{explanation.limitations || t('analytics.aiLimit')}</p>
+          </div>
+        )}
+        {!explanation && intelligence.groundedNarrative?.statements?.length > 0 && <p className="mt-4 rounded-xl bg-white/80 p-4 text-sm dark:bg-slate-950/70">{intelligence.groundedNarrative.statements.join(' ')}</p>}
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3">
         {statCards.map(({ Icon, label, value, help, iconClass }) => (
           <article key={label} className="card flex items-center gap-4 border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60">
@@ -121,7 +153,7 @@ const Analytics = () => {
       <section className="grid gap-6 lg:grid-cols-2" aria-label={t('analytics.hotspotsRecommendations')}>
         <article className="card border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900/60">
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950 dark:text-white"><MapPin aria-hidden="true" className="h-5 w-5 text-rose-500" />{t('analytics.hotspots')}</h2>
-          <div className="mt-4 grid gap-5 sm:grid-cols-2">{[[t('analytics.locations'), intelligence.hotspots.locations], [t('analytics.categories'), intelligence.hotspots.categories]].map(([title, items]) => <div key={title}><h3 className="text-sm font-bold">{title}</h3>{items?.length ? <ol className="mt-2 space-y-2 text-sm">{items.map((item) => <li key={item.label} className="flex justify-between gap-3"><span>{item.label}</span><strong>{item.count}</strong></li>)}</ol> : <p className="mt-2 text-sm text-slate-500">{t('analytics.noHotspots')}</p>}</div>)}</div>
+          <div className="mt-4 grid gap-5 sm:grid-cols-3">{[[t('analytics.locations'), intelligence.hotspots.locations], [t('analytics.categories'), intelligence.hotspots.categories], [t('analytics.times'), intelligence.hotspots.times]].map(([title, items]) => <div key={title}><h3 className="text-sm font-bold">{title}</h3>{items?.length ? <ol className="mt-2 space-y-2 text-sm">{items.map((item) => <li key={item.label} className="flex justify-between gap-3"><span>{item.label}</span><strong>{item.count}</strong></li>)}</ol> : <p className="mt-2 text-sm text-slate-500">{t('analytics.noHotspots')}</p>}</div>)}</div>
           <p className="mt-4 text-xs text-slate-500">{t('analytics.hotspotPrivacy')}</p>
         </article>
         <article className="card border border-amber-200 bg-amber-50/70 p-6 dark:border-amber-900/50 dark:bg-amber-950/20">

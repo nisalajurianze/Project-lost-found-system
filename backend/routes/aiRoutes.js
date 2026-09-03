@@ -4,7 +4,7 @@
 
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { assessReportDraft, confirmAssistantReport, resolveLocationSuggestion, submitAssistantReport, suggestItemDetails } from '../controllers/aiController.js';
+import { approveAccessibilityCaption, assessReportDraft, confirmAssistantReport, getOwnHandoff, requestAssistantHandoff, resolveLocationSuggestion, submitAssistantReport, suggestItemDetails } from '../controllers/aiController.js';
 import { optionalAuth, protect } from '../middlewares/authMiddleware.js';
 import { uploadSingle } from '../middlewares/uploadMiddleware.js';
 
@@ -25,6 +25,9 @@ router.post('/location/resolve', protect, resolveLocationSuggestion);
 router.post('/report/assess', protect, assessReportDraft);
 router.post('/report/confirm', protect, confirmAssistantReport);
 router.post('/report/submit', protect, submitAssistantReport);
+router.patch('/image-caption/:type/:id', protect, approveAccessibilityCaption);
+router.post('/handoff', protect, requestAssistantHandoff);
+router.get('/handoff/:id', protect, getOwnHandoff);
 
 // Route for AI Chat Assistant (Publicly accessible)
 router.post('/chat', aiChatLimiter, optionalAuth, handleAIChat);

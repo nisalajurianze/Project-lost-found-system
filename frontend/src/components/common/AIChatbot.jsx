@@ -10,7 +10,10 @@ import {
   FiPlus,
   FiSearch,
   FiSend,
+  FiSquare,
   FiTrash2,
+  FiUsers,
+  FiVolume2,
   FiX,
 } from 'react-icons/fi';
 import { FaRobot } from 'react-icons/fa';
@@ -225,13 +228,21 @@ const AIChatbot = () => {
   const [mobileViewport, setMobileViewport] = useState(null);
   const [historyReady, setHistoryReady] = useState(false);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [speakingMessage, setSpeakingMessage] = useState(-1);
   const messagesEndRef = useRef(null);
   const dialogRef = useRef(null);
   const floatingButtonRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
+  const utteranceRef = useRef(null);
+  const voiceConsentRef = useRef(false);
   const lastFocusedRef = useRef(null);
   const suppressHistoryWriteRef = useRef(false);
+
+  useEffect(() => () => {
+    recognitionRef.current?.abort?.();
+    window.speechSynthesis?.cancel?.();
+  }, []);
 
   const closeAssistant = () => setIsOpen(false);
   const translateQuickReply = (reply) => ({
@@ -543,6 +554,11 @@ const AIChatbot = () => {
       toast.error(t('assistant.voiceUnsupported'));
       return;
     }
+    if (!voiceConsentRef.current) {
+      const consented = window.confirm(t('assistant.voiceConsent'));
+      if (!consented) return;
+      voiceConsentRef.current = true;
+    }
     const recognition = new SpeechRecognition();
     recognition.lang = voiceLanguage;
     recognition.interimResults = false;
@@ -551,6 +567,7 @@ const AIChatbot = () => {
     recognition.onresult = (event) => {
       const transcript = event.results?.[0]?.[0]?.transcript || '';
       setInput((previous) => `${previous} ${transcript}`.trim());
+      toast.success(t('assistant.voiceReview'));
     };
     recognition.onerror = () => {
       setIsListening(false);
@@ -559,6 +576,48 @@ const AIChatbot = () => {
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
     recognition.start();
+  };
+
+  const speakMessage = (message, index) => {
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance !== 'function') {
+      toast.error(t('assistant.ttsUnsupported'));
+      return;
+    }
+    window.speechSynthesis.cancel();
+    if (speakingMessage === index) {
+      setSpeakingMessage(-1);
+      return;
+    }
+    const spokenText = String(message.content || '').replace(/\[([^\]]+)\]\([^)]+\)/gu, '$1').replace(/[*#_>]/gu, ' ').replaceAll('\u0060', ' ').replace(/\s+/gu, ' ').trim().slice(0, 3000);
+    if (!spokenText) return;
+    const utterance = new window.SpeechSynthesisUtterance(spokenText);
+    utterance.lang = voiceLanguage;
+    utterance.rate = 0.95;
+    utterance.onend = () => setSpeakingMessage(-1);
+    utterance.onerror = () => setSpeakingMessage(-1);
+    utteranceRef.current = utterance;
+    setSpeakingMessage(index);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const requestHumanHandoff = async () => {
+    if (!user) {
+      closeAssistant();
+      navigate('/login');
+      return;
+    }
+    if (!window.confirm(t('assistant.handoffConsent'))) return;
+    try {
+      const response = await api.post('/ai/handoff', {
+        sessionId: conversationId,
+        consent: true,
+        reason: input.trim() || t('assistant.handoffReason'),
+      });
+      setSessionVersion(response.data?.data?.stateVersion || sessionVersion);
+      toast.success(t('assistant.handoffQueued', { id: response.data?.data?.ticketId || '' }));
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('assistant.handoffFailed'));
+    }
   };
 
   const isInitialOnly = messages.length === 1 && messages[0].role === 'ai';
@@ -762,7 +821,15 @@ const AIChatbot = () => {
                   <div><strong>{message.meta.notice}</strong><div className="mt-0.5 font-normal text-amber-800/90 dark:text-amber-300/80">{t('assistant.source', { source: message.meta.source })}</div></div>
                 </div>
               )}
-              <span className="mt-1 px-9 text-[11px] text-surface-400">{message.timestamp}</span>
+              <div className="mt-1 flex items-center gap-2 px-9 text-[11px] text-surface-400">
+                <span>{message.timestamp}</span>
+                {message.role === 'ai' && (
+                  <button type="button" onClick={() => speakMessage(message, index)} className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 hover:bg-surface-100 dark:hover:bg-surface-800" aria-label={speakingMessage === index ? t('assistant.stopSpeaking') : t('assistant.speak')}>
+                    {speakingMessage === index ? <FiSquare aria-hidden="true" /> : <FiVolume2 aria-hidden="true" />}
+                    {speakingMessage === index ? t('assistant.stop') : t('assistant.listen')}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
 
@@ -919,6 +986,9 @@ const AIChatbot = () => {
               </div>
             </div>
           </div>
+          <button type="button" onClick={requestHumanHandoff} className="mt-2 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-xl border border-surface-200 text-xs font-semibold text-surface-600 hover:border-primary-300 hover:text-primary-700 dark:border-surface-700 dark:text-surface-300">
+            <FiUsers aria-hidden="true" />{t('assistant.handoff')}
+          </button>
           <p className="mt-1.5 text-center text-[10px] text-surface-400 dark:text-surface-500 font-medium">
             AI Assistant · {t('assistant.ownershipNote')}
           </p>

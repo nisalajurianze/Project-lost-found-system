@@ -39,8 +39,8 @@ test('prompt registry provides stable purpose-specific versions', () => {
 
 test('offline multilingual golden AI eval corpus passes completely', () => {
   const report = runGoldenEvals();
-  assert.equal(report.datasetVersion, 'golden-v1');
-  assert.equal(report.total, 12);
+  assert.equal(report.datasetVersion, 'golden-v2');
+  assert.equal(report.total, 17);
   assert.equal(report.failed, 0, JSON.stringify(report.results.filter((entry) => !entry.passed), null, 2));
   assert.equal(report.passRate, 100);
   assert.ok(report.byLanguage.singlish.passed >= 2);

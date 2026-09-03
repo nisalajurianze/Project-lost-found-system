@@ -97,8 +97,8 @@ Remediation scope: validated P1/P2 issues plus deterministic release blockers. P
 
 - [x] Phase 1: Safety gateway, provider observability, and automated eval foundation (AI-07, AI-08)
 - [x] Phase 2: Stateful conversation, corrections, approved report submission, and recovery guidance (AI-01, AI-02, AI-03, AI-20)
-- [/] Phase 3: Hybrid semantic search, spelling, campus knowledge, and FAQ RAG (AI-04, AI-10, AI-11, AI-21)
-- [ ] Phase 4: Vision/OCR, image quality, sensitive-data redaction, captions, and posters (AI-05, AI-13, AI-14, AI-15, AI-19)
-- [ ] Phase 5: Approved-feedback calibration, duplicate/spam review, and grounded admin intelligence (AI-06, AI-16, AI-18)
+- [x] Phase 3: Hybrid semantic search, spelling, campus knowledge, and FAQ RAG (AI-04, AI-10, AI-11, AI-21)
+- [x] Phase 4: Vision/OCR, image quality, sensitive-data redaction, captions, and posters (AI-05, AI-13, AI-14, AI-15, AI-19)
+- [/] Phase 5: Approved-feedback calibration, duplicate/spam review, and grounded admin intelligence (AI-06, AI-16, AI-18)
 - [ ] Phase 6: Voice output, calibrated notifications, and human handoff (AI-09, AI-12, AI-17)
 - [ ] Phase 7: Full regression/eval/browser checks, migrations/docs, deployment, and live verification

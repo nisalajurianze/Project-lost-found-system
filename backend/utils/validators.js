@@ -548,16 +548,24 @@ const notificationQueryValidator = [
 const notificationPreferencesValidator = [
   body('pushEnabled').isBoolean().withMessage('pushEnabled must be boolean'),
   body('emailEnabled').isBoolean().withMessage('emailEnabled must be boolean'),
+  body('smartMatchesEnabled').isBoolean().withMessage('smartMatchesEnabled must be boolean'),
+  body('minimumMatchConfidence').isInt({ min: 50, max: 95 }).withMessage('minimumMatchConfidence must be between 50 and 95'),
+  body('quietHours.enabled').isBoolean().withMessage('quietHours.enabled must be boolean'),
+  body('quietHours.start').matches(/^([01]\d|2[0-3]):[0-5]\d$/u).withMessage('quietHours.start must use HH:mm'),
+  body('quietHours.end').matches(/^([01]\d|2[0-3]):[0-5]\d$/u).withMessage('quietHours.end must use HH:mm'),
+  body('quietHours.timezone').equals('Asia/Colombo').withMessage('quietHours.timezone must be Asia/Colombo'),
   ...['matches', 'claims', 'handover', 'reminders', 'system'].map((key) =>
     body(`categories.${key}`).isBoolean().withMessage(`categories.${key} must be boolean`)
   ),
   body().custom((value) => {
-    const allowed = new Set(['pushEnabled', 'emailEnabled', 'categories']);
+    const allowed = new Set(['pushEnabled', 'emailEnabled', 'smartMatchesEnabled', 'minimumMatchConfidence', 'quietHours', 'categories']);
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Notification preferences must be an object');
     if (Object.keys(value).some((key) => !allowed.has(key))) throw new Error('Unknown notification preference field');
     const categoryKeys = Object.keys(value.categories || {});
     const allowedCategories = new Set(['matches', 'claims', 'handover', 'reminders', 'system']);
     if (categoryKeys.some((key) => !allowedCategories.has(key))) throw new Error('Unknown notification category');
+    const quietKeys = Object.keys(value.quietHours || {});
+    if (quietKeys.some((key) => !['enabled', 'start', 'end', 'timezone'].includes(key))) throw new Error('Unknown quiet-hours field');
     return true;
   }),
 ];

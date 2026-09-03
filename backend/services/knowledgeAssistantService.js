@@ -41,7 +41,7 @@ const SYSTEM_ARTICLES = Object.freeze([
   },
 ]);
 
-const KNOWLEDGE_PATTERN = /\b(?:faq|policy|rules?|which facult|where is (?:fas|faculty|library)|library (?:hours|open|location)|campus (?:map|facilities|faculty)|how (?:do|can|to) (?:report|claim))\b|නීති|ප්‍රතිපත්තිය|පීඨ|පුස්තකාලය කොහෙද|விதி|கொள்கை|பீடம்|நூலகம் எங்கே/iu;
+const KNOWLEDGE_PATTERN = /\b(?:faq|policy|rules?|which facult(?:y|ies)|where is (?:fas|faculty|library)|library (?:hours|open|location)|campus (?:map|facilities|faculty)|how (?:do|can|to) (?:report|claim))\b|නීති|ප්‍රතිපත්තිය|පීඨ|පුස්තකාලය කොහෙද|விதி|கொள்கை|பீடம்|நூலகம் எங்கே/iu;
 const isKnowledgeQuery = (message) => KNOWLEDGE_PATTERN.test(String(message || '').normalize('NFKC'));
 const articleDocument = (article) => [article.title, article.answer, ...(article.aliases || [])].join(' ');
 const rankKnowledgeArticles = (query, articles, responseStyle = 'en') => (articles || [])

@@ -11,6 +11,7 @@ import imageCompression from 'browser-image-compression';
 import { IMAGE_TRANSFORM_ERROR_CODES, transformImageFile } from '../../utils/imageTransform';
 import { imageFileKey } from '../../utils/imageRedaction';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { assessImageFile } from '../../utils/imageQuality';
 
 export const ImageUpload = ({
   images = [],
@@ -83,6 +84,12 @@ export const ImageUpload = ({
       }
 
       try {
+        const quality = await assessImageFile(file);
+        if (!quality.acceptable) {
+          toast.error(t('report.photoQualityReject', { guidance: quality.guidance.join(', ') || t('report.photoQualityBetter') }));
+          continue;
+        }
+        if (quality.score < 60) toast(t('report.photoQualityWarn', { guidance: quality.guidance.join(', ') || t('report.photoQualityBetter') }));
         const compressedFile = await imageCompression(file, options);
         validFiles.push(compressedFile);
       } catch (error) {
@@ -278,4 +285,3 @@ export const ImageUpload = ({
 };
 
 export default ImageUpload;
-

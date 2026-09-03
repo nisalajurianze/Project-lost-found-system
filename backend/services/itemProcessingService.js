@@ -5,6 +5,7 @@ import { analyzeItemImage, generateKeywordsFromText } from './imageAnalysisServi
 import { runMatchingForItem } from './aiMatchingService.js';
 import { assessReport } from './reportIntelligenceService.js';
 import { privateAssetView } from './cloudinaryService.js';
+import { assessCrossAccountDuplicates } from './duplicateDetectionService.js';
 
 const processItem = async (itemType, itemId) => {
   const Model = itemType === 'LostItem' ? LostItem : FoundItem;
@@ -21,6 +22,13 @@ const processItem = async (itemType, itemId) => {
     ...(analysis?.labels || []).map((entry) => String(entry).toLowerCase()),
     ...(analysis?.colors || []).map((entry) => String(entry).toLowerCase()),
   ])].slice(0, 30);
+  if (item.images?.[0] && analysis?.accessibilityCaption?.draft) {
+    item.images[0].accessibilityAlt = {
+      text: String(analysis.accessibilityCaption.draft).slice(0, 500),
+      language: analysis.accessibilityCaption.language || 'en',
+      status: 'draft',
+    };
+  }
   const intelligence = await assessReport({
     report: item.toObject(),
     itemType,
@@ -35,7 +43,10 @@ const processItem = async (itemType, itemId) => {
     reasons: candidate.reasons,
   }));
   await item.save();
-  await runMatchingForItem(item, itemType);
+  await Promise.all([
+    runMatchingForItem(item, itemType),
+    assessCrossAccountDuplicates({ item: item.toObject(), itemType }),
+  ]);
   return item;
 };
 

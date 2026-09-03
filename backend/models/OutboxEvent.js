@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 
 const outboxEventSchema = new mongoose.Schema({
-  type: { type: String, required: true, enum: ['item.process', 'media.delete'], index: true },
+  type: { type: String, required: true, enum: ['item.process', 'media.delete', 'match.notify'], index: true },
   payload: {
     itemType: { type: String, enum: ['LostItem', 'FoundItem'], default: undefined },
     itemId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
+    matchId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
+    userId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
+    participantSide: { type: String, enum: ['lost', 'found'], default: undefined },
     assets: {
       type: [{
         publicId: { type: String, required: true, maxlength: 300 },

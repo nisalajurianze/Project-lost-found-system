@@ -4,6 +4,7 @@ import Category, { normalizeCategoryName } from '../models/Category.js';
 import Match from '../models/Match.js';
 import ClaimRequest from '../models/ClaimRequest.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
+import PosterAsset from '../models/PosterAsset.js';
 import ApiError from '../utils/apiError.js';
 import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
@@ -169,6 +170,7 @@ const deleteFoundItem = asyncHandler(async (req, res) => {
       await Match.updateMany({ foundItemId: item._id, status: { $ne: 'rejected' } }, { $set: { status: 'rejected' } }, { session });
       await ClaimRequest.updateMany({ foundItemId: item._id, status: 'pending' }, { $set: { status: 'rejected', adminRemark: 'The report was deleted.', reviewedAt: new Date(), reviewedBy: req.user._id } }, { session });
       await ImageAnalysis.deleteMany({ itemId: item._id, itemType: 'FoundItem' }).session(session);
+      await PosterAsset.updateMany({ reportId: item._id, reportType: 'FoundItem' }, { $set: { status: 'deleted' } }, { session });
     });
   } finally { await session.endSession(); }
   await deleteMultipleImages(images);
