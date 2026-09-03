@@ -14,8 +14,8 @@ const AccessibilityCaptionReview = ({ reportType, reportId, image }) => {
     try {
       await api.patch(`/ai/image-caption/${reportType}/${reportId}`, { text, language });
       toast.success(t('caption.approved'));
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('caption.failed'));
+    } catch {
+      toast.error(t('caption.failed'));
     } finally { setIsSaving(false); }
   };
   return (

@@ -59,6 +59,8 @@ npm run admin:bootstrap
 
 For an existing installation, follow [`MIGRATION.md`](./MIGRATION.md) before deployment.
 
+The 21-capability AI implementation and its environment-dependent acceptance gates are tracked in [`AI_PLATFORM_CAPABILITY_MATRIX_2026.md`](./docs/implementation/AI_PLATFORM_CAPABILITY_MATRIX_2026.md). Before enabling it on existing data, run `npm run migrate:ai` in dry-run mode; apply only after a verified backup with `CONFIRM_AI_MIGRATION=YES npm run migrate:ai -- --apply`.
+
 ## Verification commands
 
 ```bash

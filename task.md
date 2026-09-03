@@ -99,6 +99,8 @@ Remediation scope: validated P1/P2 issues plus deterministic release blockers. P
 - [x] Phase 2: Stateful conversation, corrections, approved report submission, and recovery guidance (AI-01, AI-02, AI-03, AI-20)
 - [x] Phase 3: Hybrid semantic search, spelling, campus knowledge, and FAQ RAG (AI-04, AI-10, AI-11, AI-21)
 - [x] Phase 4: Vision/OCR, image quality, sensitive-data redaction, captions, and posters (AI-05, AI-13, AI-14, AI-15, AI-19)
-- [/] Phase 5: Approved-feedback calibration, duplicate/spam review, and grounded admin intelligence (AI-06, AI-16, AI-18)
-- [ ] Phase 6: Voice output, calibrated notifications, and human handoff (AI-09, AI-12, AI-17)
-- [ ] Phase 7: Full regression/eval/browser checks, migrations/docs, deployment, and live verification
+- [x] Phase 5: Approved-feedback calibration, duplicate/spam review, and grounded admin intelligence (AI-06, AI-16, AI-18)
+- [x] Phase 6: Voice input/output, calibrated notifications, and consented human handoff (AI-09, AI-12, AI-17)
+- [x] Phase 7: Full regression/eval/browser checks, safe migration path, API/docs, and release-boundary verification
+
+Implementation stance: AI-01 to AI-21 are complete in local source. Production migration/deployment was deliberately not mutated from this local implementation run. Live model, email/push, device, backup/restore, load/accessibility and institutional acceptance remain external release gates and are not represented as locally passed.

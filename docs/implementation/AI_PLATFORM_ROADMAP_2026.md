@@ -4,6 +4,8 @@
 **Scope:** All 21 requested AI capabilities across backend, frontend, data, privacy, evaluation, operations, and deployment.  
 **Planning basis:** Current repository source is authoritative. Existing AI work is reused; `implemented` does not mean live-provider or university acceptance is complete.
 
+**Implementation update (2026-09-04):** All AI-01 to AI-21 capabilities are implemented in the local source and have deterministic regression coverage. See [`AI_PLATFORM_CAPABILITY_MATRIX_2026.md`](./AI_PLATFORM_CAPABILITY_MATRIX_2026.md) for exact evidence and the external acceptance gates that still prevent a production-certified claim.
+
 ## 1. Outcome and non-negotiable rules
 
 The target is a multilingual, privacy-first lost-and-found assistant that can understand a user over multiple turns, create a reviewable report, find and explain likely matches, guide recovery, and escalate to a human. AI remains advisory.
@@ -430,4 +432,3 @@ Recommended defaults are provided so work can start without architecture churn; 
 ## 14. Completion rule
 
 This roadmap is complete as a plan, not as an implementation claim. A capability is complete only when source, migrations, tests/evals, documentation, preview evidence, live provider/infrastructure checks where applicable, and human/institutional approvals all satisfy its gate. Any blocked provider, field-data, policy, or account requirement stays visibly open.
-

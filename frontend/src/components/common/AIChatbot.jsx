@@ -377,8 +377,8 @@ const AIChatbot = () => {
       ]);
       setQuickReplies([]);
       toast.success(t('assistant.reportSubmittedToast'));
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('assistant.reportSubmitFailed'));
+    } catch {
+      toast.error(t('assistant.reportSubmitFailed'));
     } finally {
       setIsSubmittingReport(false);
     }
@@ -615,8 +615,8 @@ const AIChatbot = () => {
       });
       setSessionVersion(response.data?.data?.stateVersion || sessionVersion);
       toast.success(t('assistant.handoffQueued', { id: response.data?.data?.ticketId || '' }));
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('assistant.handoffFailed'));
+    } catch {
+      toast.error(t('assistant.handoffFailed'));
     }
   };
 
@@ -836,61 +836,61 @@ const AIChatbot = () => {
           {/* Quick Starter Grid when conversation is empty */}
           {isInitialOnly && (
             <div className="mt-2 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-surface-400 px-1">Suggested Inquiries</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-surface-400 px-1">{t('assistant.suggestedQuestions')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => requestAssistant('I lost my item on campus')}
+                  onClick={() => requestAssistant(t('assistant.starterLostPrompt'))}
                   className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-primary-400 hover:bg-primary-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-primary-700 transition group"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
                     <FiSearch className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">Lost Something</div>
-                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Search & draft a report</div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">{t('assistant.starterLostTitle')}</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">{t('assistant.starterLostDescription')}</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => requestAssistant('I found an item on campus')}
+                  onClick={() => requestAssistant(t('assistant.starterFoundPrompt'))}
                   className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-emerald-400 hover:bg-emerald-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-emerald-700 transition group"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
                     <FiPackage className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Found an Item</div>
-                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Help return to owner</div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">{t('assistant.starterFoundTitle')}</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">{t('assistant.starterFoundDescription')}</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => requestAssistant('Items found near Library')}
+                  onClick={() => requestAssistant(t('assistant.starterLibraryPrompt'))}
                   className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-amber-400 hover:bg-amber-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-amber-700 transition group"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
                     <FiSearch className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-amber-600 dark:group-hover:text-amber-400">Library Area</div>
-                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Check recent findings</div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-amber-600 dark:group-hover:text-amber-400">{t('assistant.starterLibraryTitle')}</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">{t('assistant.starterLibraryDescription')}</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => requestAssistant('My reports')}
+                  onClick={() => requestAssistant(t('assistant.starterActivityPrompt'))}
                   className="flex items-center gap-2.5 p-3 rounded-xl border border-surface-200/80 bg-surface-50/60 text-left hover:border-primary-400 hover:bg-primary-50/40 dark:border-surface-700/80 dark:bg-surface-800/40 dark:hover:border-primary-700 transition group"
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300">
                     <FiClock className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">My Activity</div>
-                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">Claims, matches, alerts</div>
+                    <div className="text-xs font-bold text-surface-800 dark:text-surface-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">{t('assistant.starterActivityTitle')}</div>
+                    <div className="text-[11px] text-surface-500 dark:text-surface-400 truncate">{t('assistant.starterActivityDescription')}</div>
                   </div>
                 </button>
               </div>

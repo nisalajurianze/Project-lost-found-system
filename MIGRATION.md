@@ -19,3 +19,20 @@ npm run seed:defaults
 7. Schedule the production migration, stop writes/workers if required, rerun the same commands, and capture logs.
 
 Never run the disabled legacy seed entrypoints. They intentionally exit without deleting data.
+
+# AI platform schema and embedding backfill
+
+The AI platform migration is separate from the core production migration and is read-only by default:
+
+```bash
+cd backend
+npm run migrate:ai
+```
+
+Review the reported counts and take a verified backup. Apply the idempotent updates only with both explicit controls:
+
+```bash
+CONFIRM_AI_MIGRATION=YES npm run migrate:ai -- --apply
+```
+
+This adds missing smart-match preference defaults, normalizes legacy image-analysis documents to the vision-v3 schema, backfills deterministic semantic embeddings for active reports and approved knowledge, and creates the AI indexes. It preserves existing reports and user data. Re-running apply mode is safe because embedding writes use a compound version key and upserts.

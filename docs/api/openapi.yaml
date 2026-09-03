@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Smart Lost & Found API
-  version: 2026.07.26
+  version: 2026.09.03
   description: Privacy-aware SEUSL lost-and-found API. AI scores are advisory and not proof of ownership.
 servers:
   - url: /api
@@ -78,11 +78,33 @@ paths:
     post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Confidence/sensitivity-aware location interpretation}}}
   /ai/report/assess:
     post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Advisory quality and own-report duplicate preflight}}}
+  /ai/report/confirm:
+    post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Short-lived single-use report confirmation token}}}
+  /ai/report/submit:
+    post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Idempotent user-approved report submission}}}
+  /ai/image-caption/{type}/{id}:
+    patch: {tags: [AI], parameters: [{name: type, in: path, required: true, schema: {type: string, enum: [lost, found]}}, {$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Owner-reviewed accessibility caption}}}
+  /ai/handoff:
+    post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Consented redacted assistant handoff queued}}}
+  /ai/handoff/{id}:
+    get: {tags: [AI], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Requester handoff status}}}
+  /posters/{type}/{id}/preview:
+    post: {tags: [AI], parameters: [{name: type, in: path, required: true, schema: {type: string, enum: [lost, found]}}, {$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Owner-only privacy-safe poster preview}}}
+  /posters/{id}/approve:
+    post: {tags: [AI], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Poster approved for download and sharing}}}
   /ai-feedback:
     post: {tags: [AI], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Correction queued for admin review}}}
     get: {tags: [Admin], responses: {'200': {description: Admin AI feedback queue}}}
   /ai-feedback/{id}/review:
     put: {tags: [Admin], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Approve/reject dataset use}}}
+  /ai-feedback/calibration:
+    get: {tags: [Admin], responses: {'200': {description: Approved feedback, sealed snapshot, champion and challenger overview}}}
+  /ai-feedback/calibration/snapshots:
+    post: {tags: [Admin], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Immutable approved-feedback snapshot sealed}}}
+  /ai-feedback/calibration/experiments:
+    post: {tags: [Admin], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'201': {description: Offline challenger experiment created}}}
+  /ai-feedback/calibration/experiments/{id}/promote:
+    put: {tags: [Admin], parameters: [{$ref: '#/components/parameters/Id'}], responses: {'200': {description: Human promotion after sample and false-positive guardrails}}}
   /locations/resolve:
     get: {tags: [Locations], security: [], parameters: [{name: q, in: query, required: true, schema: {type: string}}], responses: {'200': {description: Public privacy-reduced resolver}}}
   /locations/suggestions:
@@ -105,6 +127,16 @@ paths:
     get: {tags: [Admin], responses: {'200': {description: Database-backed operational metrics}}}
   /admin/ai-health:
     get: {tags: [Admin], responses: {'200': {description: Provider/fallback/latency health}}}
+  /admin/analytics/explain:
+    post: {tags: [Admin], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Aggregate-only grounded location/category/time explanation}}}
+  /admin/duplicate-reviews:
+    get: {tags: [Admin], responses: {'200': {description: Advisory duplicate/spam review queue}}}
+  /admin/duplicate-reviews/{id}:
+    put: {tags: [Admin], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Human duplicate review decision}}}
+  /admin/assistant-handoffs:
+    get: {tags: [Admin], responses: {'200': {description: Authorised redacted assistant handoff queue}}}
+  /admin/assistant-handoffs/{id}:
+    put: {tags: [Admin], parameters: [{$ref: '#/components/parameters/Id'}], requestBody: {$ref: '#/components/requestBodies/Json'}, responses: {'200': {description: Human handoff status update}}}
 components:
   securitySchemes:
     cookieAuth: {type: apiKey, in: cookie, name: lf_access}
@@ -116,11 +148,22 @@ components:
   schemas:
     NotificationPreferences:
       type: object
-      required: [pushEnabled, emailEnabled, categories]
+      required: [pushEnabled, emailEnabled, smartMatchesEnabled, minimumMatchConfidence, quietHours, categories]
       additionalProperties: false
       properties:
         pushEnabled: {type: boolean}
         emailEnabled: {type: boolean}
+        smartMatchesEnabled: {type: boolean}
+        minimumMatchConfidence: {type: integer, minimum: 50, maximum: 95}
+        quietHours:
+          type: object
+          additionalProperties: false
+          required: [enabled, start, end, timezone]
+          properties:
+            enabled: {type: boolean}
+            start: {type: string, pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'}
+            end: {type: string, pattern: '^([01]\\d|2[0-3]):[0-5]\\d$'}
+            timezone: {type: string, const: Asia/Colombo}
         categories:
           type: object
           additionalProperties: false

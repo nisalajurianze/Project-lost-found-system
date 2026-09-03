@@ -62,8 +62,8 @@ const AIFeedbackReview = () => {
       await aiFeedbackService.sealSnapshot(threshold);
       toast.success(t('aiFeedback.snapshotSealed'));
       await load();
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('aiFeedback.governanceError'));
+    } catch {
+      toast.error(t('aiFeedback.governanceError'));
     } finally { setSaving(''); }
   };
 
@@ -74,8 +74,8 @@ const AIFeedbackReview = () => {
       await aiFeedbackService.createChallenger({ snapshotId: calibration.latestSnapshot._id, algorithmVersion: algorithmVersion.trim(), threshold });
       toast.success(t('aiFeedback.challengerCreated'));
       await load();
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('aiFeedback.governanceError'));
+    } catch {
+      toast.error(t('aiFeedback.governanceError'));
     } finally { setSaving(''); }
   };
 
@@ -85,8 +85,8 @@ const AIFeedbackReview = () => {
       await aiFeedbackService.promoteChallenger(id);
       toast.success(t('aiFeedback.championPromoted'));
       await load();
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('aiFeedback.governanceError'));
+    } catch {
+      toast.error(t('aiFeedback.governanceError'));
     } finally { setSaving(''); }
   };
 

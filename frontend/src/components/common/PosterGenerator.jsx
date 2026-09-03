@@ -17,8 +17,8 @@ const PosterGenerator = ({ reportType, reportId }) => {
       const response = await api.post(`/posters/${reportType}/${reportId}/preview`, { language: posterLanguage });
       setPreview(response.data?.data || null);
       setIsApproved(false);
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('poster.failed'));
+    } catch {
+      toast.error(t('poster.failed'));
     } finally { setIsLoading(false); }
   };
 
@@ -29,8 +29,8 @@ const PosterGenerator = ({ reportType, reportId }) => {
       await api.post(`/posters/${preview.assetId}/approve`);
       setIsApproved(true);
       toast.success(t('poster.approved'));
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('poster.failed'));
+    } catch {
+      toast.error(t('poster.failed'));
     } finally { setIsLoading(false); }
   };
 
