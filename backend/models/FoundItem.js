@@ -13,6 +13,7 @@ const foundItemSchema = new mongoose.Schema(
       required: [true, 'User ID is required'],
       index: true,
     },
+    assistantSubmissionId: { type: mongoose.Schema.Types.ObjectId, default: null, unique: true, sparse: true },
     itemName: {
       type: String,
       required: [true, 'Item name is required'],

@@ -10,6 +10,7 @@
     "check": "node scripts/checkSyntax.mjs",
     "lint": "node ./node_modules/eslint/bin/eslint.js . --report-unused-disable-directives --max-warnings 0",
     "test": "node --test tests/*.test.js",
+    "eval:ai": "node scripts/runAiEvals.mjs",
     "seed:defaults": "node scripts/seedDefaults.js",
     "admin:bootstrap": "node scripts/bootstrapAdmin.js",
     "migrate": "node scripts/migrateProduction.js"

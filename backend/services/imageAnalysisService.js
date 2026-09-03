@@ -82,7 +82,7 @@ const analyzeRemoteImage = async (imageUrl) => requestAIJson([{
     },
     { type: 'image_url', image_url: { url: imageUrl } },
   ],
-}], { vision: true, purpose: 'item-image-analysis', validator: visionValidator });
+}], { vision: true, purpose: 'item-image-analysis', validator: visionValidator, allowSensitiveOutput: true });
 
 const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', description = '') => {
   const fallback = getFallbackAnalysis(itemName, description);
@@ -92,11 +92,11 @@ const analyzeItemImage = async (itemType, itemId, imageUrl, itemName = '', descr
       const response = await analyzeRemoteImage(imageUrl);
       analysis = response ? sanitizeAnalysis(response.data, fallback, response.meta) : fallback;
     } catch (error) {
-      recordFallbackUse();
+      recordFallbackUse('item-image-analysis');
       console.warn('[ai] image analysis unavailable; fallback used', { code: error.code || error.name });
     }
   } else {
-    recordFallbackUse();
+    recordFallbackUse('item-image-analysis');
   }
   return ImageAnalysis.findOneAndUpdate(
     { itemId, itemType },
@@ -141,7 +141,7 @@ const suggestDetailsFromImage = async (imageUrl) => {
       },
       { type: 'image_url', image_url: { url: imageUrl } },
     ],
-  }], { vision: true, purpose: 'report-auto-fill', validator: suggestionValidator });
+  }], { vision: true, purpose: 'report-auto-fill', validator: suggestionValidator, allowSensitiveOutput: true });
   const result = response?.data;
   if (!result) throw new Error('AI provider returned an invalid suggestion.');
   return {
@@ -175,7 +175,7 @@ const generateKeywordsFromText = async (itemName, description) => {
     }], { purpose: 'keyword-normalisation', validator: keywordValidator });
     return [...new Set(response.data.keywords.map((entry) => String(entry).trim().toLocaleLowerCase('en-US')).filter(Boolean).slice(0, 12))];
   } catch {
-    recordFallbackUse();
+    recordFallbackUse('keyword-normalisation');
     return fallback;
   }
 };

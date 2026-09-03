@@ -1,14 +1,22 @@
+import { getPromptRegistry, promptVersionForPurpose } from './aiPromptRegistry.js';
+import { AI_SAFETY_VERSION, inspectAIOutput, validateAIMessageEnvelope } from './aiSafetyService.js';
+
 const metrics = {
   startedAt: new Date(),
   requests: 0,
   successes: 0,
   failures: 0,
   fallbackUses: 0,
+  safetyRejections: 0,
+  schemaRejections: 0,
+  totalInputChars: 0,
+  totalOutputChars: 0,
   totalLatencyMs: 0,
   lastSuccessAt: null,
   lastFailureAt: null,
   lastFailureCode: '',
   byModel: {},
+  byPurpose: {},
 };
 
 const circuitStates = new Map();
@@ -66,6 +74,30 @@ const updateModelMetrics = (model, outcome, latencyMs) => {
   target[outcome === 'success' ? 'successes' : 'failures'] += 1;
 };
 
+const updatePurposeMetrics = (purpose, outcome, {
+  latencyMs = 0,
+  inputChars = 0,
+  outputChars = 0,
+  code = '',
+} = {}) => {
+  metrics.byPurpose[purpose] ||= {
+    requests: 0, successes: 0, failures: 0, fallbackUses: 0,
+    safetyRejections: 0, schemaRejections: 0, totalLatencyMs: 0,
+    totalInputChars: 0, totalOutputChars: 0, lastFailureCode: '',
+  };
+  const target = metrics.byPurpose[purpose];
+  if (outcome === 'request') target.requests += 1;
+  if (outcome === 'success') target.successes += 1;
+  if (outcome === 'failure') target.failures += 1;
+  if (outcome === 'fallback') target.fallbackUses += 1;
+  if (outcome === 'safety') target.safetyRejections += 1;
+  if (outcome === 'schema') target.schemaRejections += 1;
+  target.totalLatencyMs += Math.max(0, Number(latencyMs) || 0);
+  target.totalInputChars += Math.max(0, Number(inputChars) || 0);
+  target.totalOutputChars += Math.max(0, Number(outputChars) || 0);
+  if (code) target.lastFailureCode = String(code).slice(0, 80);
+};
+
 const validateResult = (value, validator) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   if (!validator) return true;
@@ -78,9 +110,18 @@ const requestAIJson = async (messages, {
   validator = null,
   temperature = 0.1,
   maxAttempts = Number(process.env.AI_MAX_ATTEMPTS || 3),
+  allowSensitiveOutput = false,
+  promptVersion = promptVersionForPurpose(purpose),
 } = {}) => {
+  const envelope = validateAIMessageEnvelope(messages);
+  if (!envelope.safe) {
+    metrics.safetyRejections += 1;
+    updatePurposeMetrics(purpose, 'safety', { code: envelope.code, inputChars: envelope.textChars });
+    const error = new Error('AI message envelope rejected by safety policy.');
+    error.code = envelope.code;
+    throw error;
+  }
   if (!aiConfigured({ vision })) return null;
-  if (!Array.isArray(messages) || messages.length === 0) throw new Error('AI messages are required.');
 
   const keys = getApiKeys();
   const models = getModels(vision);
@@ -92,6 +133,8 @@ const requestAIJson = async (messages, {
   let lastCode = 'AI_PROVIDER_UNAVAILABLE';
 
   metrics.requests += 1;
+  metrics.totalInputChars += envelope.textChars;
+  updatePurposeMetrics(purpose, 'request', { inputChars: envelope.textChars });
 
   for (const model of models) {
     for (let keyIndex = 0; keyIndex < keys.length; keyIndex += 1) {
@@ -128,16 +171,27 @@ const requestAIJson = async (messages, {
         const result = parseJSONResponse(data?.choices?.[0]?.message?.content);
         if (!validateResult(result, validator)) {
           lastCode = 'INVALID_SCHEMA';
+          metrics.schemaRejections += 1;
+          updatePurposeMetrics(purpose, 'schema', { code: lastCode });
+          throw new Error(lastCode);
+        }
+        const outputSafety = inspectAIOutput(result, { allowSensitiveText: allowSensitiveOutput });
+        if (!outputSafety.safe) {
+          lastCode = outputSafety.code;
+          metrics.safetyRejections += 1;
+          updatePurposeMetrics(purpose, 'safety', { code: lastCode, outputChars: outputSafety.serializedChars });
           throw new Error(lastCode);
         }
 
         const latencyMs = Date.now() - startedAt;
         metrics.successes += 1;
         metrics.totalLatencyMs += latencyMs;
+        metrics.totalOutputChars += outputSafety.serializedChars;
         metrics.lastSuccessAt = new Date();
         updateModelMetrics(model, 'success', latencyMs);
+        updatePurposeMetrics(purpose, 'success', { latencyMs, outputChars: outputSafety.serializedChars });
         setCircuit(model, keyIndex, { failures: 0, openUntil: 0 });
-        return { data: result, meta: { model, keySlot: keyIndex + 1, attempts, latencyMs, purpose } };
+        return { data: result, meta: { model, keySlot: keyIndex + 1, attempts, latencyMs, purpose, promptVersion, safetyVersion: AI_SAFETY_VERSION } };
       } catch (error) {
         const latencyMs = Date.now() - startedAt;
         const nextFailures = state.failures + 1;
@@ -147,19 +201,24 @@ const requestAIJson = async (messages, {
         });
         updateModelMetrics(model, 'failure', latencyMs);
         metrics.lastFailureAt = new Date();
-        metrics.lastFailureCode = lastCode || error?.name || 'AI_PROVIDER_ERROR';
+        lastCode = lastCode || error?.code || error?.name || 'AI_PROVIDER_ERROR';
+        metrics.lastFailureCode = lastCode;
       }
     }
     if (attempts >= attemptBudget) break;
   }
 
   metrics.failures += 1;
+  updatePurposeMetrics(purpose, 'failure', { code: lastCode });
   const error = new Error('AI provider attempts were exhausted.');
   error.code = lastCode;
   throw error;
 };
 
-const recordFallbackUse = () => { metrics.fallbackUses += 1; };
+const recordFallbackUse = (purpose = 'generic') => {
+  metrics.fallbackUses += 1;
+  updatePurposeMetrics(purpose, 'fallback');
+};
 
 const getAiProviderStatus = () => {
   const models = Object.fromEntries(Object.entries(metrics.byModel).map(([model, value]) => [model, {
@@ -169,6 +228,18 @@ const getAiProviderStatus = () => {
     averageLatencyMs: value.requests ? Math.round(value.totalLatencyMs / value.requests) : 0,
     circuitOpen: [...circuitStates.entries()].some(([key, state]) => key.startsWith(`${model}:`) && state.openUntil > Date.now()),
   }]));
+  const purposes = Object.fromEntries(Object.entries(metrics.byPurpose).map(([purpose, value]) => [purpose, {
+    requests: value.requests,
+    successes: value.successes,
+    failures: value.failures,
+    fallbackUses: value.fallbackUses,
+    safetyRejections: value.safetyRejections,
+    schemaRejections: value.schemaRejections,
+    averageLatencyMs: value.successes ? Math.round(value.totalLatencyMs / value.successes) : 0,
+    averageInputChars: value.requests ? Math.round(value.totalInputChars / value.requests) : 0,
+    averageOutputChars: value.successes ? Math.round(value.totalOutputChars / value.successes) : 0,
+    lastFailureCode: value.lastFailureCode,
+  }]));
   return {
     enabled: aiEnabled(),
     configured: aiConfigured(),
@@ -177,6 +248,8 @@ const getAiProviderStatus = () => {
     successes: metrics.successes,
     failures: metrics.failures,
     fallbackUses: metrics.fallbackUses,
+    safetyRejections: metrics.safetyRejections,
+    schemaRejections: metrics.schemaRejections,
     successRate: metrics.requests ? Math.round((metrics.successes / metrics.requests) * 100) : 0,
     averageLatencyMs: metrics.successes ? Math.round(metrics.totalLatencyMs / metrics.successes) : 0,
     lastSuccessAt: metrics.lastSuccessAt,
@@ -184,13 +257,17 @@ const getAiProviderStatus = () => {
     lastFailureCode: metrics.lastFailureCode,
     startedAt: metrics.startedAt,
     models,
+    purposes,
+    promptRegistry: getPromptRegistry(),
+    safetyVersion: AI_SAFETY_VERSION,
   };
 };
 
 const resetAiProviderStateForTests = () => {
   Object.assign(metrics, {
     startedAt: new Date(), requests: 0, successes: 0, failures: 0, fallbackUses: 0,
-    totalLatencyMs: 0, lastSuccessAt: null, lastFailureAt: null, lastFailureCode: '', byModel: {},
+    safetyRejections: 0, schemaRejections: 0, totalInputChars: 0, totalOutputChars: 0,
+    totalLatencyMs: 0, lastSuccessAt: null, lastFailureAt: null, lastFailureCode: '', byModel: {}, byPurpose: {},
   });
   circuitStates.clear();
 };

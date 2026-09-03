@@ -52,31 +52,32 @@ const voiceOptions = (t) => [
 ];
 
 const DEFAULT_QUICK_REPLIES = ['I lost something', 'I found something', 'My reports'];
+const isSafeCitationUrl = (value) => isSafeInternalPath(value) || /^https:\/\/(?:www\.)?seu\.ac\.lk(?:\/|$)/iu.test(String(value || ''));
 
 const REPORT_DRAFT_COPY = {
   en: {
     title: (type) => `Reviewable ${type} report draft`, confidence: (value) => `Detected confidence: ${value}%`, review: 'Human review required',
     item: 'Item', category: 'Category', colour: 'Colour', location: 'Location', dateTime: 'Date/time', stillNeeded: 'Still needed:',
     privacy: 'Remove passwords, full card numbers, private addresses and other sensitive identifiers before submission.', open: 'Open guided report and review fields',
-    types: { lost: 'lost', found: 'found' }, missing: {},
+    updated: 'Updated', complete: 'complete', types: { lost: 'lost', found: 'found' }, missing: {},
   },
   singlish: {
     title: (type) => `Balala confirm karanna puluwan ${type} report draft eka`, confidence: (value) => `Detect karapu confidence eka: ${value}%`, review: 'Manually balanna one',
     item: 'Item eka', category: 'Category eka', colour: 'Paata', location: 'Thana', dateTime: 'Dawasa/welawa', stillNeeded: 'Thawa one:',
     privacy: 'Submit karanna kalin passwords, full card numbers, private addresses saha sensitive details ain karanna.', open: 'Guided report eka arala details balanna',
-    types: { lost: 'nathi una', found: 'hambuna' }, missing: { 'item name': 'item eke nama', category: 'category eka', 'specific location': 'hari thana', 'date/time': 'dawasa/welawa', 'one unique identifying feature': 'wenama handunaganna lakunayak' },
+    updated: 'Update kala', complete: 'complete', types: { lost: 'nathi una', found: 'hambuna' }, missing: { 'item name': 'item eke nama', category: 'category eka', 'specific location': 'hari thana', 'date/time': 'dawasa/welawa', 'one unique identifying feature': 'wenama handunaganna lakunayak' },
   },
   si: {
     title: (type) => `සමාලෝචනය කළ හැකි ${type} වාර්තා කෙටුම්පත`, confidence: (value) => `හඳුනාගත් විශ්වාසය: ${value}%`, review: 'මානව සමාලෝචනය අවශ්‍යයි',
     item: 'භාණ්ඩය', category: 'කාණ්ඩය', colour: 'වර්ණය', location: 'ස්ථානය', dateTime: 'දිනය/වේලාව', stillNeeded: 'තව අවශ්‍යයි:',
     privacy: 'ඉදිරිපත් කිරීමට පෙර මුරපද, සම්පූර්ණ කාඩ් අංක, පුද්ගලික ලිපින සහ සංවේදී තොරතුරු ඉවත් කරන්න.', open: 'මාර්ගෝපදේශිත වාර්තාව විවෘත කර විස්තර සමාලෝචනය කරන්න',
-    types: { lost: 'නැති වූ', found: 'හමුවූ' }, missing: { 'item name': 'භාණ්ඩයේ නම', category: 'කාණ්ඩය', 'specific location': 'නිශ්චිත ස්ථානය', 'date/time': 'දිනය/වේලාව', 'one unique identifying feature': 'එක් විශේෂ හඳුනාගැනීමේ ලක්ෂණයක්' },
+    updated: 'යාවත්කාලීන කළා', complete: 'සම්පූර්ණයි', types: { lost: 'නැති වූ', found: 'හමුවූ' }, missing: { 'item name': 'භාණ්ඩයේ නම', category: 'කාණ්ඩය', 'specific location': 'නිශ්චිත ස්ථානය', 'date/time': 'දිනය/වේලාව', 'one unique identifying feature': 'එක් විශේෂ හඳුනාගැනීමේ ලක්ෂණයක්' },
   },
   ta: {
     title: (type) => `மதிப்பாய்வு செய்யக்கூடிய ${type} அறிக்கை வரைவு`, confidence: (value) => `கண்டறிந்த நம்பிக்கை: ${value}%`, review: 'மனித மதிப்பாய்வு தேவை',
     item: 'பொருள்', category: 'வகை', colour: 'நிறம்', location: 'இடம்', dateTime: 'தேதி/நேரம்', stillNeeded: 'இன்னும் தேவை:',
     privacy: 'சமர்ப்பிக்கும் முன் கடவுச்சொற்கள், முழு அட்டை எண்கள், தனிப்பட்ட முகவரிகள் மற்றும் முக்கிய தகவல்களை அகற்றவும்.', open: 'வழிகாட்டப்பட்ட அறிக்கையைத் திறந்து விவரங்களை மதிப்பாய்வு செய்யவும்',
-    types: { lost: 'தொலைந்த', found: 'கண்டெடுத்த' }, missing: { 'item name': 'பொருளின் பெயர்', category: 'வகை', 'specific location': 'குறிப்பிட்ட இடம்', 'date/time': 'தேதி/நேரம்', 'one unique identifying feature': 'ஒரு தனிப்பட்ட அடையாள அம்சம்' },
+    updated: 'புதுப்பிக்கப்பட்டது', complete: 'நிறைவு', types: { lost: 'தொலைந்த', found: 'கண்டெடுத்த' }, missing: { 'item name': 'பொருளின் பெயர்', category: 'வகை', 'specific location': 'குறிப்பிட்ட இடம்', 'date/time': 'தேதி/நேரம்', 'one unique identifying feature': 'ஒரு தனிப்பட்ட அடையாள அம்சம்' },
   },
 };
 
@@ -131,7 +132,7 @@ const AssistantResultCard = ({ item, closeAssistant, t }) => (
 );
 
 
-const ReportDraftCard = ({ draft, onStart, responseStyle, t }) => {
+const ReportDraftCard = ({ draft, onStart, onApprove, isSubmitting, responseStyle, t }) => {
   if (!draft?.fields) return null;
   const copy = REPORT_DRAFT_COPY[responseStyle] || REPORT_DRAFT_COPY.en;
   const dateLocale = responseStyle === 'si' ? 'si-LK' : responseStyle === 'ta' ? 'ta-LK' : 'en-LK';
@@ -162,6 +163,24 @@ const ReportDraftCard = ({ draft, onStart, responseStyle, t }) => {
       <button type="button" onClick={() => onStart(draft)} className="mt-3 flex min-h-11 w-full items-center justify-between rounded-xl bg-primary-600 px-4 text-sm font-bold text-white hover:bg-primary-700">
         {copy.open} <FiChevronRight aria-hidden="true" />
       </button>
+      {draft.state === 'reviewing' && !localizedMissing.length && (
+        <button type="button" disabled={isSubmitting} onClick={() => onApprove(draft)} className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border border-emerald-500 bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
+          {isSubmitting ? t('assistant.submittingReport') : t('assistant.approveSubmit')}
+        </button>
+      )}
+      {Number.isFinite(draft.confidence) && (
+        <div className="mt-3" aria-label={`${draft.confidence}% ${copy.complete}`}>
+          <div className="h-1.5 overflow-hidden rounded-full bg-primary-100 dark:bg-primary-950"><div className="h-full rounded-full bg-primary-600 transition-all" style={{ width: `${Math.max(0, Math.min(100, draft.confidence))}%` }} /></div>
+        </div>
+      )}
+      {draft.changedFields?.length > 0 && (
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/25 dark:text-emerald-200">
+          <strong>{copy.updated}:</strong>
+          <ul className="mt-1 space-y-1">
+            {draft.changedFields.map((change) => <li key={`${change.turn}-${change.field}`}>{change.field}: {String(change.before || '—')} → {String(change.after || '—')}</li>)}
+          </ul>
+        </div>
+      )}
     </section>
   );
 };
@@ -190,7 +209,8 @@ const PersonalSummary = ({ summary, t }) => {
 const AIChatbot = () => {
   const navigate = useNavigate();
   const { language, t } = useLanguage();
-  const principalId = useSelector((state) => state.auth.user?._id) || 'guest';
+  const user = useSelector((state) => state.auth.user);
+  const principalId = user?._id || 'guest';
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState(() => [initialMessage(t)]);
   const [input, setInput] = useState('');
@@ -199,10 +219,12 @@ const AIChatbot = () => {
   const [quickReplies, setQuickReplies] = useState(DEFAULT_QUICK_REPLIES);
   const [voiceLanguage, setVoiceLanguage] = useState('en-US');
   const [conversationId, setConversationId] = useState('');
+  const [sessionVersion, setSessionVersion] = useState(0);
   const [conversationHistory, setConversationHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [mobileViewport, setMobileViewport] = useState(null);
   const [historyReady, setHistoryReady] = useState(false);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const messagesEndRef = useRef(null);
   const dialogRef = useRef(null);
   const floatingButtonRef = useRef(null);
@@ -231,9 +253,11 @@ const AIChatbot = () => {
     if (conversations[0]) {
       suppressHistoryWriteRef.current = true;
       setConversationId(conversations[0].id);
+      setSessionVersion(conversations[0].sessionVersion || 0);
       setMessages(conversations[0].messages.length ? conversations[0].messages : [initialMessage(t)]);
     } else {
       setConversationId(createAssistantConversation().id);
+      setSessionVersion(0);
       setMessages([initialMessage(t)]);
     }
     setQuickReplies(DEFAULT_QUICK_REPLIES);
@@ -255,17 +279,19 @@ const AIChatbot = () => {
         id: conversationId,
         messages,
         createdAt: existing?.createdAt,
+        sessionVersion,
       });
       return saveAssistantConversations(
         [current, ...previous.filter((conversation) => conversation.id !== conversationId)],
         { principalId },
       );
     });
-  }, [conversationId, historyReady, messages, principalId]);
+  }, [conversationId, historyReady, messages, principalId, sessionVersion]);
 
   const beginNewConversation = () => {
     suppressHistoryWriteRef.current = true;
     setConversationId(createAssistantConversation().id);
+    setSessionVersion(0);
     setMessages([initialMessage(t)]);
     setQuickReplies(DEFAULT_QUICK_REPLIES);
     setInput('');
@@ -276,6 +302,7 @@ const AIChatbot = () => {
   const openConversation = (conversation) => {
     suppressHistoryWriteRef.current = true;
     setConversationId(conversation.id);
+    setSessionVersion(conversation.sessionVersion || 0);
     setMessages(conversation.messages.length ? conversation.messages : [initialMessage(t)]);
     setQuickReplies([]);
     setHistoryOpen(false);
@@ -302,6 +329,48 @@ const AIChatbot = () => {
     }
     closeAssistant();
     navigate(draft.reportType === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost');
+  };
+
+  const approveAndSubmitReport = async (draft) => {
+    if (!user?._id) {
+      saveAssistantReportDraft(draft, { principalId });
+      closeAssistant();
+      navigate('/login', { state: { from: draft.reportType === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' } });
+      return;
+    }
+    if (!window.confirm(t('assistant.submitConfirmation'))) return;
+    setIsSubmittingReport(true);
+    try {
+      const confirmationResponse = await api.post('/ai/report/confirm', {
+        sessionId: conversationId,
+        sessionVersion: draft.version,
+      });
+      const confirmation = confirmationResponse.data?.data;
+      setSessionVersion(confirmation.sessionVersion);
+      const submissionResponse = await api.post('/ai/report/submit', {
+        sessionId: conversationId,
+        sessionVersion: confirmation.sessionVersion,
+        confirmationToken: confirmation.confirmationToken,
+      });
+      const receipt = submissionResponse.data?.data;
+      setSessionVersion(receipt.sessionVersion || confirmation.sessionVersion + 1);
+      setMessages((previous) => [
+        ...previous.map((entry) => entry.reportDraft ? { ...entry, reportDraft: null } : entry),
+        {
+          role: 'ai',
+          content: t('assistant.reportSubmitted', { item: receipt.itemName }),
+          timestamp: timestamp(),
+          actions: [{ type: 'view_report', label: t('assistant.viewSubmittedReport'), url: receipt.url }],
+          items: [],
+        },
+      ]);
+      setQuickReplies([]);
+      toast.success(t('assistant.reportSubmittedToast'));
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('assistant.reportSubmitFailed'));
+    } finally {
+      setIsSubmittingReport(false);
+    }
   };
 
   useEffect(() => {
@@ -389,8 +458,18 @@ const AIChatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/ai/chat', { message: trimmed, history, locale: language, conversationStyle, page, pageSize: 6 });
+      const response = await api.post('/ai/chat', {
+        message: trimmed,
+        history,
+        locale: language,
+        conversationStyle,
+        sessionId: conversationId,
+        sessionVersion,
+        page,
+        pageSize: 6,
+      });
       const data = response.data?.data || {};
+      if (Number.isFinite(data.sessionState?.version)) setSessionVersion(data.sessionState.version);
       setMessages((previous) => [...previous, {
         role: 'ai',
         content: data.text || t('assistant.noResponse'),
@@ -401,6 +480,7 @@ const AIChatbot = () => {
         personalSummary: data.personalSummary,
         reportDraft: data.reportDraft,
         meta: data.meta,
+        knowledge: data.knowledge,
         query: data.query,
         page: data.page,
         total: data.total,
@@ -635,7 +715,16 @@ const AIChatbot = () => {
               </div>
 
               {message.personalSummary && <div className="mt-3 w-full"><PersonalSummary summary={message.personalSummary} t={t} /></div>}
-              {message.reportDraft && <ReportDraftCard draft={message.reportDraft} onStart={startReportDraft} responseStyle={message.responseStyle} t={t} />}
+              {message.reportDraft && <ReportDraftCard draft={message.reportDraft} onStart={startReportDraft} onApprove={approveAndSubmitReport} isSubmitting={isSubmittingReport} responseStyle={message.responseStyle} t={t} />}
+              {message.knowledge?.citations?.length > 0 && (
+                <div className="mt-2 flex w-full flex-wrap gap-2" aria-label={t('assistant.knowledgeSources')}>
+                  {message.knowledge.citations.filter((citation) => isSafeCitationUrl(citation.url)).map((citation) => isSafeInternalPath(citation.url) ? (
+                    <Link key={citation.url} to={citation.url} className="rounded-full border border-cyan-300 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800 dark:text-cyan-300">{citation.label}</Link>
+                  ) : (
+                    <a key={citation.url} href={citation.url} target="_blank" rel="noreferrer" className="rounded-full border border-cyan-300 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800 dark:text-cyan-300">{citation.label}</a>
+                  ))}
+                </div>
+              )}
 
               {message.items?.length > 0 && (
                 <div className="mt-3 w-full space-y-3">

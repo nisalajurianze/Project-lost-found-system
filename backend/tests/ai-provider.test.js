@@ -38,10 +38,52 @@ test('provider client fails over across configured key slots with bounded attemp
     assert.equal(response.data.value, 'ok');
     assert.equal(response.meta.keySlot, 2);
     assert.equal(response.meta.attempts, 2);
+    assert.equal(response.meta.promptVersion, 'generic-v1');
+    assert.equal(response.meta.safetyVersion, 'ai-safety-v1');
     const status = getAiProviderStatus();
     assert.equal(status.successes, 1);
     assert.equal(status.models['test-model'].failures, 1);
     assert.equal(status.models['test-model'].successes, 1);
+    assert.equal(status.purposes['unit-test'].requests, 1);
+    assert.equal(status.purposes['unit-test'].successes, 1);
+    assert.equal(status.purposes['unit-test'].averageInputChars, 4);
+    assert.equal(status.safetyVersion, 'ai-safety-v1');
+    assert.deepEqual(status.promptRegistry.find(({ purpose }) => purpose === 'generic'), {
+      purpose: 'generic',
+      version: 'generic-v1',
+    });
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
+test('provider output with private data is rejected and counted by purpose', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'test-key';
+    process.env.AI_CHAT_MODEL = 'test-model';
+    process.env.AI_API_URL = 'https://example.test/chat';
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: '{"answer":"Call 0771234567"}' } }] }),
+    });
+
+    await assert.rejects(
+      () => requestAIJson([{ role: 'user', content: 'find my bag' }], { purpose: 'privacy-test' }),
+      /attempts were exhausted/i,
+    );
+    const status = getAiProviderStatus();
+    assert.equal(status.safetyRejections, 1);
+    assert.equal(status.purposes['privacy-test'].safetyRejections, 1);
+    assert.equal(status.purposes['privacy-test'].lastFailureCode, 'PRIVATE_DATA_IN_OUTPUT');
   } finally {
     global.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];

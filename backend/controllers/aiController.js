@@ -10,6 +10,8 @@ import { suggestDetailsFromImage } from '../services/imageAnalysisService.js';
 import { getAiProviderStatus } from '../services/aiProviderService.js';
 import { publicLocationView, resolveLocation } from '../services/locationIntelligenceService.js';
 import { assessReport } from '../services/reportIntelligenceService.js';
+import { runGoldenEvals } from '../evals/runGoldenEvals.js';
+import { issueReportConfirmation, submitApprovedAssistantReport } from '../services/assistantReportSubmissionService.js';
 
 export const suggestItemDetails = asyncHandler(async (req, res) => {
   if (!req.file) throw ApiError.badRequest('No image provided for AI analysis.');
@@ -46,7 +48,29 @@ export const resolveLocationSuggestion = asyncHandler(async (req, res) => {
 });
 
 export const getAIProviderHealth = asyncHandler(async (_req, res) => {
-  return ApiResponse.ok(getAiProviderStatus(), 'AI provider health retrieved.').send(res);
+  return ApiResponse.ok({
+    ...getAiProviderStatus(),
+    evaluations: runGoldenEvals(),
+  }, 'AI provider health retrieved.').send(res);
+});
+
+export const confirmAssistantReport = asyncHandler(async (req, res) => {
+  const result = await issueReportConfirmation({
+    sessionId: req.body?.sessionId,
+    expectedVersion: req.body?.sessionVersion,
+    userId: req.user._id,
+  });
+  return ApiResponse.ok(result, 'Report draft approved. Confirmation is valid for ten minutes.').send(res);
+});
+
+export const submitAssistantReport = asyncHandler(async (req, res) => {
+  const receipt = await submitApprovedAssistantReport({
+    sessionId: req.body?.sessionId,
+    expectedVersion: req.body?.sessionVersion,
+    confirmationToken: req.body?.confirmationToken,
+    userId: req.user._id,
+  });
+  return ApiResponse.created(receipt, 'Approved assistant report submitted successfully.').send(res);
 });
 
 

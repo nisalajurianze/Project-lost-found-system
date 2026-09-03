@@ -64,6 +64,16 @@ test('assistant history preserves only a validated conversation response style',
   assert.equal('responseStyle' in conversation.messages[1], false);
 });
 
+test('assistant history persists only the opaque server state version, not report slots', () => {
+  const conversation = createAssistantConversation({
+    id: 'stateful',
+    sessionVersion: 4,
+    messages: [{ role: 'user', content: 'blue bag', reportDraft: { location: 'private place' } }],
+  });
+  assert.equal(conversation.sessionVersion, 4);
+  assert.equal('reportDraft' in conversation.messages[0], false);
+});
+
 test('assistant history is isolated by principal and discards the legacy global key', () => {
   const storage = createStorage();
   const now = Date.UTC(2026, 6, 26);

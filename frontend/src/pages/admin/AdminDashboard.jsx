@@ -289,7 +289,7 @@ export const AdminDashboard = () => {
       </section>
 
       {/* AI Telemetry & Health Subsystem */}
-      <section className="grid gap-4 sm:grid-cols-3" aria-label={t('admin.aiHealth')}>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('admin.aiHealth')}>
         <div className="group rounded-2xl border border-surface-200/70 bg-gradient-to-b from-white/90 to-surface-50/50 dark:from-surface-900/90 dark:to-surface-950/90 p-4 sm:p-5 backdrop-blur-md shadow-sm hover:border-violet-500/30 transition-all duration-200 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs font-bold text-surface-600 dark:text-surface-300 uppercase tracking-wider">
@@ -338,6 +338,23 @@ export const AdminDashboard = () => {
           <div className="mt-2 pt-2 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 flex items-center justify-between">
             <span>{t('admin.lastFailure', { value: '' })}</span>
             <strong className="text-surface-800 dark:text-surface-200 font-mono text-[11px] truncate max-w-[120px]">{aiHealth?.lastFailureCode || t('admin.noneRecorded')}</strong>
+          </div>
+        </div>
+
+        <div className="group rounded-2xl border border-surface-200/70 bg-gradient-to-b from-white/90 to-surface-50/50 dark:from-surface-900/90 dark:to-surface-950/90 p-4 sm:p-5 backdrop-blur-md shadow-sm hover:border-cyan-500/30 transition-all duration-200 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-surface-600 dark:text-surface-300 uppercase tracking-wider">
+              <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"><ListChecks className="h-4 w-4" aria-hidden="true" /></span>
+              <span>{t('admin.aiEvaluations')}</span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">{aiHealth?.evaluations?.datasetVersion || 'golden-v1'}</span>
+          </div>
+          <p className="mt-3 text-2xl sm:text-3xl font-black text-surface-900 dark:text-white tracking-tight">
+            {aiHealth?.evaluations?.passRate ?? 0}%
+          </p>
+          <div className="mt-2 pt-2 border-t border-surface-100 dark:border-surface-800 text-xs text-surface-500 flex items-center justify-between gap-3">
+            <span>{t('admin.evalCases', { value: aiHealth?.evaluations?.total ?? 0 })}</span>
+            <strong className="text-surface-800 dark:text-surface-200 font-semibold">{t('admin.safetyRejections')}: {aiHealth?.safetyRejections ?? 0}</strong>
           </div>
         </div>
       </section>

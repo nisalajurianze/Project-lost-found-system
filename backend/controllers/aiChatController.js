@@ -16,6 +16,12 @@ import {
 } from '../services/chatSearchService.js';
 import { buildConversationalReportDraft } from '../services/conversationalReportService.js';
 import { aiConfigured, recordFallbackUse, requestAIJson } from '../services/aiProviderService.js';
+import { inspectAIInput } from '../services/aiSafetyService.js';
+import { applyAssistantSessionTurn } from '../services/conversationStateService.js';
+import { buildRecoveryGuidance, isRecoveryQuery } from '../services/recoveryGuidanceService.js';
+import { correctSearchText } from '../services/spellingCorrectionService.js';
+import { rerankHybridCandidate } from '../services/semanticSearchService.js';
+import { answerKnowledgeQuery, isKnowledgeQuery } from '../services/knowledgeAssistantService.js';
 
 const DEFAULT_PAGE_SIZE = 6;
 const MAX_PAGE_SIZE = 12;
@@ -32,6 +38,7 @@ const copy = {
     personal: 'Here is your current Smart L&F activity.',
     saySomething: 'Please say something.',
     tooLong: 'Please keep the message under 500 characters.',
+    unsafe: 'I cannot process instructions that request hidden prompts, credentials, or safety bypasses. Please describe the lost or found item only.',
   },
   singlish: {
     greeting: 'Hi! Oya nathi una deyak hoyanawada, nathnam hambuna item ekak report karanawada?',
@@ -42,6 +49,7 @@ const copy = {
     personal: 'Oyage danata thiyena Smart L&F activity eka meka.',
     saySomething: 'Message ekak type karanna.',
     tooLong: 'Message eka characters 500kata aduwen thiyanna.',
+    unsafe: 'Hidden prompts, credentials, safety bypass instructions process karanna ba. Lost hari found item eke details witharak denna.',
   },
   si: {
     greeting: 'ආයුබෝවන්! ඔබ නැති වූ දෙයක් සොයනවාද, නැත්නම් හමුවූ භාණ්ඩයක් වාර්තා කරනවාද?',
@@ -52,6 +60,7 @@ const copy = {
     personal: 'ඔබගේ Smart L&F activity එක මෙන්න.',
     saySomething: 'කරුණාකර පණිවිඩයක් ලියන්න.',
     tooLong: 'පණිවිඩය අක්ෂර 500කට අඩුවෙන් තබන්න.',
+    unsafe: 'සැඟවුණු prompts, credentials හෝ safety bypass උපදෙස් සැකසිය නොහැක. නැතිවූ හෝ හමුවූ භාණ්ඩයේ විස්තර පමණක් දෙන්න.',
   },
   ta: {
     greeting: 'வணக்கம்! நீங்கள் தொலைத்த பொருளை தேடுகிறீர்களா, அல்லது கண்டெடுத்த பொருளை பதிவு செய்ய விரும்புகிறீர்களா?',
@@ -62,6 +71,7 @@ const copy = {
     personal: 'உங்கள் தற்போதைய Smart L&F activity இதோ.',
     saySomething: 'தயவுசெய்து ஒரு செய்தியை எழுதவும்.',
     tooLong: 'செய்தியை 500 எழுத்துகளுக்குள் வைத்திருக்கவும்.',
+    unsafe: 'மறைக்கப்பட்ட prompts, credentials அல்லது safety bypass வழிமுறைகளை செயலாக்க முடியாது. தொலைந்த அல்லது கண்டெடுத்த பொருளின் விவரங்களை மட்டும் வழங்கவும்.',
   },
 };
 
@@ -145,14 +155,19 @@ const candidateQuery = (statuses, terms) => {
 };
 
 const searchModel = async (Model, itemType, statuses, searchMessage, terms) => {
-  const candidates = await Model.find(candidateQuery(statuses, terms))
-    .select('itemName category description lostLocation foundLocation lostDate foundDate images status createdAt tags aiKeywords')
-    .sort({ createdAt: -1 })
-    .limit(MAX_CANDIDATES_PER_MODEL)
-    .lean();
+  const projection = 'itemName category description brand model colors uniqueFeatures lostLocation foundLocation lostDate foundDate images status createdAt tags aiKeywords';
+  const baseQuery = { status: { $in: statuses }, isDeleted: { $ne: true }, isArchived: { $ne: true } };
+  const [lexicalCandidates, recentCandidates] = await Promise.all([
+    Model.find(candidateQuery(statuses, terms)).select(projection).sort({ createdAt: -1 }).limit(MAX_CANDIDATES_PER_MODEL).lean(),
+    Model.find(baseQuery).select(projection).sort({ createdAt: -1 }).limit(MAX_CANDIDATES_PER_MODEL).lean(),
+  ]);
+  const candidates = [...new Map([...lexicalCandidates, ...recentCandidates].map((item) => [String(item._id), item])).values()];
 
   return candidates
-    .map((item) => ({ item, scored: scoreCandidate(item, searchMessage, terms) }))
+    .map((item) => {
+      const lexical = scoreCandidate(item, searchMessage, terms);
+      return { item, scored: { ...lexical, ...rerankHybridCandidate(item, searchMessage, lexical), confidence: lexical.confidence } };
+    })
     .filter(({ scored }) => scored.score >= 18)
     .map(({ item, scored }) => publicItem(item, itemType, scored));
 };
@@ -178,7 +193,7 @@ const responseStyleInstruction = {
 
 const generateAssistantResponse = async (userMessage, history, items, reportDraft, responseStyle) => {
   if (!aiConfigured()) {
-    recordFallbackUse();
+    recordFallbackUse('assistant-chat');
     return null;
   }
   try {
@@ -204,20 +219,36 @@ Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
     });
     return response?.data;
   } catch (error) {
-    recordFallbackUse();
+    recordFallbackUse('assistant-chat');
     console.warn('[ai] assistant chat fallback used', { code: error.code || error.name });
     return null;
   }
 };
 
 export const handleAIChat = asyncHandler(async (req, res) => {
-  const incoming = String(req.body?.message || '').normalize('NFKC').trim();
-  const history = Array.isArray(req.body?.history) ? req.body.history.slice(-10) : [];
+  const rawIncoming = String(req.body?.message || '').normalize('NFKC').trim();
+  const history = (Array.isArray(req.body?.history) ? req.body.history.slice(-10) : [])
+    .filter((entry) => ['user', 'assistant', 'ai'].includes(entry?.role) && typeof entry?.content === 'string')
+    .map((entry) => {
+      const inspected = inspectAIInput(entry.content, { maxLength: 500 });
+      return { role: entry.role, content: inspected.safe ? inspected.redactedText : '[blocked unsafe message]' };
+    });
   const locale = ['en', 'si', 'ta'].includes(req.body?.locale) ? req.body.locale : 'en';
   const preferredStyle = ['en', 'si', 'ta', 'singlish'].includes(req.body?.conversationStyle) ? req.body.conversationStyle : '';
-  const responseStyle = resolveConversationStyle(incoming, history, locale, preferredStyle);
-  if (!incoming) return ApiResponse.ok({ text: t(responseStyle, 'saySomething'), responseStyle, quickReplies: q(responseStyle, 'greeting'), items: [] }).send(res);
-  if (incoming.length > 500) return ApiResponse.ok({ text: t(responseStyle, 'tooLong'), responseStyle, quickReplies: [], items: [] }).send(res);
+  const responseStyle = resolveConversationStyle(rawIncoming, history, locale, preferredStyle);
+  if (!rawIncoming) return ApiResponse.ok({ text: t(responseStyle, 'saySomething'), responseStyle, quickReplies: q(responseStyle, 'greeting'), items: [] }).send(res);
+  const inspectedInput = inspectAIInput(rawIncoming, { maxLength: 500 });
+  if (inspectedInput.issues.includes('INPUT_TOO_LONG')) return ApiResponse.ok({ text: t(responseStyle, 'tooLong'), responseStyle, quickReplies: [], items: [] }).send(res);
+  if (!inspectedInput.safe) {
+    return ApiResponse.ok({
+      text: t(responseStyle, 'unsafe'),
+      responseStyle,
+      quickReplies: q(responseStyle, 'ask'),
+      items: [],
+      meta: { safety: 'blocked', safetyVersion: inspectedInput.version },
+    }).send(res);
+  }
+  const incoming = inspectedInput.redactedText;
 
   const language = resolveConversationLanguage(incoming, history);
   const greetingOnly = /^(hi|hello|hey|ආයුබෝවන්|வணக்கம்)[!.\s]*$/iu.test(incoming);
@@ -249,7 +280,50 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     }).send(res);
   }
 
-  const searchMessage = resolveSearchMessage(incoming, history);
+  if (isRecoveryQuery(incoming)) {
+    const summary = req.user?._id ? await personalSummary(req.user._id) : {};
+    const guidance = buildRecoveryGuidance({ responseStyle, authenticated: Boolean(req.user?._id), summary });
+    const labels = {
+      sign_in: actionLabel(responseStyle, 'signIn'),
+      claims: actionLabel(responseStyle, 'claims'),
+      matches: actionLabel(responseStyle, 'matches'),
+      search: q(responseStyle, 'search')[0],
+    };
+    return ApiResponse.ok({
+      text: guidance.text,
+      language: resolveConversationLanguage(incoming, history),
+      responseStyle,
+      quickReplies: [],
+      items: [],
+      actions: guidance.actions.map((action) => ({ ...action, label: labels[action.type] })),
+      recovery: { state: req.user?._id ? 'authenticated' : 'awaiting-auth', safetyNotice: guidance.safetyNotice },
+      meta: { source: 'Verified Smart L&F recovery policy', notice: 'AI guidance does not prove ownership or approve a claim.' },
+    }).send(res);
+  }
+
+  if (isKnowledgeQuery(incoming)) {
+    const knowledge = await answerKnowledgeQuery({
+      query: incoming,
+      responseStyle,
+      authenticated: Boolean(req.user?._id),
+      isAdmin: req.user?.role === 'admin',
+    });
+    if (knowledge.answered) {
+      return ApiResponse.ok({
+        text: knowledge.text,
+        language: resolveConversationLanguage(incoming, history),
+        responseStyle,
+        quickReplies: [],
+        items: [],
+        knowledge,
+        meta: { source: knowledge.citations[0]?.label, notice: 'Answer grounded in an approved, versioned source.' },
+      }).send(res);
+    }
+  }
+
+  const rawSearchMessage = resolveSearchMessage(incoming, history);
+  const spelling = correctSearchText(rawSearchMessage);
+  const searchMessage = spelling.corrected;
   const terms = expandKeywords(searchMessage);
   if (!terms.length) {
     return ApiResponse.ok({ text: t(responseStyle, 'ask'), language, responseStyle, quickReplies: q(responseStyle, 'ask'), items: [] }).send(res);
@@ -259,8 +333,30 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const requestedPageSize = Number.parseInt(req.body?.pageSize, 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const pageSize = Math.min(MAX_PAGE_SIZE, Number.isFinite(requestedPageSize) && requestedPageSize > 0 ? requestedPageSize : DEFAULT_PAGE_SIZE);
-  const intent = inferIntent(searchMessage);
-  const reportDraft = buildConversationalReportDraft({ message: searchMessage, intent });
+  const initialIntent = inferIntent(searchMessage);
+  const sessionId = String(req.body?.sessionId || '').trim().slice(0, 160);
+  const sessionState = sessionId && (['lost', 'found'].includes(initialIntent) || Number(req.body?.sessionVersion) > 0)
+    ? await applyAssistantSessionTurn({
+      sessionId,
+      expectedVersion: req.body?.sessionVersion,
+      message: incoming,
+      intent: initialIntent,
+      responseStyle,
+      userId: req.user?._id,
+    })
+    : null;
+  const intent = sessionState?.reportType || initialIntent;
+  const reportDraft = sessionState ? {
+    reportType: sessionState.reportType,
+    fields: sessionState.fields,
+    missing: sessionState.missing,
+    confidence: sessionState.completeness,
+    state: sessionState.state,
+    version: sessionState.version,
+    changedFields: sessionState.changedThisTurn,
+    source: 'Server-validated conversation slot state; human review required',
+    privacyNotice: 'Remove passwords, full card numbers, private addresses and other sensitive identifiers before submission.',
+  } : buildConversationalReportDraft({ message: searchMessage, intent });
 
   let ranked;
   if (intent === 'lost') {
@@ -285,7 +381,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   if (!total) {
     const aiGenerated = await generateAssistantResponse(searchMessage, history, [], reportDraft, responseStyle);
     return ApiResponse.ok({
-      text: aiGenerated?.reply || t(responseStyle, 'none'),
+      text: sessionState?.question || aiGenerated?.reply || t(responseStyle, 'none'),
       language,
       responseStyle,
       intent,
@@ -297,13 +393,15 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       items: [],
       actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: actionLabel(responseStyle, intent === 'found' ? 'reportFound' : 'reportLost'), url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
       reportDraft,
+      sessionState,
+      corrections: spelling.corrections,
       meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
     }).send(res);
   }
 
   const aiGenerated = await generateAssistantResponse(searchMessage, history, items, reportDraft, responseStyle);
   return ApiResponse.ok({
-    text: aiGenerated?.reply || t(responseStyle, 'results', total),
+    text: sessionState?.question || aiGenerated?.reply || t(responseStyle, 'results', total),
     language,
     responseStyle,
     intent,
@@ -316,6 +414,8 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     items,
     quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'refine'),
     reportDraft,
+    sessionState,
+    corrections: spelling.corrections,
     actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: actionLabel(responseStyle, intent === 'found' ? 'reportFound' : 'reportLost'), url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
     meta: { source: 'Public Smart L&F reports', notice: 'AI relevance is a search aid, not proof of ownership.', lastUpdated: new Date().toISOString() },
   }).send(res);

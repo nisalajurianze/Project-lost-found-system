@@ -62,7 +62,7 @@ const compareItemImages = async (lostImageUrl, foundImageUrl) => {
 
     return response ? sanitizeComparison(response.data, response.meta) : null;
   } catch (error) {
-    recordFallbackUse();
+    recordFallbackUse('item-image-comparison');
     console.warn('[ai] direct image comparison unavailable; metadata evidence retained', {
       code: error?.code || error?.name || 'AI_IMAGE_COMPARISON_FAILED',
     });

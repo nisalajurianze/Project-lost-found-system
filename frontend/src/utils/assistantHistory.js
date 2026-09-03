@@ -26,13 +26,14 @@ const conversationTitle = (messages = []) => {
   return String(firstUserMessage || 'New conversation').replace(/\s+/g, ' ').trim().slice(0, 56);
 };
 
-const createAssistantConversation = ({ id = safeId(), messages = [], now = Date.now(), createdAt } = {}) => {
+const createAssistantConversation = ({ id = safeId(), messages = [], now = Date.now(), createdAt, sessionVersion = 0 } = {}) => {
   const storedMessages = sanitizeStoredMessages(messages);
   return {
     id,
     title: conversationTitle(storedMessages),
     createdAt: createdAt || new Date(now).toISOString(),
     updatedAt: new Date(now).toISOString(),
+    sessionVersion: Math.max(0, Number.parseInt(sessionVersion, 10) || 0),
     messages: storedMessages,
   };
 };
@@ -46,6 +47,7 @@ const normalizeConversations = (value, now = Date.now()) => {
       messages: conversation.messages,
       now: Date.parse(conversation.updatedAt) || now,
       createdAt: conversation.createdAt,
+      sessionVersion: conversation.sessionVersion,
     }))
     .filter((conversation) => {
       const updatedAt = Date.parse(conversation.updatedAt);

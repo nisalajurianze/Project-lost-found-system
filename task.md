@@ -85,3 +85,20 @@ Remediation scope: validated P1/P2 issues plus deterministic release blockers. P
 - [x] Stack the image picker action below the avatar description on mobile
 - [x] Preserve the compact horizontal layout from the `sm` breakpoint
 - [x] Run focused tests, lint, build, and mobile browser verification
+
+## 2026-09-03 AI platform roadmap (AI-01 to AI-21)
+
+- [x] Audit current AI, matching, privacy, notification, claim, admin, and multilingual foundations
+- [x] Map every requested capability to dependencies, backend, frontend, data, security, and acceptance criteria
+- [x] Define phased architecture, rollout gates, evaluation metrics, cost controls, and operational ownership
+- [x] Verify all 21 requirements have explicit roadmap coverage and publish the implementation plan
+
+## 2026-09-03 AI platform implementation (run to completion)
+
+- [x] Phase 1: Safety gateway, provider observability, and automated eval foundation (AI-07, AI-08)
+- [x] Phase 2: Stateful conversation, corrections, approved report submission, and recovery guidance (AI-01, AI-02, AI-03, AI-20)
+- [/] Phase 3: Hybrid semantic search, spelling, campus knowledge, and FAQ RAG (AI-04, AI-10, AI-11, AI-21)
+- [ ] Phase 4: Vision/OCR, image quality, sensitive-data redaction, captions, and posters (AI-05, AI-13, AI-14, AI-15, AI-19)
+- [ ] Phase 5: Approved-feedback calibration, duplicate/spam review, and grounded admin intelligence (AI-06, AI-16, AI-18)
+- [ ] Phase 6: Voice output, calibrated notifications, and human handoff (AI-09, AI-12, AI-17)
+- [ ] Phase 7: Full regression/eval/browser checks, migrations/docs, deployment, and live verification

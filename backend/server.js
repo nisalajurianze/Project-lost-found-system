@@ -37,6 +37,7 @@ import statsRoutes from './routes/statsRoutes.js';
 import systemSettingRoutes from './routes/systemSettingRoutes.js';
 import claimRoutes from './routes/claimRoutes.js';
 import locationKnowledgeRoutes from './routes/locationKnowledgeRoutes.js';
+import knowledgeRoutes from './routes/knowledgeRoutes.js';
 import { refreshApprovedLocations } from './services/locationKnowledgeBootstrapService.js';
 
 const startServer = async () => {
@@ -121,6 +122,7 @@ const startServer = async () => {
   app.use('/api/system-settings', systemSettingRoutes);
   app.use('/api/claims', claimRoutes);
   app.use('/api/locations', locationKnowledgeRoutes);
+  app.use('/api/knowledge', knowledgeRoutes);
   app.get('/', (_req, res) => res.json({ message: 'Smart Lost & Found API', version: '2.0.0' }));
   app.use(notFound);
   app.use(errorHandler);
