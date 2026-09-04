@@ -7,16 +7,11 @@ import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { generateCategoryDetails } from '../services/imageAnalysisService.js';
+import { fallbackCategoryIcon, normalizeCategoryIcon } from '../utils/categoryPresentation.js';
 
 const CACHE_KEY_CATEGORIES = 'categories:all';
 const CACHE_TTL_SECONDS = 900;
 const cleanName = (value) => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ');
-const normalizeCategoryIcon = (value) => {
-  const candidate = String(value || '').normalize('NFKC').trim();
-  const emoji = candidate.match(/\p{Extended_Pictographic}(?:[\uFE0E\uFE0F]|\u200D\p{Extended_Pictographic}(?:[\uFE0E\uFE0F])?)*/u);
-  return emoji ? emoji[0].slice(0, 10) : '📦';
-};
-const fallbackCategoryIcon = (name) => ({ cat: '🐱', kitten: '🐱', dog: '🐶', phone: '📱', wallet: '👛', keys: '🔑', bag: '👜' })[normalizeCategoryName(name)] || '📦';
 
 const categoryCounts = async () => {
   const [lost, found] = await Promise.all([
@@ -148,7 +143,7 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
     const category = await Category.create({
       name: correctedName,
       normalizedName,
-      icon: normalizeCategoryIcon(details.icon),
+      icon: normalizeCategoryIcon(details.icon === '📦' ? fallbackCategoryIcon(correctedName) : details.icon),
       description: details.description || '',
       isActive: true,
     });

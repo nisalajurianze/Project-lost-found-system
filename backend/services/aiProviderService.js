@@ -71,6 +71,9 @@ const getProviderPlans = (vision = false) => {
       models: getOpenRouterModels(vision),
     });
   }
+  const preference = String(process.env[vision ? 'AI_VISION_PROVIDER' : 'AI_CHAT_PROVIDER'] || 'auto').trim().toLowerCase();
+  if (preference === 'primary') return plans.filter((plan) => plan.name === 'primary');
+  if (preference === 'openrouter') return plans.filter((plan) => plan.name === 'openrouter');
   return plans;
 };
 
@@ -109,6 +112,27 @@ const updateModelMetrics = (model, outcome, latencyMs) => {
   target[outcome === 'success' ? 'successes' : 'failures'] += 1;
 };
 
+const usesResponsesApi = (model) => String(model || '').startsWith('muse-spark-');
+const responsesUrl = (value) => {
+  const parsed = new URL(value);
+  parsed.pathname = parsed.pathname.replace(/\/chat\/completions\/?$/, '/responses');
+  return providerUrl(parsed.toString());
+};
+const responsesInput = (messages) => messages.map(({ role, content }) => ({
+  role: role === 'system' ? 'developer' : role,
+  content: Array.isArray(content)
+    ? content.map((part) => part.type === 'image_url'
+      ? { type: 'input_image', image_url: part.image_url?.url }
+      : { type: 'input_text', text: String(part.text || '') })
+    : [{ type: 'input_text', text: String(content || '') }],
+}));
+const providerRequest = ({ model, messages, temperature, responseFormat }) => usesResponsesApi(model)
+  ? { model, input: responsesInput(messages), temperature }
+  : { model, messages, temperature, ...(responseFormat ? { response_format: { type: 'json_object' } } : {}) };
+const providerResponseText = (data, model) => usesResponsesApi(model)
+  ? data?.output?.find((entry) => entry?.type === 'message')?.content?.find((entry) => entry?.type === 'output_text')?.text
+  : data?.choices?.[0]?.message?.content;
+
 const updatePurposeMetrics = (purpose, outcome, {
   latencyMs = 0,
   inputChars = 0,
@@ -145,6 +169,7 @@ const requestAIJson = async (messages, {
   validator = null,
   temperature = 0.1,
   maxAttempts = Number(process.env.AI_MAX_ATTEMPTS || 3),
+  timeoutMs = Number(process.env.AI_TIMEOUT_MS || 15_000),
   allowSensitiveOutput = false,
   promptVersion = promptVersionForPurpose(purpose),
 } = {}) => {
@@ -159,7 +184,7 @@ const requestAIJson = async (messages, {
   if (!aiConfigured({ vision })) return null;
 
   const providerPlans = getProviderPlans(vision);
-  const timeoutMs = Math.min(30_000, Math.max(2_000, Number(process.env.AI_TIMEOUT_MS || 15_000)));
+  const requestTimeoutMs = Math.min(30_000, Math.max(2_000, Number(timeoutMs) || 15_000));
   const failureThreshold = Math.min(10, Math.max(1, Number(process.env.AI_CIRCUIT_FAILURE_THRESHOLD || 3)));
   const cooldownMs = Math.min(15 * 60_000, Math.max(10_000, Number(process.env.AI_CIRCUIT_COOLDOWN_MS || 60_000)));
   const availableAttempts = providerPlans.reduce((total, plan) => total + (plan.keys.length * plan.models.length), 0);
@@ -181,7 +206,7 @@ const requestAIJson = async (messages, {
         const startedAt = Date.now();
 
         try {
-          const response = await fetch(providerUrl(provider.url), {
+          const response = await fetch(usesResponsesApi(model) ? responsesUrl(provider.url) : providerUrl(provider.url), {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${provider.keys[keyIndex]}`,
@@ -190,13 +215,8 @@ const requestAIJson = async (messages, {
             'X-Title': 'Smart Lost and Found',
             'X-AI-Purpose': String(purpose).slice(0, 80),
           },
-          body: JSON.stringify({
-            model,
-            messages,
-            temperature,
-            ...(jsonResponseFormatEnabled() ? { response_format: { type: 'json_object' } } : {}),
-          }),
-          signal: AbortSignal.timeout(timeoutMs),
+          body: JSON.stringify(providerRequest({ model, messages, temperature, responseFormat: jsonResponseFormatEnabled() })),
+          signal: AbortSignal.timeout(requestTimeoutMs),
         });
 
         if (!response.ok) {
@@ -204,7 +224,7 @@ const requestAIJson = async (messages, {
           throw new Error(lastCode);
         }
         const data = await response.json();
-        const result = parseJSONResponse(data?.choices?.[0]?.message?.content);
+        const result = parseJSONResponse(providerResponseText(data, model));
         if (!validateResult(result, validator)) {
           lastCode = 'INVALID_SCHEMA';
           metrics.schemaRejections += 1;
@@ -237,7 +257,10 @@ const requestAIJson = async (messages, {
           });
           updateModelMetrics(model, 'failure', latencyMs);
           metrics.lastFailureAt = new Date();
-          lastCode = lastCode || error?.code || error?.name || 'AI_PROVIDER_ERROR';
+          const reportedCode = /^HTTP_\d+$/.test(String(error?.message || ''))
+            ? error.message
+            : (error?.code || (lastCode !== 'AI_PROVIDER_UNAVAILABLE' ? lastCode : error?.name) || 'AI_PROVIDER_ERROR');
+          lastCode = String(reportedCode).slice(0, 80);
           metrics.lastFailureCode = lastCode;
         }
       }
@@ -282,6 +305,10 @@ const getAiProviderStatus = () => {
     enabled: aiEnabled(),
     configured: aiConfigured(),
     visionConfigured: aiConfigured({ vision: true }),
+    configuredProviders: {
+      chat: getProviderPlans(false).map(({ name, url, keys, models: configuredModels }) => ({ name, host: new URL(url).hostname, keySlots: keys.length, models: configuredModels })),
+      vision: getProviderPlans(true).map(({ name, url, keys, models: configuredModels }) => ({ name, host: new URL(url).hostname, keySlots: keys.length, models: configuredModels })),
+    },
     requests: metrics.requests,
     successes: metrics.successes,
     failures: metrics.failures,

@@ -11,6 +11,7 @@ import { deleteCache } from '../config/redis.js';
 import { enqueueItemProcessing } from './outboxService.js';
 import { locationIntelligenceView, resolveLocation } from './locationIntelligenceService.js';
 import { publicSessionState, sessionKeyFor } from './conversationStateService.js';
+import { fallbackCategoryIcon, normalizeCategoryIcon } from '../utils/categoryPresentation.js';
 
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000;
 const PROCESSING_LEASE_MS = 2 * 60 * 1000;
@@ -29,17 +30,25 @@ const resolveAssistantCategory = async (value) => {
   if (!normalized) return null;
   const existing = await Category.findOne({ normalizedName: normalized, isActive: true });
   if (existing) return existing;
+  let candidateNormalized = normalized;
   try {
     const names = await Category.find({ isActive: true }).distinct('name');
     const details = await generateCategoryDetails(requested, names);
     const name = String(details.correctedName || requested).normalize('NFKC').trim().replace(/\s+/g, ' ').slice(0, 100);
-    const corrected = normalizeCategoryName(name);
-    const mapped = await Category.findOne({ normalizedName: corrected, isActive: true });
+    candidateNormalized = normalizeCategoryName(name);
+    const mapped = await Category.findOne({ normalizedName: candidateNormalized, isActive: true });
     if (mapped) return mapped;
-    return await Category.create({ name, normalizedName: corrected, icon: String(details.icon || '📦').slice(0, 10), description: String(details.description || '').slice(0, 300), isActive: true });
+    const icon = details.icon === '📦' ? fallbackCategoryIcon(name) : normalizeCategoryIcon(details.icon);
+    return await Category.create({ name, normalizedName: candidateNormalized, icon, description: String(details.description || '').slice(0, 300), isActive: true });
   } catch (error) {
-    if (error?.code === 11000) return Category.findOne({ normalizedName: normalizeCategoryName(requested), isActive: true });
-    return null;
+    if (error?.message === 'INVALID_CATEGORY') return null;
+    if (error?.code === 11000) return Category.findOne({ normalizedName: candidateNormalized, isActive: true });
+    try {
+      return await Category.create({ name: requested, normalizedName: normalized, icon: fallbackCategoryIcon(requested), description: 'User-created physical item category.', isActive: true });
+    } catch (fallbackError) {
+      if (fallbackError?.code === 11000) return Category.findOne({ normalizedName: normalized, isActive: true });
+      return null;
+    }
   }
 };
 

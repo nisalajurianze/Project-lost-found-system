@@ -138,6 +138,38 @@ test('provider client falls back from the primary provider to an OpenRouter mode
   }
 });
 
+test('explicit chat provider routing skips unrelated primary attempts', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  const attempts = [];
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_CHAT_PROVIDER = 'openrouter';
+    process.env.AI_API_KEY = 'opencode-key';
+    process.env.AI_CHAT_MODEL = 'opencode-model';
+    process.env.AI_API_URL = 'https://opencode.test/chat';
+    process.env.OPENROUTER_API_KEY = 'openrouter-key';
+    process.env.OPENROUTER_CHAT_MODEL = 'thinkingmachines/inkling-small:free';
+    process.env.OPENROUTER_API_URL = 'https://openrouter.test/chat';
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async (url, options) => {
+      attempts.push({ url, model: JSON.parse(options.body).model });
+      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: '{"value":"ok"}' } }] }) };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: 'test' }], { validator: (value) => value.value === 'ok' });
+    assert.deepEqual(attempts, [{ url: 'https://openrouter.test/chat', model: 'thinkingmachines/inkling-small:free' }]);
+    assert.deepEqual(response.meta.provider, 'openrouter');
+    assert.deepEqual(getAiProviderStatus().configuredProviders.chat[0].models, ['thinkingmachines/inkling-small:free']);
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
 test('provider output with private data is rejected and counted by purpose', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
@@ -203,6 +235,43 @@ test('provider JSON response format is opt-in for OpenAI-compatible model suppor
   }
 });
 
+test('OpenCode Muse vision models use the Responses API image format', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  let request;
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'opencode-key';
+    process.env.AI_VISION_MODEL = 'muse-spark-1.3-contributor-free';
+    process.env.AI_API_URL = 'https://opencode.ai/zen/v1/chat/completions';
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async (url, options) => {
+      request = { url, body: JSON.parse(options.body) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ output: [{ type: 'message', content: [{ type: 'output_text', text: '{"imageAccepted":true}' }] }] }),
+      };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: [
+      { type: 'text', text: 'Inspect image.' },
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,valid' } },
+    ] }], { vision: true, validator: (value) => value.imageAccepted === true });
+
+    assert.equal(request.url, 'https://opencode.ai/zen/v1/responses');
+    assert.equal(request.body.input[0].content[0].type, 'input_text');
+    assert.equal(request.body.input[0].content[1].type, 'input_image');
+    assert.equal(response.data.imageAccepted, true);
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
 test('invalid JSON schema fails closed instead of returning provider text', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
@@ -223,6 +292,31 @@ test('invalid JSON schema fails closed instead of returning provider text', asyn
       /attempts were exhausted/i,
     );
     assert.equal(getAiProviderStatus().failures, 1);
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
+test('provider diagnostics retain timeout failure codes', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'test-key';
+    process.env.AI_CHAT_MODEL = 'test-model';
+    process.env.AI_API_URL = 'https://example.test/chat';
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async () => {
+      const error = new Error('request timed out');
+      error.name = 'TimeoutError';
+      throw error;
+    };
+    await assert.rejects(() => requestAIJson([{ role: 'user', content: 'test' }]), /attempts were exhausted/i);
+    assert.equal(getAiProviderStatus().lastFailureCode, 'TimeoutError');
   } finally {
     global.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];

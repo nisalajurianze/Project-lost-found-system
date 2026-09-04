@@ -163,6 +163,13 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Add positive localized help responses and regression coverage
 - [x] Run focused tests, lint, syntax validation, full regression, merge, deploy, and smoke test
 
+## 2026-09-05 OpenCode vision and OpenRouter chat routing
+
+- [x] Verify current free model capabilities with live image requests
+- [x] Route Muse Spark vision models through the OpenCode Responses API
+- [x] Keep category name and emoji generation on text/chat models
+- [x] Run regression tests, commit, and push the provider routing update
+
 ## 2026-09-05 AI photo category auto-creation
 
 - [x] Trace photo suggestion, category resolution, permissions, and report submission fallback
