@@ -104,3 +104,13 @@ Remediation scope: validated P1/P2 issues plus deterministic release blockers. P
 - [x] Phase 7: Full regression/eval/browser checks, safe migration path, API/docs, and release-boundary verification
 
 Implementation stance: AI-01 to AI-21 are complete in local source. Production migration/deployment was deliberately not mutated from this local implementation run. Live model, email/push, device, backup/restore, load/accessibility and institutional acceptance remain external release gates and are not represented as locally passed.
+
+## 2026-09-04 Railway AI activation
+
+- [x] Inspect live Railway project, service, variables, deployment state, and startup logs
+- [x] Validate OpenCode endpoint and candidate model IDs with the configured local provider key
+- [x] Apply a single-provider free chat configuration and remove the invalid model route
+- [x] Redeploy and verify backend startup plus Railway internal health
+- [x] Change the existing Railway public-domain target port from 5000 to 8080, then run the live chatbot smoke test
+
+Current result: `deepseek-v4-flash-free` is listed but currently unavailable at the OpenCode chat endpoint; `nemotron-3.5-lightning-free` and `mimo-v2.5-free` returned HTTP 200. Deployment `f7e13afc-7fef-407e-884e-68f65cd9c2c4` succeeded, the public domain now targets the app's 8080 listener, `/api/health` returned 200 publicly, and the live chatbot returned a Singlish response plus the expected Bag, Blue, and Canteen draft fields.

@@ -117,6 +117,33 @@ const actionLabels = {
 
 const actionLabel = (style, key) => actionLabels[style]?.[key] ?? actionLabels.en[key];
 
+const itemEmojiRules = [
+  [/\b(phone|mobile|iphone|android)\b/i, '📱'],
+  [/\b(bag|backpack|schoolbag)\b/i, '🎒'],
+  [/\b(wallet|purse)\b/i, '👛'],
+  [/\b(laptop|notebook|computer)\b/i, '💻'],
+  [/\b(key|keys|keychain)\b/i, '🔑'],
+  [/\b(id|identity|student card|bank card)\b/i, '🪪'],
+  [/\b(book|books|textbook)\b/i, '📚'],
+  [/\b(earphone|earphones|headphone|headphones|earbuds)\b/i, '🎧'],
+  [/\b(umbrella)\b/i, '☂️'],
+  [/\b(watch|smartwatch)\b/i, '⌚'],
+];
+
+export const withRelevantItemEmoji = (reply, reportDraft = null, items = []) => {
+  const text = String(reply || '').trim();
+  if (!text || /\p{Extended_Pictographic}/u.test(text)) return text;
+  const context = [
+    reportDraft?.fields?.itemName,
+    reportDraft?.fields?.category,
+    reportDraft?.fields?.description,
+    ...items.slice(0, 3).flatMap((item) => [item?.itemName, item?.category]),
+  ].filter(Boolean).join(' ');
+  if (!context) return text;
+  const emoji = itemEmojiRules.find(([pattern]) => pattern.test(context))?.[1] || '🔎';
+  return `${text} ${emoji}`;
+};
+
 const t = (language, key, ...args) => {
   const value = copy[language]?.[key] ?? copy.en[key];
   return typeof value === 'function' ? value(...args) : value;
@@ -202,6 +229,7 @@ const generateAssistantResponse = async (userMessage, history, items, reportDraf
 Respond in ${responseStyleInstruction[responseStyle] || responseStyleInstruction.en}.
 Keep the conversation in that same language and writing style across follow-up turns.
 Keep response concise and helpful (2-3 sentences). If matching reports are found, mention them. If no reports match, guide the user to report or search again.
+Include exactly one relevant item emoji naturally when the user is discussing a specific item.
 Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
 
     const messages = [
@@ -381,7 +409,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   if (!total) {
     const aiGenerated = await generateAssistantResponse(searchMessage, history, [], reportDraft, responseStyle);
     return ApiResponse.ok({
-      text: sessionState?.question || aiGenerated?.reply || t(responseStyle, 'none'),
+      text: withRelevantItemEmoji(sessionState?.question || aiGenerated?.reply || t(responseStyle, 'none'), reportDraft),
       language,
       responseStyle,
       intent,
@@ -401,7 +429,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
 
   const aiGenerated = await generateAssistantResponse(searchMessage, history, items, reportDraft, responseStyle);
   return ApiResponse.ok({
-    text: sessionState?.question || aiGenerated?.reply || t(responseStyle, 'results', total),
+    text: withRelevantItemEmoji(sessionState?.question || aiGenerated?.reply || t(responseStyle, 'results', total), reportDraft, items),
     language,
     responseStyle,
     intent,

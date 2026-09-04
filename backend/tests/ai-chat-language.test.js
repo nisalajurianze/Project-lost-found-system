@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handleAIChat } from '../controllers/aiChatController.js';
+import { handleAIChat, withRelevantItemEmoji } from '../controllers/aiChatController.js';
 
 const invokeChat = (body) => new Promise((resolve, reject) => {
   const response = {
@@ -86,4 +86,10 @@ test('chat fallback answers a new Singlish request in Singlish', async () => {
     if (previous === undefined) delete process.env.AI_ENABLED;
     else process.env.AI_ENABLED = previous;
   }
+});
+
+test('adds one relevant item emoji when the model reply omits it', () => {
+  const draft = { fields: { itemName: 'Bag', category: 'Bags', description: 'Blue bag' } };
+  assert.equal(withRelevantItemEmoji('Thawa location eka denna.', draft), 'Thawa location eka denna. 🎒');
+  assert.equal(withRelevantItemEmoji('Bag eka hoyamu 🎒', draft), 'Bag eka hoyamu 🎒');
 });
