@@ -11,6 +11,11 @@ import { generateCategoryDetails } from '../services/imageAnalysisService.js';
 const CACHE_KEY_CATEGORIES = 'categories:all';
 const CACHE_TTL_SECONDS = 900;
 const cleanName = (value) => String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ');
+const normalizeCategoryIcon = (value) => {
+  const candidate = String(value || '').normalize('NFKC').trim();
+  const emoji = candidate.match(/\p{Extended_Pictographic}(?:[\uFE0E\uFE0F]|\u200D\p{Extended_Pictographic}(?:[\uFE0E\uFE0F])?)*/u);
+  return emoji ? emoji[0].slice(0, 10) : '📦';
+};
 
 const categoryCounts = async () => {
   const [lost, found] = await Promise.all([
@@ -47,7 +52,7 @@ const createCategory = asyncHandler(async (req, res) => {
     const category = await Category.create({
       name,
       normalizedName,
-      icon: req.body.icon || '📦',
+      icon: normalizeCategoryIcon(req.body.icon),
       description: req.body.description || '',
       isActive: true,
       itemCount: 0,
@@ -137,7 +142,7 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
     const category = await Category.create({
       name: correctedName,
       normalizedName,
-      icon: details.icon || '📦',
+      icon: normalizeCategoryIcon(details.icon),
       description: details.description || '',
       isActive: true,
     });

@@ -206,7 +206,25 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
       update('category', name);
       await dispatch(fetchCategories());
       return name;
-    } catch (error) {
+    } catch {
+      // AI/category validation is advisory. Keep the report submittable by
+      // selecting the seeded safe fallback instead of leaving category blank.
+      let available = categories;
+      if (available.length === 0) {
+        try { available = await dispatch(fetchCategories()).unwrap(); } catch { available = []; }
+      }
+      const fallback = available.find((entry) => entry.name?.toLocaleLowerCase() === 'other') || available[0];
+      if (fallback) {
+        setExtraCategory({ value: fallback.name, label: `${fallback.icon || '📦'} ${fallback.name}` });
+        update('category', fallback.name);
+        setErrors((current) => {
+          const next = { ...current };
+          delete next.category;
+          return next;
+        });
+        toast(t('report.categoryFallback', { category: fallback.name }));
+        return fallback.name;
+      }
       update('category', '');
       setErrors((current) => ({ ...current, category: t('report.validCategory') }));
       toast.error(t('report.categoryCreateFailed'));
@@ -273,7 +291,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
             ? 'redaction-required'
             : (warnings.length > 0 || suggestion.moderationDecision === 'review' ? 'manual-review' : 'safe');
           newReviews.push({ key, fileName: file.name || t('report.selectedPhoto'), regions, warnings, status, moderationDecision: suggestion.moderationDecision });
-          if (!firstSuggestion && !form.itemName && !form.description) firstSuggestion = suggestion;
+          if (!firstSuggestion) firstSuggestion = suggestion;
         } catch {
           newReviews.push({
             key,
@@ -292,7 +310,10 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
       }
       setImages((current) => current.filter((file) => !rejectedKeys.has(imageFileKey(file))));
       setImagePrivacyReviews([...retainedReviews, ...newReviews]);
-      if (firstSuggestion) setAISuggestion(firstSuggestion);
+      if (firstSuggestion) {
+        setAISuggestion(firstSuggestion);
+        if (firstSuggestion.category) await ensureCategory(firstSuggestion.category, firstSuggestion.categoryIcon);
+      }
       if (rejectedKeys.size > 0) {
         toast.error(t('report.moderationRemoved', { count: rejectedKeys.size }), { id: toastId });
       } else {
