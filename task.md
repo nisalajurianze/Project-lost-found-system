@@ -121,4 +121,15 @@ Current result: `deepseek-v4-flash-free` is listed but currently unavailable at 
 - [x] Reproduce the production `HTTP_401` caused by sending the generic OpenCode key first
 - [x] Make API-key selection provider-aware and cover the routing rule with a regression test
 - [x] Run backend syntax and the complete backend test suite
-- [ ] Merge, deploy, and repeat the live chatbot/log verification
+- [x] Merge, deploy, and repeat the live chatbot/log verification
+
+Result: deployment `a38560bf-cbaf-402c-a54a-5fa7a2ab75fc` succeeded. A live Singlish lost-bag request used the OpenRouter key without an AI fallback error, preserved Singlish, retained Bag/Blue/Canteen draft slots, and added the bag emoji.
+
+## 2026-09-04 DeepSeek primary with NVIDIA fallback
+
+- [x] Preserve OpenCode DeepSeek as the primary chat provider
+- [x] Add a provider-specific OpenRouter/NVIDIA fallback route
+- [x] Keep provider URLs, keys, chat models, and vision models isolated
+- [x] Add a primary-to-OpenRouter failover regression test
+- [x] Run syntax, lint, and the complete backend test suite
+- [ ] Configure both Railway routes, merge, deploy, and run a stateful live conversation test

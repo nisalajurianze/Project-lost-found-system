@@ -95,6 +95,49 @@ test('OpenRouter endpoint prefers its provider-specific key over a generic AI ke
   }
 });
 
+test('provider client falls back from the primary provider to an OpenRouter model', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  const attempts = [];
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'opencode-key';
+    process.env.AI_CHAT_MODEL = 'deepseek-v4-flash-free';
+    process.env.AI_API_URL = 'https://opencode.test/chat';
+    process.env.OPENROUTER_API_KEY = 'openrouter-key';
+    process.env.OPENROUTER_CHAT_MODEL = 'nvidia/nemotron-free';
+    process.env.OPENROUTER_API_URL = 'https://openrouter.test/chat';
+    process.env.AI_MAX_ATTEMPTS = '2';
+    resetAiProviderStateForTests();
+    global.fetch = async (url, options) => {
+      const body = JSON.parse(options.body);
+      attempts.push({ url, authorization: options.headers.Authorization, model: body.model });
+      if (url === 'https://opencode.test/chat') return { ok: false, status: 401 };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '{"value":"fallback-ok"}' } }] }),
+      };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: 'test' }], {
+      purpose: 'provider-fallback-test',
+      validator: (value) => value.value === 'fallback-ok',
+    });
+    assert.deepEqual(attempts, [
+      { url: 'https://opencode.test/chat', authorization: 'Bearer opencode-key', model: 'deepseek-v4-flash-free' },
+      { url: 'https://openrouter.test/chat', authorization: 'Bearer openrouter-key', model: 'nvidia/nemotron-free' },
+    ]);
+    assert.equal(response.meta.provider, 'openrouter');
+    assert.equal(response.meta.attempts, 2);
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
 test('provider output with private data is rejected and counted by purpose', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
