@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import AssistantSession from '../models/AssistantSession.js';
 import AssistantSubmission from '../models/AssistantSubmission.js';
 import Category, { normalizeCategoryName } from '../models/Category.js';
+import { generateCategoryDetails } from './imageAnalysisService.js';
 import LostItem from '../models/LostItem.js';
 import FoundItem from '../models/FoundItem.js';
 import ApiError from '../utils/apiError.js';
@@ -21,6 +22,26 @@ const tokenMatches = (token, expectedHash) => {
 };
 const list = (value, max) => [...new Set(String(value || '').split(',').map((entry) => entry.trim()).filter(Boolean))].slice(0, max);
 const tags = (value) => list(value, 20).map((entry) => entry.toLowerCase());
+
+const resolveAssistantCategory = async (value) => {
+  const requested = String(value || '').trim();
+  const normalized = normalizeCategoryName(requested);
+  if (!normalized) return null;
+  const existing = await Category.findOne({ normalizedName: normalized, isActive: true });
+  if (existing) return existing;
+  try {
+    const names = await Category.find({ isActive: true }).distinct('name');
+    const details = await generateCategoryDetails(requested, names);
+    const name = String(details.correctedName || requested).normalize('NFKC').trim().replace(/\s+/g, ' ').slice(0, 100);
+    const corrected = normalizeCategoryName(name);
+    const mapped = await Category.findOne({ normalizedName: corrected, isActive: true });
+    if (mapped) return mapped;
+    return await Category.create({ name, normalizedName: corrected, icon: String(details.icon || '📦').slice(0, 10), description: String(details.description || '').slice(0, 300), isActive: true });
+  } catch (error) {
+    if (error?.code === 11000) return Category.findOne({ normalizedName: normalizeCategoryName(requested), isActive: true });
+    return null;
+  }
+};
 
 const locationIntelligence = (value) => {
   const view = locationIntelligenceView(resolveLocation(value));
@@ -108,8 +129,7 @@ const submitApprovedAssistantReport = async ({ sessionId, expectedVersion, confi
     return findReceipt(submission);
   }
 
-  const requestedCategory = normalizeCategoryName(state.fields.category);
-  const category = await Category.findOne({ normalizedName: requestedCategory, isActive: true })
+  const category = await resolveAssistantCategory(state.fields.category)
     || await Category.findOne({ normalizedName: normalizeCategoryName('Other'), isActive: true });
   if (!category) {
     await AssistantSubmission.updateOne({ _id: submission._id }, { $set: { status: 'failed', leaseUntil: null, lastErrorCode: 'CATEGORY_UNAVAILABLE' } });
