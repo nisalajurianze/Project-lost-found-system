@@ -183,6 +183,14 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Create or reuse the category during final lost/found report submission without AI
 - [x] Run backend/frontend regression checks, publish, deploy, and verify production health
 
+## 2026-09-05 Production photo AI failure
+
+- [x] Inspect live request/runtime evidence for `POST /api/ai/suggest-details`
+- [x] Reproduce the configured vision provider call and identify the failing contract
+- [x] Route chat around exhausted models and vision through a separate multimodal provider
+- [x] Add regression coverage for explicit OpenRouter vision routing
+- [ ] Verify, publish, deploy, and repeat the production photo-analysis smoke test
+
 ## 2026-09-04 Singlish listen pronunciation and report approval conflicts
 
 - [x] Inspect browser TTS locale/voice selection and report approval version conflicts

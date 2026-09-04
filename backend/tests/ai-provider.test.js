@@ -272,6 +272,48 @@ test('OpenCode Muse vision models use the Responses API image format', async () 
   }
 });
 
+test('explicit OpenRouter vision routing preserves image input and skips the primary provider', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  let request;
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'opencode-key';
+    process.env.AI_API_URL = 'https://opencode.test/chat';
+    process.env.AI_VISION_MODEL = 'muse-spark-1.3-contributor-free';
+    process.env.OPENROUTER_API_KEY = 'openrouter-key';
+    process.env.OPENROUTER_API_URL = 'https://openrouter.test/chat';
+    process.env.OPENROUTER_VISION_MODEL = 'openrouter/free';
+    process.env.OPENROUTER_VISION_MODELS = 'openrouter/free,thinkingmachines/inkling-small:free';
+    process.env.AI_VISION_PROVIDER = 'openrouter';
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async (url, options) => {
+      request = { url, body: JSON.parse(options.body) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '{"imageAccepted":true}' } }] }),
+      };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: [
+      { type: 'text', text: 'Inspect image.' },
+      { type: 'image_url', image_url: { url: 'data:image/png;base64,valid' } },
+    ] }], { vision: true, validator: (value) => value.imageAccepted === true });
+
+    assert.equal(request.url, 'https://openrouter.test/chat');
+    assert.equal(request.body.model, 'openrouter/free');
+    assert.equal(request.body.messages[0].content[1].type, 'image_url');
+    assert.equal(response.meta.provider, 'openrouter');
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
 test('invalid JSON schema fails closed instead of returning provider text', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
