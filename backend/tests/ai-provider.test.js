@@ -60,6 +60,41 @@ test('provider client fails over across configured key slots with bounded attemp
   }
 });
 
+test('OpenRouter endpoint prefers its provider-specific key over a generic AI key', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  let authorization = '';
+  try {
+    process.env.AI_ENABLED = 'true';
+    process.env.AI_API_KEY = 'opencode-key';
+    process.env.OPENROUTER_API_KEY = 'openrouter-key';
+    process.env.AI_CHAT_MODEL = 'openrouter/free';
+    process.env.AI_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async (_url, options) => {
+      authorization = options.headers.Authorization;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '{"value":"ok"}' } }] }),
+      };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: 'test' }], {
+      purpose: 'unit-test',
+      validator: (value) => value.value === 'ok',
+    });
+    assert.equal(response.data.value, 'ok');
+    assert.equal(authorization, 'Bearer openrouter-key');
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
 test('provider output with private data is rejected and counted by purpose', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
