@@ -52,7 +52,10 @@ test('generic follow-ups keep Singlish until the user explicitly switches langua
   assert.equal(resolveConversationStyle('hari', history), 'singlish');
   assert.equal(resolveConversationStyle('show more', history), 'singlish');
   assert.equal(resolveConversationStyle('ok', [], 'en', 'singlish'), 'singlish');
+  assert.equal(resolveConversationStyle('eka iye hawasa 4ta', history, 'en', 'singlish'), 'singlish');
+  assert.equal(resolveConversationStyle('na, bag eka black', history, 'en', 'singlish'), 'singlish');
   assert.equal(resolveConversationStyle('please reply in English', history), 'en');
+  assert.equal(resolveConversationStyle('please reply in English', history, 'en', 'singlish'), 'en');
 });
 
 test('UI locale is used only when a generic conversation has no material history', () => {

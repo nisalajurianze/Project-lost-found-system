@@ -98,7 +98,14 @@ export const resolveConversationStyle = (message, history = [], locale = 'en', p
 
   const detected = detectConversationStyle(current);
   const shouldUseHistory = !current || GENERIC_CONVERSATION_TURN.test(current);
-  if (!shouldUseHistory || detected !== 'en') return detected;
+  if (detected !== 'en') return detected;
+
+  // The client carries the established style between turns. Romanized Sinhala
+  // follow-ups can contain mostly English-looking tokens, so keep that style
+  // until the user explicitly requests English (handled above).
+  if (['si', 'ta', 'singlish'].includes(preferredStyle)) return preferredStyle;
+
+  if (!shouldUseHistory) return detected;
 
   if (['en', 'si', 'ta', 'singlish'].includes(preferredStyle)) return preferredStyle;
 
