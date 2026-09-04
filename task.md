@@ -132,4 +132,14 @@ Result: deployment `a38560bf-cbaf-402c-a54a-5fa7a2ab75fc` succeeded. A live Sing
 - [x] Keep provider URLs, keys, chat models, and vision models isolated
 - [x] Add a primary-to-OpenRouter failover regression test
 - [x] Run syntax, lint, and the complete backend test suite
-- [ ] Configure both Railway routes, merge, deploy, and run a stateful live conversation test
+- [x] Configure both Railway routes, merge, deploy, and run a stateful live conversation test
+
+Result: deployment `91d0c21f-adba-4ca8-aaab-0e1d74e76ebf` succeeded. The stateful test preserved the Bag/Canteen draft, added the date on the next turn, and changed only Blue to Black after an explicit correction. It also exposed a style-persistence gap on non-generic romanized follow-ups.
+
+## 2026-09-04 Conversation style persistence repair
+
+- [x] Reproduce the Singlish-to-English switch in a real three-turn conversation
+- [x] Preserve the established non-English/Singlish style until an explicit language switch
+- [x] Add regression cases for date/time follow-ups, corrections, and explicit English switching
+- [x] Run focused language tests, lint, syntax validation, and the complete backend suite
+- [ ] Merge, deploy, and repeat the three-turn production conversation
