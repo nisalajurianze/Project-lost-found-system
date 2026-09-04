@@ -142,4 +142,12 @@ Result: deployment `91d0c21f-adba-4ca8-aaab-0e1d74e76ebf` succeeded. The statefu
 - [x] Preserve the established non-English/Singlish style until an explicit language switch
 - [x] Add regression cases for date/time follow-ups, corrections, and explicit English switching
 - [x] Run focused language tests, lint, syntax validation, and the complete backend suite
-- [ ] Merge, deploy, and repeat the three-turn production conversation
+- [x] Merge, deploy, and repeat the three-turn production conversation
+
+Result: deployment `f5f1f18f-1ab6-4afc-b23a-ec0bf6af96d8` preserved Singlish across all three turns while retaining Bag/Canteen/date state, correcting Blue to Black only, and keeping the bag emoji. One provider response failed strict JSON validation, but the safe deterministic response remained correct.
+
+## 2026-09-04 Stateful report-chat latency
+
+- [x] Identify redundant LLM calls while a validated session question already owns the response
+- [x] Skip those calls without changing general chat or search AI routing
+- [ ] Run regression checks, merge, deploy, and verify production response latency

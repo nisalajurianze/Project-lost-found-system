@@ -407,7 +407,9 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const items = ranked.slice(start, start + pageSize);
 
   if (!total) {
-    const aiGenerated = await generateAssistantResponse(searchMessage, history, [], reportDraft, responseStyle);
+    const aiGenerated = sessionState?.question
+      ? null
+      : await generateAssistantResponse(searchMessage, history, [], reportDraft, responseStyle);
     return ApiResponse.ok({
       text: withRelevantItemEmoji(sessionState?.question || aiGenerated?.reply || t(responseStyle, 'none'), reportDraft),
       language,
@@ -427,7 +429,9 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     }).send(res);
   }
 
-  const aiGenerated = await generateAssistantResponse(searchMessage, history, items, reportDraft, responseStyle);
+  const aiGenerated = sessionState?.question
+    ? null
+    : await generateAssistantResponse(searchMessage, history, items, reportDraft, responseStyle);
   return ApiResponse.ok({
     text: withRelevantItemEmoji(sessionState?.question || aiGenerated?.reply || t(responseStyle, 'results', total), reportDraft, items),
     language,
