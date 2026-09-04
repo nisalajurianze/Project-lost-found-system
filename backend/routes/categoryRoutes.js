@@ -4,6 +4,7 @@
 // ============================================
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   getCategories,
   createCategory,
@@ -21,12 +22,20 @@ import {
 } from '../utils/validators.js';
 
 const router = express.Router();
+const reportAutoCreateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many new category suggestions. Please try again later.' },
+});
 
 // Publicly viewable categories list
 router.get('/', getCategories);
 
-// Global taxonomy is privileged state. Suggestions may be mapped/created only
-// by an administrator until a separate approval queue exists.
+// AI report suggestions may create a bounded, validated category for the
+// authenticated reporter. Manual taxonomy management remains admin-only.
+router.post('/report-auto-create', protect, reportAutoCreateLimiter, createCategoryValidator, validate, autoCreateCategory);
 router.post('/auto-create', protect, authorize('admin'), autoCreateCategory);
 
 // Admin-only management endpoints

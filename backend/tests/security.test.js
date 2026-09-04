@@ -144,7 +144,7 @@ test('claim contact stays private until approval and explicit sharing are both p
   assert.equal(approvedShared.foundItemId.userId.email, 'reporter@example.com');
 });
 
-test('claim handover and global taxonomy enforce approved bindings and admin authority', () => {
+test('claim handover and taxonomy enforce approved bindings with bounded report suggestions', () => {
   const workflow = fs.readFileSync(new URL('../services/itemWorkflowService.js', import.meta.url), 'utf8');
   const claims = fs.readFileSync(new URL('../controllers/claimController.js', import.meta.url), 'utf8');
   const categories = fs.readFileSync(new URL('../routes/categoryRoutes.js', import.meta.url), 'utf8');
@@ -153,6 +153,7 @@ test('claim handover and global taxonomy enforce approved bindings and admin aut
   assert.match(workflow, /claim\.isContactShared = false/);
   assert.match(claims, /claim\.status !== 'approved'/);
   assert.match(claims, /other\.isContactShared = false/);
+  assert.match(categories, /router\.post\('\/report-auto-create', protect, reportAutoCreateLimiter, createCategoryValidator, validate, autoCreateCategory\)/);
   assert.match(categories, /router\.post\('\/auto-create', protect, authorize\('admin'\), autoCreateCategory\)/);
 });
 

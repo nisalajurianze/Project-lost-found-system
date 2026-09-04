@@ -24,7 +24,7 @@ const aiService = {
   },
 
   autoCreateCategory: async (name) => {
-    const response = await api.post('/categories/auto-create', { name });
+    const response = await api.post('/categories/report-auto-create', { name });
     return response.data;
   }
 };
