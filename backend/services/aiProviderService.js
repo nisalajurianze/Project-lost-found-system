@@ -35,25 +35,50 @@ const isOpenRouterProvider = () => {
   }
 };
 
-const getApiKeys = () => {
-  const genericKeys = splitValues(process.env.AI_API_KEYS, process.env.AI_API_KEY);
-  if (!isOpenRouterProvider()) return genericKeys;
-
-  const openRouterKeys = splitValues(process.env.OPENROUTER_API_KEYS, process.env.OPENROUTER_API_KEY);
-  return openRouterKeys.length > 0 ? openRouterKeys : genericKeys;
-};
-
 const getModels = (vision = false) => splitValues(
   vision ? process.env.AI_VISION_MODELS : process.env.AI_CHAT_MODELS,
   vision ? process.env.AI_VISION_MODEL : process.env.AI_CHAT_MODEL,
 );
 
+const getOpenRouterModels = (vision = false) => splitValues(
+  vision ? process.env.OPENROUTER_VISION_MODELS : process.env.OPENROUTER_CHAT_MODELS,
+  vision ? process.env.OPENROUTER_VISION_MODEL : process.env.OPENROUTER_CHAT_MODEL,
+);
+
+const getProviderPlans = (vision = false) => {
+  const configuredUrl = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  const genericKeys = splitValues(process.env.AI_API_KEYS, process.env.AI_API_KEY);
+  const openRouterKeys = splitValues(process.env.OPENROUTER_API_KEYS, process.env.OPENROUTER_API_KEY);
+  const configuredIsOpenRouter = isOpenRouterProvider();
+  const plans = [];
+
+  if (configuredIsOpenRouter) {
+    const keys = openRouterKeys.length > 0 ? openRouterKeys : genericKeys;
+    if (keys.length > 0 && getModels(vision).length > 0) {
+      plans.push({ name: 'openrouter', url: configuredUrl, keys, models: getModels(vision) });
+    }
+    return plans;
+  }
+
+  if (genericKeys.length > 0 && getModels(vision).length > 0) {
+    plans.push({ name: 'primary', url: configuredUrl, keys: genericKeys, models: getModels(vision) });
+  }
+  if (openRouterKeys.length > 0 && getOpenRouterModels(vision).length > 0) {
+    plans.push({
+      name: 'openrouter',
+      url: process.env.OPENROUTER_API_URL || 'https://openrouter.ai/api/v1/chat/completions',
+      keys: openRouterKeys,
+      models: getOpenRouterModels(vision),
+    });
+  }
+  return plans;
+};
+
 const aiEnabled = () => ['1', 'true', 'yes'].includes(String(process.env.AI_ENABLED || '').toLowerCase());
 const jsonResponseFormatEnabled = () => ['1', 'true', 'yes'].includes(String(process.env.AI_USE_RESPONSE_FORMAT || '').toLowerCase());
-const aiConfigured = ({ vision = false } = {}) => aiEnabled() && getApiKeys().length > 0 && getModels(vision).length > 0;
+const aiConfigured = ({ vision = false } = {}) => aiEnabled() && getProviderPlans(vision).length > 0;
 
-const providerUrl = () => {
-  const value = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+const providerUrl = (value = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions') => {
   const parsed = new URL(value);
   const localDevelopment = process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(parsed.hostname);
   if (parsed.protocol !== 'https:' && !localDevelopment) throw new Error('AI_API_URL must use HTTPS in production.');
@@ -72,9 +97,9 @@ const parseJSONResponse = (text) => {
   }
 };
 
-const circuitKey = (model, keyIndex) => `${model}:${keyIndex}`;
-const getCircuit = (model, keyIndex) => circuitStates.get(circuitKey(model, keyIndex)) || { failures: 0, openUntil: 0 };
-const setCircuit = (model, keyIndex, value) => circuitStates.set(circuitKey(model, keyIndex), value);
+const circuitKey = (model, keyIndex, provider = 'default') => `${model}:${provider}:${keyIndex}`;
+const getCircuit = (model, keyIndex, provider) => circuitStates.get(circuitKey(model, keyIndex, provider)) || { failures: 0, openUntil: 0 };
+const setCircuit = (model, keyIndex, provider, value) => circuitStates.set(circuitKey(model, keyIndex, provider), value);
 
 const updateModelMetrics = (model, outcome, latencyMs) => {
   metrics.byModel[model] ||= { requests: 0, successes: 0, failures: 0, totalLatencyMs: 0, lastFailureCode: '' };
@@ -133,12 +158,12 @@ const requestAIJson = async (messages, {
   }
   if (!aiConfigured({ vision })) return null;
 
-  const keys = getApiKeys();
-  const models = getModels(vision);
+  const providerPlans = getProviderPlans(vision);
   const timeoutMs = Math.min(30_000, Math.max(2_000, Number(process.env.AI_TIMEOUT_MS || 15_000)));
   const failureThreshold = Math.min(10, Math.max(1, Number(process.env.AI_CIRCUIT_FAILURE_THRESHOLD || 3)));
   const cooldownMs = Math.min(15 * 60_000, Math.max(10_000, Number(process.env.AI_CIRCUIT_COOLDOWN_MS || 60_000)));
-  const attemptBudget = Math.min(keys.length * models.length, Math.max(1, maxAttempts));
+  const availableAttempts = providerPlans.reduce((total, plan) => total + (plan.keys.length * plan.models.length), 0);
+  const attemptBudget = Math.min(availableAttempts, Math.max(1, maxAttempts));
   let attempts = 0;
   let lastCode = 'AI_PROVIDER_UNAVAILABLE';
 
@@ -146,19 +171,20 @@ const requestAIJson = async (messages, {
   metrics.totalInputChars += envelope.textChars;
   updatePurposeMetrics(purpose, 'request', { inputChars: envelope.textChars });
 
-  for (const model of models) {
-    for (let keyIndex = 0; keyIndex < keys.length; keyIndex += 1) {
-      if (attempts >= attemptBudget) break;
-      const state = getCircuit(model, keyIndex);
-      if (state.openUntil > Date.now()) continue;
-      attempts += 1;
-      const startedAt = Date.now();
+  for (const provider of providerPlans) {
+    for (const model of provider.models) {
+      for (let keyIndex = 0; keyIndex < provider.keys.length; keyIndex += 1) {
+        if (attempts >= attemptBudget) break;
+        const state = getCircuit(model, keyIndex, provider.name);
+        if (state.openUntil > Date.now()) continue;
+        attempts += 1;
+        const startedAt = Date.now();
 
-      try {
-        const response = await fetch(providerUrl(), {
+        try {
+          const response = await fetch(providerUrl(provider.url), {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${keys[keyIndex]}`,
+            Authorization: `Bearer ${provider.keys[keyIndex]}`,
             'Content-Type': 'application/json',
             ...(process.env.CLIENT_URL ? { 'HTTP-Referer': process.env.CLIENT_URL } : {}),
             'X-Title': 'Smart Lost and Found',
@@ -200,20 +226,22 @@ const requestAIJson = async (messages, {
         metrics.lastSuccessAt = new Date();
         updateModelMetrics(model, 'success', latencyMs);
         updatePurposeMetrics(purpose, 'success', { latencyMs, outputChars: outputSafety.serializedChars });
-        setCircuit(model, keyIndex, { failures: 0, openUntil: 0 });
-        return { data: result, meta: { model, keySlot: keyIndex + 1, attempts, latencyMs, purpose, promptVersion, safetyVersion: AI_SAFETY_VERSION } };
-      } catch (error) {
-        const latencyMs = Date.now() - startedAt;
-        const nextFailures = state.failures + 1;
-        setCircuit(model, keyIndex, {
-          failures: nextFailures,
-          openUntil: nextFailures >= failureThreshold ? Date.now() + cooldownMs : 0,
-        });
-        updateModelMetrics(model, 'failure', latencyMs);
-        metrics.lastFailureAt = new Date();
-        lastCode = lastCode || error?.code || error?.name || 'AI_PROVIDER_ERROR';
-        metrics.lastFailureCode = lastCode;
+          setCircuit(model, keyIndex, provider.name, { failures: 0, openUntil: 0 });
+          return { data: result, meta: { provider: provider.name, model, keySlot: keyIndex + 1, attempts, latencyMs, purpose, promptVersion, safetyVersion: AI_SAFETY_VERSION } };
+        } catch (error) {
+          const latencyMs = Date.now() - startedAt;
+          const nextFailures = state.failures + 1;
+          setCircuit(model, keyIndex, provider.name, {
+            failures: nextFailures,
+            openUntil: nextFailures >= failureThreshold ? Date.now() + cooldownMs : 0,
+          });
+          updateModelMetrics(model, 'failure', latencyMs);
+          metrics.lastFailureAt = new Date();
+          lastCode = lastCode || error?.code || error?.name || 'AI_PROVIDER_ERROR';
+          metrics.lastFailureCode = lastCode;
+        }
       }
+      if (attempts >= attemptBudget) break;
     }
     if (attempts >= attemptBudget) break;
   }
