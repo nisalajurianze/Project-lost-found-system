@@ -114,3 +114,11 @@ Implementation stance: AI-01 to AI-21 are complete in local source. Production m
 - [x] Change the existing Railway public-domain target port from 5000 to 8080, then run the live chatbot smoke test
 
 Current result: `deepseek-v4-flash-free` is listed but currently unavailable at the OpenCode chat endpoint; `nemotron-3.5-lightning-free` and `mimo-v2.5-free` returned HTTP 200. Deployment `f7e13afc-7fef-407e-884e-68f65cd9c2c4` succeeded, the public domain now targets the app's 8080 listener, `/api/health` returned 200 publicly, and the live chatbot returned a Singlish response plus the expected Bag, Blue, and Canteen draft fields.
+
+## 2026-09-04 OpenRouter production routing repair
+
+- [x] Move chat and vision model routing to `openrouter/free` with bounded free-model fallbacks
+- [x] Reproduce the production `HTTP_401` caused by sending the generic OpenCode key first
+- [x] Make API-key selection provider-aware and cover the routing rule with a regression test
+- [x] Run backend syntax and the complete backend test suite
+- [ ] Merge, deploy, and repeat the live chatbot/log verification

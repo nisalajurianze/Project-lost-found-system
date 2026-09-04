@@ -26,12 +26,22 @@ const splitValues = (...values) => [...new Set(values
   .map((value) => value.trim())
   .filter((value) => value && !value.startsWith('your_')))];
 
-const getApiKeys = () => splitValues(
-  process.env.AI_API_KEYS,
-  process.env.AI_API_KEY,
-  process.env.OPENROUTER_API_KEYS,
-  process.env.OPENROUTER_API_KEY,
-);
+const isOpenRouterProvider = () => {
+  try {
+    const value = process.env.AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+    return new URL(value).hostname.toLowerCase() === 'openrouter.ai';
+  } catch {
+    return false;
+  }
+};
+
+const getApiKeys = () => {
+  const genericKeys = splitValues(process.env.AI_API_KEYS, process.env.AI_API_KEY);
+  if (!isOpenRouterProvider()) return genericKeys;
+
+  const openRouterKeys = splitValues(process.env.OPENROUTER_API_KEYS, process.env.OPENROUTER_API_KEY);
+  return openRouterKeys.length > 0 ? openRouterKeys : genericKeys;
+};
 
 const getModels = (vision = false) => splitValues(
   vision ? process.env.AI_VISION_MODELS : process.env.AI_CHAT_MODELS,
