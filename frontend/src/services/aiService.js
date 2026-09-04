@@ -8,7 +8,8 @@ const aiService = {
     const response = await api.post('/ai/suggest-details', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      timeout: 20_000,
     });
     return response.data;
   },

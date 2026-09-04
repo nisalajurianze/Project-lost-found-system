@@ -259,7 +259,11 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
 
     setImages(nextImages);
     setImagePrivacyReviews(retainedReviews);
-    setErrors((current) => ({ ...current, images: undefined }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.images;
+      return next;
+    });
     if (filesToReview.length === 0) {
       setIsPrivacyScanning(false);
       return;
@@ -369,7 +373,11 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
       });
       setImages(nextImages);
       setImagePrivacyReviews(nextReviews);
-      setErrors((current) => ({ ...current, images: undefined }));
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.images;
+        return next;
+      });
       const needsManualReview = [...rescans.values()].some((entry) => !entry.safe);
       if (needsManualReview) toast(t('report.redactionNeedsReview'), { id: toastId });
       else toast.success(t('report.privacyRedacted'), { id: toastId });
@@ -391,7 +399,11 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     setImagePrivacyReviews((current) => current.map((review) => (
       review.key === key ? { ...review, status: 'manually-reviewed', confirmedAt: new Date().toISOString() } : review
     )));
-    setErrors((current) => ({ ...current, images: undefined }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next.images;
+      return next;
+    });
   };
 
   const validate = () => {
@@ -641,11 +653,11 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
         })}
       </nav>
 
-      {Object.keys(errors).length > 0 && (
+      {Object.values(errors).some(Boolean) && (
         <section className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100" role="alert" aria-labelledby="report-error-title">
           <h2 id="report-error-title" className="flex items-center gap-2 font-bold"><AlertCircle className="h-5 w-5" /> {t('report.fixFields')}</h2>
           <ul className="mt-2 space-y-1 text-sm">
-            {Object.entries(errors).map(([field, message]) => (
+            {Object.entries(errors).filter(([, message]) => Boolean(message)).map(([field, message]) => (
               <li key={field}><button type="button" className="underline" onClick={() => setStep(fieldStep[field] || 4)}>{message}</button></li>
             ))}
           </ul>

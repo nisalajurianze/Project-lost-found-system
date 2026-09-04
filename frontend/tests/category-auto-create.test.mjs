@@ -19,6 +19,9 @@ test('photo suggestions auto-resolve categories without blocking report submissi
   assert.doesNotMatch(wizard, /firstSuggestion && !form\.itemName && !form\.description/);
   assert.match(wizard, /report\.categoryFallback/);
   assert.match(service, /categories\/report-auto-create/);
+  assert.match(service, /timeout: 20_000/);
+  assert.doesNotMatch(wizard, /images: undefined/);
+  assert.match(wizard, /Object\.values\(errors\)\.some\(Boolean\)/);
   assert.match(route, /reportAutoCreateLimiter/);
   assert.match(controller, /normalizeCategoryIcon/);
 });
