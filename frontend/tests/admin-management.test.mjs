@@ -70,3 +70,19 @@ test('site settings are trilingual and anti-abuse thresholds remain human-review
   assert.match(policy, /policy:\s*'advisory-only'/);
   assert.doesNotMatch(policy, /isActive\s*=\s*false|status\s*=\s*['"]rejected/);
 });
+
+test('ownership claims honour dashboard filters and never present a blank loading area', async () => {
+  const { translations } = await import('../src/i18n/translations.js');
+  const page = read('src/pages/admin/ManageClaims.jsx');
+  const service = read('src/services/claimService.js');
+
+  for (const language of ['en', 'si', 'ta']) {
+    assert.ok(translations[language]?.['claims.loading']);
+  }
+  assert.match(page, /useSearchParams/);
+  assert.match(page, /searchParams\.get\('status'\)/);
+  assert.match(page, /searchParams\.get\('page'\)/);
+  assert.match(page, /t\('claims\.loading'\)/);
+  assert.match(page, /handleRetry/);
+  assert.match(service, /timeout:\s*20_000/);
+});
