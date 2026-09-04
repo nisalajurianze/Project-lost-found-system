@@ -16,6 +16,7 @@ const normalizeCategoryIcon = (value) => {
   const emoji = candidate.match(/\p{Extended_Pictographic}(?:[\uFE0E\uFE0F]|\u200D\p{Extended_Pictographic}(?:[\uFE0E\uFE0F])?)*/u);
   return emoji ? emoji[0].slice(0, 10) : '📦';
 };
+const fallbackCategoryIcon = (name) => ({ cat: '🐱', kitten: '🐱', dog: '🐶', phone: '📱', wallet: '👛', keys: '🔑', bag: '👜' })[normalizeCategoryName(name)] || '📦';
 
 const categoryCounts = async () => {
   const [lost, found] = await Promise.all([
@@ -132,7 +133,12 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
   if (existing) return ApiResponse.ok(existing, 'Category mapped to existing.').send(res);
 
   const existingNames = await Category.find({ isActive: true }).distinct('name');
-  const details = await generateCategoryDetails(requestedName, existingNames);
+  let details;
+  try {
+    details = await generateCategoryDetails(requestedName, existingNames);
+  } catch {
+    details = { correctedName: requestedName, icon: fallbackCategoryIcon(requestedName), description: 'User-created physical item category.' };
+  }
   const correctedName = cleanName(details.correctedName || requestedName);
   const normalizedName = normalizeCategoryName(correctedName);
   const mapped = await Category.findOne({ normalizedName });
