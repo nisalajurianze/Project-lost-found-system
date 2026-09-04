@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { FileText, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { fetchClaims, reviewClaimRequest } from '../../redux/slices/claimSlice';
@@ -13,14 +14,19 @@ import Textarea from '../../components/common/Textarea';
 import Select from '../../components/common/Select';
 import { useLanguage } from '../../i18n/LanguageContext';
 
+const VALID_STATUSES = new Set(['pending', 'approved', 'rejected']);
+
 const ManageClaims = () => {
   const dispatch = useDispatch();
   const { t } = useLanguage();
   const { claims, pagination, isLoading, error } = useSelector((state) => state.claims);
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filter & Search states
-  const [status, setStatus] = useState('');
-  const [page, setPage] = useState(1);
+  // Keep dashboard deep links, the visible filter and API query in sync.
+  const requestedStatus = searchParams.get('status') || '';
+  const status = VALID_STATUSES.has(requestedStatus) ? requestedStatus : '';
+  const requestedPage = Number.parseInt(searchParams.get('page') || '1', 10);
+  const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
   // Review Dialog state
   const [reviewDialog, setReviewDialog] = useState(null); // { id, status }
@@ -32,13 +38,21 @@ const ManageClaims = () => {
   }, [dispatch, status, page]);
 
   const handleStatusChange = (e) => {
-    setStatus(e.target.value);
-    setPage(1);
+    const next = new URLSearchParams(searchParams);
+    if (e.target.value) next.set('status', e.target.value);
+    else next.delete('status');
+    next.delete('page');
+    setSearchParams(next, { replace: true });
   };
 
   const handlePageChange = (newPage) => {
-    setPage(newPage);
+    const next = new URLSearchParams(searchParams);
+    if (newPage > 1) next.set('page', String(newPage));
+    else next.delete('page');
+    setSearchParams(next, { replace: true });
   };
+
+  const handleRetry = () => dispatch(fetchClaims({ status, page, limit: 9 }));
 
   const handleOpenReview = (claimId, reviewStatus) => {
     setReviewDialog({ id: claimId, status: reviewStatus });
@@ -107,10 +121,18 @@ const ManageClaims = () => {
 
       {/* Claims List */}
       {isLoading ? (
-        <Loader />
+        <div className="flex min-h-52 flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white/50 p-8 text-center dark:border-slate-800 dark:bg-slate-900/30">
+          <Loader size="lg" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+            {t('claims.loading')}
+          </p>
+        </div>
       ) : error ? (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-xl text-sm">
-          {t('claims.loadError', { error })}
+        <div className="space-y-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400" role="alert">
+          <p>{t('claims.loadError', { error })}</p>
+          <Button variant="outline" size="sm" onClick={handleRetry}>
+            {t('common.refresh')}
+          </Button>
         </div>
       ) : claims.length === 0 ? (
         <EmptyState
@@ -193,4 +215,3 @@ const ManageClaims = () => {
 };
 
 export default ManageClaims;
-

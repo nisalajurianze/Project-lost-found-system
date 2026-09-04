@@ -23,7 +23,9 @@ const claimService = {
    * Get claim requests list.
    */
   getClaims: async (params = {}) => {
-    const res = await api.get('/claims', { params });
+    // Prevent the claims screen from remaining in a loading state forever if
+    // the deployment or network accepts the connection but never responds.
+    const res = await api.get('/claims', { params, timeout: 20_000 });
     return res.data.data; // { claims, pagination }
   },
 
