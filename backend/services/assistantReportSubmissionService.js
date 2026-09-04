@@ -108,10 +108,12 @@ const submitApprovedAssistantReport = async ({ sessionId, expectedVersion, confi
     return findReceipt(submission);
   }
 
-  const category = await Category.findOne({ normalizedName: normalizeCategoryName(state.fields.category), isActive: true });
+  const requestedCategory = normalizeCategoryName(state.fields.category);
+  const category = await Category.findOne({ normalizedName: requestedCategory, isActive: true })
+    || await Category.findOne({ normalizedName: normalizeCategoryName('Other'), isActive: true });
   if (!category) {
     await AssistantSubmission.updateOne({ _id: submission._id }, { $set: { status: 'failed', leaseUntil: null, lastErrorCode: 'CATEGORY_UNAVAILABLE' } });
-    throw ApiError.badRequest('The draft category is no longer available. Open the guided report to select an active category.');
+    throw ApiError.badRequest('No active report categories are available. Please try again later.');
   }
   const description = `${state.fields.description || state.fields.itemName}. Identifying feature: ${state.fields.uniqueFeatures}`.slice(0, 2000);
   const common = {
