@@ -32,6 +32,7 @@ import {
 } from '../../utils/assistantHistory';
 import { isSafeInternalPath, toSafeInternalPath } from '../../utils/internalNavigation';
 import { saveAssistantReportDraft } from '../../utils/assistantReportDraft';
+import { resolveSpeechSettings, selectSpeechVoice, speechStyleLocale } from '../../utils/speech';
 
 const timestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const initialMessage = (t) => ({
@@ -49,6 +50,7 @@ const confidenceLabel = (confidence, t) => ({
 }[confidence] || t('assistant.aiRelevance'));
 
 const voiceOptions = (t) => [
+  { value: 'auto', label: t('assistant.voiceAuto') },
   { value: 'en-US', label: t('assistant.voiceEnglish') },
   { value: 'si-LK', label: t('assistant.voiceSinhala') },
   { value: 'ta-LK', label: t('assistant.voiceTamil') },
@@ -135,7 +137,7 @@ const AssistantResultCard = ({ item, closeAssistant, t }) => (
 );
 
 
-const ReportDraftCard = ({ draft, onStart, onApprove, isSubmitting, responseStyle, t }) => {
+const ReportDraftCard = ({ draft, onStart, onApprove, isSubmitting, canApprove, responseStyle, t }) => {
   if (!draft?.fields) return null;
   const copy = REPORT_DRAFT_COPY[responseStyle] || REPORT_DRAFT_COPY.en;
   const dateLocale = responseStyle === 'si' ? 'si-LK' : responseStyle === 'ta' ? 'ta-LK' : 'en-LK';
@@ -166,7 +168,7 @@ const ReportDraftCard = ({ draft, onStart, onApprove, isSubmitting, responseStyl
       <button type="button" onClick={() => onStart(draft)} className="mt-3 flex min-h-11 w-full items-center justify-between rounded-xl bg-primary-600 px-4 text-sm font-bold text-white hover:bg-primary-700">
         {copy.open} <FiChevronRight aria-hidden="true" />
       </button>
-      {draft.state === 'reviewing' && !localizedMissing.length && (
+      {draft.state === 'reviewing' && !localizedMissing.length && canApprove && (
         <button type="button" disabled={isSubmitting} onClick={() => onApprove(draft)} className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl border border-emerald-500 bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60">
           {isSubmitting ? t('assistant.submittingReport') : t('assistant.approveSubmit')}
         </button>
@@ -220,7 +222,8 @@ const AIChatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [quickReplies, setQuickReplies] = useState(DEFAULT_QUICK_REPLIES);
-  const [voiceLanguage, setVoiceLanguage] = useState('en-US');
+  const [voiceLanguage, setVoiceLanguage] = useState('auto');
+  const [availableVoices, setAvailableVoices] = useState([]);
   const [conversationId, setConversationId] = useState('');
   const [sessionVersion, setSessionVersion] = useState(0);
   const [conversationHistory, setConversationHistory] = useState([]);
@@ -236,12 +239,21 @@ const AIChatbot = () => {
   const recognitionRef = useRef(null);
   const utteranceRef = useRef(null);
   const voiceConsentRef = useRef(false);
+  const reportSubmissionInFlightRef = useRef(false);
   const lastFocusedRef = useRef(null);
   const suppressHistoryWriteRef = useRef(false);
 
   useEffect(() => () => {
     recognitionRef.current?.abort?.();
     window.speechSynthesis?.cancel?.();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return undefined;
+    const updateVoices = () => setAvailableVoices(window.speechSynthesis.getVoices?.() || []);
+    updateVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged', updateVoices);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', updateVoices);
   }, []);
 
   const closeAssistant = () => setIsOpen(false);
@@ -343,6 +355,7 @@ const AIChatbot = () => {
   };
 
   const approveAndSubmitReport = async (draft) => {
+    if (reportSubmissionInFlightRef.current) return;
     if (!user?._id) {
       saveAssistantReportDraft(draft, { principalId });
       closeAssistant();
@@ -350,6 +363,7 @@ const AIChatbot = () => {
       return;
     }
     if (!window.confirm(t('assistant.submitConfirmation'))) return;
+    reportSubmissionInFlightRef.current = true;
     setIsSubmittingReport(true);
     try {
       const confirmationResponse = await api.post('/ai/report/confirm', {
@@ -377,12 +391,15 @@ const AIChatbot = () => {
       ]);
       setQuickReplies([]);
       toast.success(t('assistant.reportSubmittedToast'));
-    } catch {
-      toast.error(t('assistant.reportSubmitFailed'));
+    } catch (error) {
+      toast.error(error?.response?.status === 409 ? t('assistant.reportDraftChanged') : t('assistant.reportSubmitFailed'));
     } finally {
+      reportSubmissionInFlightRef.current = false;
       setIsSubmittingReport(false);
     }
   };
+
+  const latestDraftIndex = messages.reduce((latest, message, index) => message.reportDraft ? index : latest, -1);
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('lf:assistant-state', { detail: { isOpen } }));
@@ -560,7 +577,9 @@ const AIChatbot = () => {
       voiceConsentRef.current = true;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = voiceLanguage;
+    recognition.lang = voiceLanguage === 'auto'
+      ? speechStyleLocale(language)
+      : voiceLanguage;
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
     recognition.onstart = () => setIsListening(true);
@@ -590,8 +609,15 @@ const AIChatbot = () => {
     }
     const spokenText = String(message.content || '').replace(/\[([^\]]+)\]\([^)]+\)/gu, '$1').replace(/[*#_>]/gu, ' ').replaceAll('\u0060', ' ').replace(/\s+/gu, ' ').trim().slice(0, 3000);
     if (!spokenText) return;
+    const speech = resolveSpeechSettings({
+      responseStyle: message.responseStyle,
+      selectedVoice: voiceLanguage,
+      interfaceLanguage: language,
+    });
     const utterance = new window.SpeechSynthesisUtterance(spokenText);
-    utterance.lang = voiceLanguage;
+    utterance.lang = speech.locale;
+    const selectedVoice = selectSpeechVoice(availableVoices, speech.candidates);
+    if (selectedVoice) utterance.voice = selectedVoice;
     utterance.rate = 0.95;
     utterance.onend = () => setSpeakingMessage(-1);
     utterance.onerror = () => setSpeakingMessage(-1);
@@ -774,7 +800,7 @@ const AIChatbot = () => {
               </div>
 
               {message.personalSummary && <div className="mt-3 w-full"><PersonalSummary summary={message.personalSummary} t={t} /></div>}
-              {message.reportDraft && <ReportDraftCard draft={message.reportDraft} onStart={startReportDraft} onApprove={approveAndSubmitReport} isSubmitting={isSubmittingReport} responseStyle={message.responseStyle} t={t} />}
+              {message.reportDraft && <ReportDraftCard draft={message.reportDraft} onStart={startReportDraft} onApprove={approveAndSubmitReport} isSubmitting={isSubmittingReport} canApprove={index === latestDraftIndex && message.reportDraft.version === sessionVersion} responseStyle={message.responseStyle} t={t} />}
               {message.knowledge?.citations?.length > 0 && (
                 <div className="mt-2 flex w-full flex-wrap gap-2" aria-label={t('assistant.knowledgeSources')}>
                   {message.knowledge.citations.filter((citation) => isSafeCitationUrl(citation.url)).map((citation) => isSafeInternalPath(citation.url) ? (

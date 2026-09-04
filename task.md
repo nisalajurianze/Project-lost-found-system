@@ -162,3 +162,10 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Normalize optional model quick replies instead of rejecting an otherwise valid reply
 - [x] Add positive localized help responses and regression coverage
 - [x] Run focused tests, lint, syntax validation, full regression, merge, deploy, and smoke test
+
+## 2026-09-04 Singlish listen pronunciation and report approval conflicts
+
+- [x] Inspect browser TTS locale/voice selection and report approval version conflicts
+- [x] Resolve speech locale and available voice from each assistant response style
+- [x] Restrict approval to the current report draft and guard duplicate submissions
+- [x] Add regression coverage, run frontend checks, and publish the focused fix
