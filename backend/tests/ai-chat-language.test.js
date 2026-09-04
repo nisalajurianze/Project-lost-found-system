@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handleAIChat, withRelevantItemEmoji } from '../controllers/aiChatController.js';
+import { handleAIChat, normalizeAssistantResponse, withRelevantItemEmoji } from '../controllers/aiChatController.js';
 
 const invokeChat = (body) => new Promise((resolve, reject) => {
   const response = {
@@ -92,4 +92,19 @@ test('adds one relevant item emoji when the model reply omits it', () => {
   const draft = { fields: { itemName: 'Bag', category: 'Bags', description: 'Blue bag' } };
   assert.equal(withRelevantItemEmoji('Thawa location eka denna.', draft), 'Thawa location eka denna. 🎒');
   assert.equal(withRelevantItemEmoji('Bag eka hoyamu 🎒', draft), 'Bag eka hoyamu 🎒');
+});
+
+test('general Singlish help stays positive and offers relevant actions', async () => {
+  const response = await invokeChat({ message: 'mata help ekak denna', locale: 'en', history: [] });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.data.responseStyle, 'singlish');
+  assert.match(response.payload.data.text, /udaw karannam/);
+  assert.equal(response.payload.data.actions[0].type, 'report_lost');
+});
+
+test('provider replies keep a valid reply when optional quick replies are malformed', () => {
+  assert.deepEqual(normalizeAssistantResponse({ reply: 'Hari, mama balannam.', quickReplies: 'not-an-array' }), {
+    reply: 'Hari, mama balannam.',
+    quickReplies: [],
+  });
 });

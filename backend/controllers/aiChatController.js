@@ -31,6 +31,7 @@ const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const copy = {
   en: {
     greeting: 'Hi! Are you looking for something you lost, or would you like to report an item you found?',
+    help: 'I can help you search for a lost item, report a found item, review possible matches, or build a report draft step by step.',
     ask: 'Please add an item name, colour, brand, category, or location so I can search accurately.',
     none: 'I could not find a close public report yet. Try another detail or create a report so the matching service can keep checking.',
     results: (count) => `${count} relevant public report${count === 1 ? '' : 's'} found. Best matches are shown first.`,
@@ -42,6 +43,7 @@ const copy = {
   },
   singlish: {
     greeting: 'Hi! Oya nathi una deyak hoyanawada, nathnam hambuna item ekak report karanawada?',
+    help: 'Mama oyata nathi una item ekak hoyanna, hambuna item ekak report karanna, possible matches balanna, saha report draft eka step-by-step hadanna udaw karannam.',
     ask: 'Hariyata hoyanna item eke nama, paata, brand eka, category eka hari location eka hari denna.',
     none: 'Galapena public report ekak thawama hambune na. Thawa detail ekak denna, nathnam matching service ekata digatama balanna report ekak hadanna.',
     results: (count) => `Galapena public reports ${count}k hambuna. Hodama matches tika issarahin pennanawa.`,
@@ -53,6 +55,7 @@ const copy = {
   },
   si: {
     greeting: 'ආයුබෝවන්! ඔබ නැති වූ දෙයක් සොයනවාද, නැත්නම් හමුවූ භාණ්ඩයක් වාර්තා කරනවාද?',
+    help: 'නැති වූ භාණ්ඩයක් සෙවීමට, හමුවූ භාණ්ඩයක් වාර්තා කිරීමට, ගැළපීම් බැලීමට හෝ වාර්තා කෙටුම්පතක් පියවරෙන් පියවර සෑදීමට මට උදව් කළ හැක.',
     ask: 'නිවැරදිව සොයන්න භාණ්ඩයේ නම, පාට, brand එක, category එක හෝ ස්ථානයක් දෙන්න.',
     none: 'ගැලපෙන public report එකක් තවම හමු වුණේ නැහැ. වෙනත් විස්තරයක් දෙන්න හෝ matching service එක දිගටම බලන්න report එකක් සාදන්න.',
     results: (count) => `ගැලපෙන public reports ${count}ක් හමු වුණා. හොඳම results මුලින් පෙන්වනවා.`,
@@ -64,6 +67,7 @@ const copy = {
   },
   ta: {
     greeting: 'வணக்கம்! நீங்கள் தொலைத்த பொருளை தேடுகிறீர்களா, அல்லது கண்டெடுத்த பொருளை பதிவு செய்ய விரும்புகிறீர்களா?',
+    help: 'தொலைந்த பொருளைத் தேட, கண்டெடுத்த பொருளைப் பதிவு செய்ய, சாத்தியமான பொருத்தங்களைப் பார்க்க அல்லது அறிக்கை வரைவை படிப்படியாக உருவாக்க நான் உதவ முடியும்.',
     ask: 'துல்லியமாக தேட பொருளின் பெயர், நிறம், brand, category அல்லது இடத்தைச் சேர்க்கவும்.',
     none: 'நெருக்கமான பொது பதிவு இன்னும் கிடைக்கவில்லை. வேறு விவரத்தை முயற்சிக்கவும் அல்லது தொடர்ந்த matching காக புதிய report உருவாக்கவும்.',
     results: (count) => `தொடர்புடைய பொது பதிவுகள் ${count} கிடைத்தன. சிறந்த பொருத்தங்கள் முதலில் காட்டப்படுகின்றன.`,
@@ -116,6 +120,14 @@ const actionLabels = {
 };
 
 const actionLabel = (style, key) => actionLabels[style]?.[key] ?? actionLabels.en[key];
+
+const isGeneralHelpQuery = (value) => {
+  const text = String(value || '').normalize('NFKC').toLowerCase();
+  const asksForHelp = /\b(?:help|udaw|udau)\b/u.test(text) || /උදව්|உதவி/u.test(text);
+  const hasItemContext = /\b(?:lost|found|nathi|hambuna|phone|mobile|bag|wallet|laptop|key|book|umbrella|watch)\b/u.test(text)
+    || /නැති|හමු|தொலை|கண்ட/u.test(text);
+  return asksForHelp && !hasItemContext;
+};
 
 const itemEmojiRules = [
   [/\b(phone|mobile|iphone|android)\b/i, '📱'],
@@ -218,6 +230,13 @@ const responseStyleInstruction = {
   singlish: 'natural Romanized Sinhala (Singlish) only; do not switch to English or Sinhala script unless the user explicitly switches language',
 };
 
+export const normalizeAssistantResponse = (value) => ({
+  reply: String(value?.reply || '').trim(),
+  quickReplies: Array.isArray(value?.quickReplies)
+    ? value.quickReplies.filter((entry) => typeof entry === 'string' && entry.trim()).slice(0, 4)
+    : [],
+});
+
 const generateAssistantResponse = async (userMessage, history, items, reportDraft, responseStyle) => {
   if (!aiConfigured()) {
     recordFallbackUse('assistant-chat');
@@ -229,6 +248,7 @@ const generateAssistantResponse = async (userMessage, history, items, reportDraf
 Respond in ${responseStyleInstruction[responseStyle] || responseStyleInstruction.en}.
 Keep the conversation in that same language and writing style across follow-up turns.
 Keep response concise and helpful (2-3 sentences). If matching reports are found, mention them. If no reports match, guide the user to report or search again.
+Never reverse the user's intent or tell them not to report/search when they ask for help.
 Include exactly one relevant item emoji naturally when the user is discussing a specific item.
 Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
 
@@ -240,12 +260,9 @@ Return JSON ONLY with this schema: {"reply": string, "quickReplies": string[]}`;
 
     const response = await requestAIJson(messages, {
       purpose: 'assistant-chat',
-      validator: (value) => typeof value.reply === 'string'
-        && value.reply.trim().length > 0
-        && Array.isArray(value.quickReplies)
-        && value.quickReplies.every((entry) => typeof entry === 'string'),
+      validator: (value) => typeof value.reply === 'string' && value.reply.trim().length > 0,
     });
-    return response?.data;
+    return normalizeAssistantResponse(response?.data);
   } catch (error) {
     recordFallbackUse('assistant-chat');
     console.warn('[ai] assistant chat fallback used', { code: error.code || error.name });
@@ -304,6 +321,20 @@ export const handleAIChat = asyncHandler(async (req, res) => {
         { type: 'claims', label: actionLabel(responseStyle, 'claims'), url: '/dashboard/claims' },
         { type: 'matches', label: actionLabel(responseStyle, 'matches'), url: '/dashboard/my-matches' },
         { type: 'notifications', label: actionLabel(responseStyle, 'notifications'), url: '/dashboard/notifications' },
+      ],
+    }).send(res);
+  }
+
+  if (isGeneralHelpQuery(incoming)) {
+    return ApiResponse.ok({
+      text: t(responseStyle, 'help'),
+      language,
+      responseStyle,
+      quickReplies: q(responseStyle, 'greeting'),
+      items: [],
+      actions: [
+        { type: 'report_lost', label: actionLabel(responseStyle, 'reportLost'), url: '/dashboard/report-lost' },
+        { type: 'report_found', label: actionLabel(responseStyle, 'reportFound'), url: '/dashboard/report-found' },
       ],
     }).send(res);
   }

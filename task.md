@@ -150,4 +150,15 @@ Result: deployment `f5f1f18f-1ab6-4afc-b23a-ec0bf6af96d8` preserved Singlish acr
 
 - [x] Identify redundant LLM calls while a validated session question already owns the response
 - [x] Skip those calls without changing general chat or search AI routing
-- [ ] Run regression checks, merge, deploy, and verify production response latency
+- [x] Run regression checks, merge, deploy, and verify production response latency
+
+Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three stateful turns in 1.48-2.51 seconds each with Singlish quick replies and no redundant provider calls.
+
+## 2026-09-04 AI reply quality hardening
+
+- [x] Synchronize the tested OpenCode key to Railway without exposing it
+- [x] Confirm the current DeepSeek free endpoint reports `Model is unavailable`
+- [x] Keep DeepSeek primary while retaining NVIDIA/OpenRouter automatic fallback
+- [x] Normalize optional model quick replies instead of rejecting an otherwise valid reply
+- [x] Add positive localized help responses and regression coverage
+- [x] Run focused tests, lint, syntax validation, full regression, merge, deploy, and smoke test
