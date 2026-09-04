@@ -185,7 +185,9 @@ const createLostItemValidator = [
   body('category')
     .trim()
     .notEmpty()
-    .withMessage('Category is required'),
+    .withMessage('Category is required')
+    .isLength({ max: 100 })
+    .withMessage('Category name cannot exceed 100 characters'),
   body('description')
     .trim()
     .notEmpty()
@@ -222,7 +224,9 @@ const updateLostItemValidator = [
     .withMessage('Item name cannot exceed 150 characters'),
   body('category')
     .optional()
-    .trim(),
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Category name cannot exceed 100 characters'),
   body('description')
     .optional()
     .trim()
@@ -260,7 +264,9 @@ const createFoundItemValidator = [
   body('category')
     .trim()
     .notEmpty()
-    .withMessage('Category is required'),
+    .withMessage('Category is required')
+    .isLength({ max: 100 })
+    .withMessage('Category name cannot exceed 100 characters'),
   body('description')
     .trim()
     .notEmpty()
@@ -302,7 +308,9 @@ const updateFoundItemValidator = [
     .withMessage('Item name cannot exceed 150 characters'),
   body('category')
     .optional()
-    .trim(),
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Category name cannot exceed 100 characters'),
   body('description')
     .optional()
     .trim()

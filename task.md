@@ -177,6 +177,12 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Keep report submission available when category AI validation/provider calls fail by using a safe existing fallback
 - [x] Add backend/frontend regression coverage and verify tests, lint, syntax validation, full regression, merge, deploy, and smoke test
 
+## 2026-09-05 Manual category fallback
+
+- [x] Preserve the user's category name when AI or category validation is unavailable
+- [x] Create or reuse the category during final lost/found report submission without AI
+- [x] Run backend/frontend regression checks, publish, deploy, and verify production health
+
 ## 2026-09-04 Singlish listen pronunciation and report approval conflicts
 
 - [x] Inspect browser TTS locale/voice selection and report approval version conflicts

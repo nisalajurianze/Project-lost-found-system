@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import LostItem from '../models/LostItem.js';
-import Category, { normalizeCategoryName } from '../models/Category.js';
 import Match from '../models/Match.js';
 import ClaimRequest from '../models/ClaimRequest.js';
 import ImageAnalysis from '../models/ImageAnalysis.js';
@@ -15,6 +14,7 @@ import { enqueueItemProcessing } from '../services/outboxService.js';
 import { resolveItemHandover, cancelItemHandover } from '../services/itemWorkflowService.js';
 import { itemView } from '../utils/serializers.js';
 import { locationIntelligenceView, resolveLocation } from '../services/locationIntelligenceService.js';
+import { resolveOrCreateUserCategory } from '../services/categoryResolutionService.js';
 
 const cacheKeys = ['lostItems:*', 'cache:/api/lost-items*'];
 const parseTags = (value) => [...new Set((Array.isArray(value) ? value : String(value || '').split(','))
@@ -34,11 +34,11 @@ const buildLocationIntelligence = (value) => {
     needsReview: !view || view.confidence < 65,
   };
 };
-const activeCategory = (name) => Category.findOne({ normalizedName: normalizeCategoryName(name), isActive: true });
+const activeCategory = (name) => resolveOrCreateUserCategory(name);
 
 const createLostItem = asyncHandler(async (req, res) => {
   const category = await activeCategory(req.body.category);
-  if (!category) throw ApiError.badRequest('Select an active category from the category list.');
+  if (!category) throw ApiError.badRequest('Enter a valid category name.');
   const images = await uploadMultipleReportImages(req.files || [], 'lost-items');
   const session = await mongoose.startSession();
   let item;
@@ -115,7 +115,7 @@ const updateLostItem = asyncHandler(async (req, res) => {
   let category;
   if (req.body.category !== undefined) {
     category = await activeCategory(req.body.category);
-    if (!category) throw ApiError.badRequest('Select an active category from the category list.');
+    if (!category) throw ApiError.badRequest('Enter a valid category name.');
   }
   const requestedDeletes = new Set((Array.isArray(req.body.deletedImages) ? req.body.deletedImages : req.body.deletedImages ? [req.body.deletedImages] : []).map(String));
   const imagesToDelete = item.images.filter((image) => requestedDeletes.has(image.url));

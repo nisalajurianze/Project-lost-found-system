@@ -34,7 +34,7 @@ test('principal account assistant and report failures use localized fallback key
     'src/pages/user/Profile.jsx': ['profile.updateError', 'profile.passwordUpdateError'],
     'src/pages/user/Notifications.jsx': ['notifications.saveFailed', 'notifications.markFailed'],
     'src/components/common/AIChatbot.jsx': ['assistant.connectionFailed'],
-    'src/components/common/ReportItemWizard.jsx': ['report.categoryCreateFailed', 'report.validCategory'],
+    'src/components/common/ReportItemWizard.jsx': ['report.customCategoryPending', 'report.categoryRequired'],
     'src/pages/public/Login.jsx': ['auth.authFailed', 'auth.googleLoginFailed'],
     'src/pages/public/Register.jsx': ['auth.registrationFailed', 'auth.googleRegisterFailed'],
     'src/pages/public/VerifyEmail.jsx': ['auth.verificationFailedToast'],

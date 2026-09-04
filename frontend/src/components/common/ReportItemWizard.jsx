@@ -207,28 +207,16 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
       await dispatch(fetchCategories());
       return name;
     } catch {
-      // AI/category validation is advisory. Keep the report submittable by
-      // selecting the seeded safe fallback instead of leaving category blank.
-      let available = categories;
-      if (available.length === 0) {
-        try { available = await dispatch(fetchCategories()).unwrap(); } catch { available = []; }
-      }
-      const fallback = available.find((entry) => entry.name?.toLocaleLowerCase() === 'other') || available[0];
-      if (fallback) {
-        setExtraCategory({ value: fallback.name, label: `${fallback.icon || '📦'} ${fallback.name}` });
-        update('category', fallback.name);
-        setErrors((current) => {
-          const next = { ...current };
-          delete next.category;
-          return next;
-        });
-        toast(t('report.categoryFallback', { category: fallback.name }));
-        return fallback.name;
-      }
-      update('category', '');
-      setErrors((current) => ({ ...current, category: t('report.validCategory') }));
-      toast.error(t('report.categoryCreateFailed'));
-      return '';
+      const resolvedIcon = icon || '📦';
+      setExtraCategory({ value: candidate, label: `${resolvedIcon} ${candidate}` });
+      update('category', candidate);
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.category;
+        return next;
+      });
+      toast(t('report.customCategoryPending', { category: candidate }));
+      return candidate;
     } finally {
       setIsCategoryLoading(false);
     }
