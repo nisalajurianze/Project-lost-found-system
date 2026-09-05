@@ -21,6 +21,8 @@ test('image uploader exposes accessible rotate crop remove controls and re-runs 
   assert.match(source, /report\.uploadCrop/);
   assert.match(source, /report\.uploadUpdated/);
   assert.match(source, /min-h-11/);
+  assert.match(source, /setEditingIndex\(null\);\s*const update = onChange\(nextImages\)/);
+  assert.match(source, /Promise\.resolve\(update\)\.catch/);
 });
 
 test('report wizard preserves drafts offline and reports real multipart upload progress', () => {

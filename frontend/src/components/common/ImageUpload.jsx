@@ -131,7 +131,14 @@ export const ImageUpload = ({
     try {
       const edited = await transformImageFile(source, options);
       const nextImages = images.map((image, imageIndex) => imageIndex === index ? edited : image);
-      await onChange(nextImages);
+      // The parent also scans new files with AI. Do not keep the image editor
+      // locked while that network request is running; the transformed file is
+      // already ready to preview/save at this point.
+      setEditingIndex(null);
+      const update = onChange(nextImages);
+      void Promise.resolve(update).catch((error) => {
+        console.error('Image update failed after edit:', error);
+      });
       toast.success(t('report.uploadUpdated'), { id: toastId });
     } catch (error) {
       const errorKey = {
