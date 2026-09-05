@@ -261,6 +261,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     const toastId = toast.loading(t('report.checkingPhotos', { count: filesToReview.length }));
     const newReviews = [];
     const rejectedKeys = new Set();
+    const unavailableKeys = new Set();
     let firstSuggestion = null;
 
     try {
@@ -285,14 +286,10 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
           newReviews.push({ key, fileName: file.name || t('report.selectedPhoto'), regions, warnings, status, moderationDecision: suggestion.moderationDecision, isItemPhoto: suggestion.isItemPhoto });
           if (!firstSuggestion) firstSuggestion = suggestion;
         } catch {
-          newReviews.push({
-            key,
-            fileName: file.name || t('report.selectedPhoto'),
-            regions: [],
-            warnings: [t('report.imageReviewUnavailable')],
-            status: 'manual-review',
-            scanUnavailable: true,
-          });
+          // Safety verification is fail-closed: an unavailable provider must
+          // never leave an unverified public image in the draft.
+          unavailableKeys.add(key);
+          rejectedKeys.add(key);
         }
       }
 
@@ -306,7 +303,11 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
         setAISuggestion(firstSuggestion);
         if (firstSuggestion.category) await ensureCategory(firstSuggestion.category, firstSuggestion.categoryIcon);
       }
-      if (rejectedKeys.size > 0) {
+      if (unavailableKeys.size > 0) {
+        const message = t('report.imageReviewUnavailable');
+        setErrors((current) => ({ ...current, images: message }));
+        toast.error(message, { id: toastId });
+      } else if (rejectedKeys.size > 0) {
         toast.error(t('report.moderationRemoved', { count: rejectedKeys.size }), { id: toastId });
       } else {
         toast.success(t('report.privacyReady'), { id: toastId });

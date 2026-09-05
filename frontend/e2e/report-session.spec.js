@@ -72,12 +72,12 @@ test('failed upload session refresh returns the protected report to login', asyn
   expect(requests.uploads).toBe(1);
 });
 
-test('provider outage finishes image preparation and offers manual review', async ({ page }) => {
+test('provider outage removes the unverified image and blocks manual bypass', async ({ page }) => {
   const requests = await setupReport(page, { providerUnavailable: true });
-  await expect(page.locator('#image-privacy-review-title')).toBeVisible();
+  await expect(page.getByText(/Photo removed because automated safety verification is unavailable/)).toBeVisible();
   await expect(page.getByText(/Preparing images/)).toHaveCount(0);
   await expect(page.locator('#ai-suggestion-title')).toHaveCount(0);
-  await expect(page.locator('[aria-labelledby="image-privacy-review-title"] button')).toBeVisible();
+  await expect(page.locator('[aria-labelledby="image-privacy-review-title"] button')).toHaveCount(0);
   expect(requests.uploads).toBe(1);
   expect(requests.refreshes).toBe(0);
 });

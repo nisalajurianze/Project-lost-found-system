@@ -25,11 +25,14 @@ test('every new public image receives an independent privacy review', () => {
   assert.match(review, /report\.privacyReviewDesc/);
 });
 
-test('sensitive or unavailable scans must be resolved before the wizard advances', () => {
+test('sensitive scans block progress and unavailable safety scans remove the photo', () => {
   assert.match(wizard, /\['redaction-required', 'manual-review'\]\.includes/);
   assert.match(wizard, /report\.resolvePrivacy/);
   assert.match(review, /report\.privacyPixelate/);
   assert.match(review, /report\.privacyManualConfirm/);
   assert.match(review, /!review\.scanUnavailable/);
   assert.match(wizard, /suggestion\.isItemPhoto !== true/);
+  assert.match(wizard, /const unavailableKeys = new Set/);
+  assert.match(wizard, /unavailableKeys\.add\(key\)/);
+  assert.match(wizard, /report\.imageReviewUnavailable/);
 });
