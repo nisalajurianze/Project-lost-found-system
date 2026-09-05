@@ -25,3 +25,11 @@ test('item card avoids nested interactive controls and exposes a clear detail ac
   assert.match(source, /loading="lazy"/);
   assert.doesNotMatch(source, /<Link[\s\S]*<Button[\s\S]*<\/Link>/);
 });
+
+test('item category icons cover backend canonical category names', () => {
+  const source = read('src/utils/helpers.js');
+  assert.match(source, /Electronics:\s*'📱'/);
+  assert.match(source, /Bags:\s*'🎒'/);
+  assert.match(source, /'Personal Accessories':\s*'👜'/);
+  assert.match(source, /'Cards and Documents':\s*'🪪'/);
+});

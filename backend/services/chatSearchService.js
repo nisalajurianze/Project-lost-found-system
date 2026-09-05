@@ -6,6 +6,7 @@ const STOP_WORDS = new Set([
 ]);
 
 const TERM_GROUPS = [
+  ['microphone', 'mic', 'mics', 'මයික්', 'මයික්‍රොෆෝනය', 'மைக்ரோஃபோன்'],
   ['phone', 'mobile', 'smartphone', 'telephone', 'fone', 'ෆෝන්', 'දුරකථන', 'தொலைபேசி', 'மொபைல்'],
   ['wallet', 'purse', 'moneybag', 'පසුම්බිය', 'පර්ස්', 'பணப்பை', 'பர்ஸ்'],
   ['bag', 'backpack', 'schoolbag', 'handbag', 'බෑග්', 'මල්ල', 'பை', 'பேக்'],
@@ -127,6 +128,13 @@ export const inferIntent = (value) => {
   if (foundSignals.some((signal) => text.includes(normalizeText(signal)))) return 'found';
   if (lostSignals.some((signal) => text.includes(normalizeText(signal)))) return 'lost';
   return 'search';
+};
+
+export const isReportRequest = (value) => {
+  const text = normalizeText(value);
+  const reportTerm = /(?:^|\s)(?:report|raport|වාර්තාව|වාර්තා|அறிக்கை)(?:$|\s)/u.test(text);
+  if (!reportTerm) return false;
+  return /(?:^|\s)(?:create|make|give|submit|start|want|need|danna|dnna|denna|karanna|krnna|hadanna|hadnna|hadamu|hdnw|one|ona|කරන්න|දෙන්න|හදන්න|வேண்டும்|செய்ய|கொடுக்க)(?:$|\s)/u.test(text);
 };
 
 export const isPersonalQuery = (value) => {

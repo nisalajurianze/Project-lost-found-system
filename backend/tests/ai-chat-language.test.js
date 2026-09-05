@@ -92,6 +92,7 @@ test('adds one relevant item emoji when the model reply omits it', () => {
   const draft = { fields: { itemName: 'Bag', category: 'Bags', description: 'Blue bag' } };
   assert.equal(withRelevantItemEmoji('Thawa location eka denna.', draft), 'Thawa location eka denna. 🎒');
   assert.equal(withRelevantItemEmoji('Bag eka hoyamu 🎒', draft), 'Bag eka hoyamu 🎒');
+  assert.equal(withRelevantItemEmoji('Hari, item eka record karamu.', { fields: { itemName: 'Microphone', category: 'Electronics' } }), 'Hari, item eka record karamu. 🎙️');
 });
 
 test('general Singlish help stays positive and offers relevant actions', async () => {
@@ -100,6 +101,15 @@ test('general Singlish help stays positive and offers relevant actions', async (
   assert.equal(response.payload.data.responseStyle, 'singlish');
   assert.match(response.payload.data.text, /udaw karannam/);
   assert.equal(response.payload.data.actions[0].type, 'report_lost');
+});
+
+test('a report request asks for lost or found before searching public reports', async () => {
+  const response = await invokeChat({ message: 'report ekak dnna hdnw', locale: 'en', history: [] });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.data.intent, 'report');
+  assert.match(response.payload.data.text, /report eka.*hadamu/i);
+  assert.deepEqual(response.payload.data.items, []);
+  assert.deepEqual(response.payload.data.actions.map(({ type }) => type), ['report_lost', 'report_found']);
 });
 
 test('provider replies keep a valid reply when optional quick replies are malformed', () => {

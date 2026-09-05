@@ -57,3 +57,7 @@ test('assistant report draft follows each conversation response style', () => {
   assert.match(source, /Guided report eka arala details balanna/);
   assert.match(source, /வழிகாட்டப்பட்ட அறிக்கையைத் திறந்து/);
 });
+
+test('assistant keeps only the latest report draft visible after a follow-up', () => {
+  assert.match(source, /previous\.map\(\(entry\) => entry\.reportDraft \? \{ \.\.\.entry, reportDraft: null \} : entry\)/);
+});

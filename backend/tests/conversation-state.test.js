@@ -52,6 +52,15 @@ test('explicit correction changes only the relevant slots and keeps unrelated de
   assert.equal(corrected.changedThisTurn[0].operation, 'replace');
 });
 
+test('recognized item follow-ups replace the old item without filling another missing slot', () => {
+  const first = advanceConversationState({ message: 'I lost a mobile phone', intent: 'lost', responseStyle: 'singlish', now });
+  const corrected = advanceConversationState({ previousState: first, message: 'microphone', intent: 'search', responseStyle: 'singlish', now });
+  assert.equal(corrected.fields.itemName, 'Microphone');
+  assert.equal(corrected.fields.category, 'Electronics');
+  assert.equal(corrected.fields.location, '');
+  assert.equal(corrected.nextField, 'location');
+});
+
 test('undo restores the last corrected field without clearing other slots', () => {
   const first = advanceConversationState({ message: 'I lost a black bag yesterday at canteen', intent: 'lost', now });
   const corrected = advanceConversationState({ previousState: first, message: 'no, it was blue', intent: 'search', now });

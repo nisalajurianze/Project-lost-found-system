@@ -13,6 +13,7 @@ import {
   resolveConversationStyle,
   resolveSearchMessage,
   scoreCandidate,
+  isReportRequest,
 } from '../services/chatSearchService.js';
 import { buildConversationalReportDraft } from '../services/conversationalReportService.js';
 import { aiConfigured, recordFallbackUse, requestAIJson } from '../services/aiProviderService.js';
@@ -40,6 +41,9 @@ const copy = {
     saySomething: 'Please say something.',
     tooLong: 'Please keep the message under 500 characters.',
     unsafe: 'I cannot process instructions that request hidden prompts, credentials, or safety bypasses. Please describe the lost or found item only.',
+    reportStart: 'Okay — let’s create the report step by step. Was the item lost or found?',
+    reportReady: 'Your report details are ready. Review the draft and submit it when everything is correct.',
+    reportContinue: 'Let’s finish the report details first. I will not search public reports while we are collecting them.',
   },
   singlish: {
     greeting: 'Hi! Oya nathi una deyak hoyanawada, nathnam hambuna item ekak report karanawada?',
@@ -52,6 +56,9 @@ const copy = {
     saySomething: 'Message ekak type karanna.',
     tooLong: 'Message eka characters 500kata aduwen thiyanna.',
     unsafe: 'Hidden prompts, credentials, safety bypass instructions process karanna ba. Lost hari found item eke details witharak denna.',
+    reportStart: 'Hari, report eka step-by-step hadamu. Item eka nathi una da, nathnam hambuna da?',
+    reportReady: 'Report eke details tika ready. Draft eka balala hari nam submit karanna.',
+    reportContinue: 'Mulin report eke details tika iwara karamu. Details collect karana athara public reports hoyanne na.',
   },
   si: {
     greeting: 'ආයුබෝවන්! ඔබ නැති වූ දෙයක් සොයනවාද, නැත්නම් හමුවූ භාණ්ඩයක් වාර්තා කරනවාද?',
@@ -64,6 +71,9 @@ const copy = {
     saySomething: 'කරුණාකර පණිවිඩයක් ලියන්න.',
     tooLong: 'පණිවිඩය අක්ෂර 500කට අඩුවෙන් තබන්න.',
     unsafe: 'සැඟවුණු prompts, credentials හෝ safety bypass උපදෙස් සැකසිය නොහැක. නැතිවූ හෝ හමුවූ භාණ්ඩයේ විස්තර පමණක් දෙන්න.',
+    reportStart: 'හරි, වාර්තාව පියවරෙන් පියවර සකස් කරමු. භාණ්ඩය නැති වුණාද, හමු වුණාද?',
+    reportReady: 'වාර්තාවේ විස්තර සූදානම්. කෙටුම්පත සමාලෝචනය කර නිවැරදි නම් ඉදිරිපත් කරන්න.',
+    reportContinue: 'මුලින් වාර්තාවේ විස්තර සම්පූර්ණ කරමු. ඒවා එකතු කරන අතර public reports සොයන්නේ නැහැ.',
   },
   ta: {
     greeting: 'வணக்கம்! நீங்கள் தொலைத்த பொருளை தேடுகிறீர்களா, அல்லது கண்டெடுத்த பொருளை பதிவு செய்ய விரும்புகிறீர்களா?',
@@ -76,6 +86,9 @@ const copy = {
     saySomething: 'தயவுசெய்து ஒரு செய்தியை எழுதவும்.',
     tooLong: 'செய்தியை 500 எழுத்துகளுக்குள் வைத்திருக்கவும்.',
     unsafe: 'மறைக்கப்பட்ட prompts, credentials அல்லது safety bypass வழிமுறைகளை செயலாக்க முடியாது. தொலைந்த அல்லது கண்டெடுத்த பொருளின் விவரங்களை மட்டும் வழங்கவும்.',
+    reportStart: 'சரி, அறிக்கையை படிப்படியாக உருவாக்கலாம். பொருள் தொலைந்ததா அல்லது கிடைத்ததா?',
+    reportReady: 'அறிக்கை விவரங்கள் தயாராக உள்ளன. வரைவை மதிப்பாய்வு செய்து சரியாக இருந்தால் சமர்ப்பிக்கவும்.',
+    reportContinue: 'முதலில் அறிக்கை விவரங்களை முடிப்போம். அவற்றை சேகரிக்கும் போது பொது பதிவுகளைத் தேடமாட்டேன்.',
   },
 };
 
@@ -130,6 +143,7 @@ const isGeneralHelpQuery = (value) => {
 };
 
 const itemEmojiRules = [
+  [/\b(microphone|mic|mics)\b/i, '🎙️'],
   [/\b(phone|mobile|iphone|android)\b/i, '📱'],
   [/\b(bag|backpack|schoolbag)\b/i, '🎒'],
   [/\b(wallet|purse)\b/i, '👛'],
@@ -380,6 +394,24 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     }
   }
 
+  const initialIntent = inferIntent(incoming);
+  const hasSessionVersion = Number(req.body?.sessionVersion) > 0;
+  if (isReportRequest(incoming) && initialIntent === 'search' && !hasSessionVersion) {
+    return ApiResponse.ok({
+      text: t(responseStyle, 'reportStart'),
+      language,
+      responseStyle,
+      intent: 'report',
+      quickReplies: q(responseStyle, 'greeting').slice(0, 2),
+      items: [],
+      actions: [
+        { type: 'report_lost', label: actionLabel(responseStyle, 'reportLost'), url: '/dashboard/report-lost' },
+        { type: 'report_found', label: actionLabel(responseStyle, 'reportFound'), url: '/dashboard/report-found' },
+      ],
+      meta: { source: 'Guided report workflow', notice: 'Report details are collected before public matching.' },
+    }).send(res);
+  }
+
   const rawSearchMessage = resolveSearchMessage(incoming, history);
   const spelling = correctSearchText(rawSearchMessage);
   const searchMessage = spelling.corrected;
@@ -392,19 +424,19 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const requestedPageSize = Number.parseInt(req.body?.pageSize, 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const pageSize = Math.min(MAX_PAGE_SIZE, Number.isFinite(requestedPageSize) && requestedPageSize > 0 ? requestedPageSize : DEFAULT_PAGE_SIZE);
-  const initialIntent = inferIntent(searchMessage);
+  const searchIntent = inferIntent(searchMessage);
   const sessionId = String(req.body?.sessionId || '').trim().slice(0, 160);
-  const sessionState = sessionId && (['lost', 'found'].includes(initialIntent) || Number(req.body?.sessionVersion) > 0)
+  const sessionState = sessionId && (['lost', 'found'].includes(searchIntent) || Number(req.body?.sessionVersion) > 0)
     ? await applyAssistantSessionTurn({
       sessionId,
       expectedVersion: req.body?.sessionVersion,
       message: incoming,
-      intent: initialIntent,
+      intent: searchIntent,
       responseStyle,
       userId: req.user?._id,
     })
     : null;
-  const intent = sessionState?.reportType || initialIntent;
+  const intent = sessionState?.reportType || searchIntent;
   const reportDraft = sessionState ? {
     reportType: sessionState.reportType,
     fields: sessionState.fields,
@@ -416,6 +448,28 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     source: 'Server-validated conversation slot state; human review required',
     privacyNotice: 'Remove passwords, full card numbers, private addresses and other sensitive identifiers before submission.',
   } : buildConversationalReportDraft({ message: searchMessage, intent });
+
+  if (sessionState) {
+    const reportUrl = sessionState.reportType === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost';
+    const text = sessionState.state === 'reviewing' ? t(responseStyle, 'reportReady') : (sessionState.question || t(responseStyle, 'reportContinue'));
+    return ApiResponse.ok({
+      text: withRelevantItemEmoji(text, reportDraft),
+      language,
+      responseStyle,
+      intent,
+      query: { message: searchMessage, terms, page: 1, pageSize },
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
+      quickReplies: [],
+      items: [],
+      actions: [{ type: sessionState.reportType === 'found' ? 'report_found' : 'report_lost', label: actionLabel(responseStyle, sessionState.reportType === 'found' ? 'reportFound' : 'reportLost'), url: reportUrl }],
+      reportDraft,
+      sessionState,
+      corrections: spelling.corrections,
+      meta: { source: 'Guided report workflow', notice: 'Public matching starts after the report details are reviewed.' },
+    }).send(res);
+  }
 
   let ranked;
   if (intent === 'lost') {

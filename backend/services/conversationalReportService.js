@@ -2,6 +2,7 @@ import { normalizeText } from './chatSearchService.js';
 import { publicLocationView, resolveLocation } from './locationIntelligenceService.js';
 
 const ITEM_TYPES = [
+  { canonical: 'Microphone', category: 'Electronics', aliases: ['microphone', 'mic', 'mics', 'මයික්', 'මයික්‍රොෆෝනය', 'மைக்ரோஃபோன்'] },
   { canonical: 'Mobile phone', category: 'Electronics', aliases: ['phone', 'mobile', 'smartphone', 'fone', 'ෆෝන්', 'දුරකථන', 'மொபைல்', 'தொலைபேசி'] },
   { canonical: 'Wallet', category: 'Personal Accessories', aliases: ['wallet', 'purse', 'moneybag', 'පසුම්බිය', 'පර්ස්', 'பணப்பை', 'பர்ஸ்'] },
   { canonical: 'Bag', category: 'Bags', aliases: ['bag', 'backpack', 'handbag', 'schoolbag', 'බෑග්', 'මල්ල', 'பை', 'பேக்'] },

@@ -64,7 +64,9 @@ const candidateValues = (message, reportType, nextField, now, { allowContextFill
   const text = cleanText(message, 500);
   const brand = text.match(/\b(apple|samsung|dell|hp|lenovo|asus|acer|xiaomi|huawei|nokia|sony)\b/iu)?.[1];
   if (brand) candidates.brand = { value: brand[0].toUpperCase() + brand.slice(1).toLowerCase(), confidence: 90 };
-  if (allowContextFill && nextField && !candidates[nextField] && text.length >= 2) {
+  const hasParsedDetail = Object.keys(candidates).length > 0;
+  const canUseFreeTextForNextField = nextField === 'uniqueFeatures' || !hasParsedDetail;
+  if (allowContextFill && canUseFreeTextForNextField && nextField && !candidates[nextField] && text.length >= 2) {
     if (nextField === 'uniqueFeatures') candidates.uniqueFeatures = { value: text, confidence: 75 };
     if (nextField === 'storedAt') candidates.storedAt = { value: text, confidence: 70 };
     if (nextField === 'location') candidates.location = { value: text, confidence: 60 };

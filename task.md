@@ -1,5 +1,14 @@
 # Goal: Full lost-and-found release readiness
 
+## 2026-09-06 guided report conversation and voice item recognition
+
+- [x] Recognize `microphone`/`mic` voice input as `Microphone` in `Electronics`
+- [x] Prevent stale item drafts from being overwritten by unrelated missing fields
+- [x] Keep public matching paused while a guided report collects details
+- [x] Ask whether a report is lost or found before starting a report flow
+- [x] Map backend canonical categories to their correct frontend emojis
+- [x] Run focused tests, lint, full backend tests, and frontend production build
+
 ## 2026-09-06 broken report detail links
 
 - [x] Confirm the production list API returns BSON byte objects instead of string report IDs

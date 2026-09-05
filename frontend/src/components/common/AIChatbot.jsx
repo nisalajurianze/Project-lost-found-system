@@ -498,22 +498,25 @@ const AIChatbot = () => {
       });
       const data = response.data?.data || {};
       if (Number.isFinite(data.sessionState?.version)) setSessionVersion(data.sessionState.version);
-      setMessages((previous) => [...previous, {
-        role: 'ai',
-        content: data.text || t('assistant.noResponse'),
-        responseStyle: data.responseStyle,
-        timestamp: timestamp(),
-        items: data.items || [],
-        actions: data.actions || [],
-        personalSummary: data.personalSummary,
-        reportDraft: data.reportDraft,
-        meta: data.meta,
-        knowledge: data.knowledge,
-        query: data.query,
-        page: data.page,
-        total: data.total,
-        hasMore: data.hasMore,
-      }]);
+      setMessages((previous) => [
+        ...previous.map((entry) => entry.reportDraft ? { ...entry, reportDraft: null } : entry),
+        {
+          role: 'ai',
+          content: data.text || t('assistant.noResponse'),
+          responseStyle: data.responseStyle,
+          timestamp: timestamp(),
+          items: data.items || [],
+          actions: data.actions || [],
+          personalSummary: data.personalSummary,
+          reportDraft: data.reportDraft,
+          meta: data.meta,
+          knowledge: data.knowledge,
+          query: data.query,
+          page: data.page,
+          total: data.total,
+          hasMore: data.hasMore,
+        },
+      ]);
       setQuickReplies(data.quickReplies || []);
     } catch (error) {
       toast.error(t('assistant.connectionFailed'));

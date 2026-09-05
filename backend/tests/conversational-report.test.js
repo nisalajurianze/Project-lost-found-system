@@ -36,3 +36,10 @@ test('draft parser keeps a typo-tolerant user-provided canteen location', () => 
   assert.equal(draft.fields.location, 'Canteen');
   assert.equal(draft.missing.includes('specific location'), false);
 });
+
+test('draft parser recognizes microphone voice input as an electronics item', () => {
+  const draft = buildConversationalReportDraft({ message: 'microphone', intent: 'lost' });
+  assert.equal(draft.fields.itemName, 'Microphone');
+  assert.equal(draft.fields.category, 'Electronics');
+  assert.ok(draft.missing.includes('specific location'));
+});

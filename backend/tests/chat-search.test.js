@@ -6,6 +6,7 @@ import {
   detectLanguage,
   expandKeywords,
   inferIntent,
+  isReportRequest,
   resolveConversationLanguage,
   resolveConversationStyle,
   resolveSearchMessage,
@@ -36,6 +37,12 @@ test('follow-up responses preserve the language of the material conversation con
     { role: 'ai', content: 'results' },
   ]);
   assert.equal(language, 'si');
+});
+
+test('report requests start the guided flow instead of searching public reports', () => {
+  assert.equal(isReportRequest('report ekak dnna hdnw'), true);
+  assert.equal(isReportRequest('I want to create a report'), true);
+  assert.equal(isReportRequest('show me a report'), false);
 });
 
 test('Singlish is detected as a response style without changing search language', () => {

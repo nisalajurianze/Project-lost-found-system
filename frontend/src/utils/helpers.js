@@ -57,6 +57,11 @@ export const getStatusBadgeClass = (status) => {
  */
 export const getCategoryIcon = (category) => {
   const icons = {
+    Electronics: '📱',
+    Bags: '🎒',
+    'Personal Accessories': '👜',
+    'Cards and Documents': '🪪',
+    Keys: '🔑',
     'Electronics & Gadgets': '📱',
     'Books & Stationery': '📚',
     'Keys & Keychains': '🔑',
