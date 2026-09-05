@@ -1,7 +1,7 @@
 const id = (value) => value?._id?.toString?.() || value?.toString?.() || '';
 // Lean queries still contain BSON ObjectIds. structuredClone strips their
 // prototype/toJSON and exposes byte buffers instead of usable IDs on the wire.
-const cloneForView = (value) => {
+export const cloneForView = (value) => {
   if (value == null || typeof value !== 'object') return value;
   if (typeof value.toHexString === 'function') return value.toHexString();
   if (value instanceof Date) return new Date(value.getTime());

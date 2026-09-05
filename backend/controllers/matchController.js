@@ -6,12 +6,13 @@ import ApiResponse from '../utils/apiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { paginate } from '../utils/pagination.js';
 import { createNotification } from '../services/notificationService.js';
+import { cloneForView } from '../utils/serializers.js';
 
 const id = (value) => value?._id?.toString?.() || value?.toString?.() || '';
 const publicUser = (user) => user ? { _id: user._id, fullName: user.fullName, profileImage: user.profileImage } : null;
-const privateMatchItem = (item) => {
+export const privateMatchItem = (item) => {
   if (!item) return null;
-  const output = structuredClone(item);
+  const output = cloneForView(item);
   output.userId = publicUser(output.userId);
   delete output.connectedUserId;
   delete output.connectedAt;

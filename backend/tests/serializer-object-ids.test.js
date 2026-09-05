@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import { itemView, claimView } from '../utils/serializers.js';
+import { privateMatchItem } from '../controllers/matchController.js';
 
 const oid = () => new mongoose.Types.ObjectId();
 const fixture = () => ({
@@ -11,6 +12,16 @@ const fixture = () => ({
   createdAt: new Date('2026-09-06T00:00:00Z'),
   lostLocation: 'Private location',
   images: [{ _id: oid(), url: 'https://example.test/photo.jpg', privacyStatus: 'safe_public' }],
+});
+
+test('match cards retain report IDs while removing reporter contact metadata', () => {
+  const item = fixture();
+  const result = privateMatchItem(item);
+  assert.equal(result._id, item._id.toHexString());
+  assert.equal(result.userId._id, item.userId._id.toHexString());
+  assert.equal(result.userId.email, undefined);
+  assert.equal(result.connectedUserId, undefined);
+  assert.equal(item.userId.email, 'reporter@example.test');
 });
 
 test('lean report IDs serialize as strings usable by detail routes', () => {

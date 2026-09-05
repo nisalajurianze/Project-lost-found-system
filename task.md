@@ -5,7 +5,8 @@
 - [x] Confirm the production list API returns BSON byte objects instead of string report IDs
 - [x] Preserve MongoDB IDs in item/claim serialization and guard card links
 - [x] Verify real ObjectId regressions (153 backend tests passed, one integration skip; frontend focused tests/lint/build passed)
-- [/] Publish and check live list-to-detail requests
+- [x] Publish and check live lost list-to-detail requests (string ID, detail HTTP 200, same report); found list is empty
+- [x] Cover the same BSON cloning defect in match cards with a focused regression
 
 ## Locally completed
 
