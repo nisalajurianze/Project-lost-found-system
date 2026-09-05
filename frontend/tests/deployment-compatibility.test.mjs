@@ -89,3 +89,9 @@ test('Vercel config proxies API and realtime polling before SPA routing', () => 
   assert.match(permissions, /microphone=\(self\)/);
   assert.match(permissions, /camera=\(self\)/);
 });
+
+test('Socket.IO prefers a stable WebSocket session with polling fallback', () => {
+  const source = fs.readFileSync(path.join(srcRoot, 'services/socketService.js'), 'utf8');
+  assert.match(source, /transports:\s*\['websocket',\s*'polling'\]/);
+  assert.match(source, /tryAllTransports:\s*true/);
+});

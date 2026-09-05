@@ -8,7 +8,11 @@ const socketService = {
     socket = io(SOCKET_URL, {
       withCredentials: true,
       autoConnect: true,
-      transports: ['polling', 'websocket'],
+      // Prefer one long-lived WebSocket session so Railway does not route
+      // follow-up polling requests to a worker that cannot find the sid.
+      // Keep polling as a compatibility fallback for proxies without WS.
+      transports: ['websocket', 'polling'],
+      tryAllTransports: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       timeout: 10000,
