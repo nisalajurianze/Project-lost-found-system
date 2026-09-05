@@ -195,6 +195,14 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Publish frontend cookie/session repair and verify the live API origin (`da66a35`; deployed API proxy and logout listener confirmed)
 - [ ] Run an authenticated production photo-analysis smoke and confirm OpenRouter success (connected browser requires sign-in)
 
+## 2026-09-05 Strict image safety gate
+
+- [x] Require explicit physical-item, non-spam, allow, and fair/good-quality moderation fields from the vision provider
+- [x] Reject explicit/adult/sexual, violent, unrelated, non-item, uncertain, or unavailable image results before public upload
+- [x] Enforce the same gate on lost/found create and update APIs so browser checks cannot be bypassed
+- [x] Add provider, server-gate, frontend, syntax, lint, and regression coverage (148 backend: 147 passed/1 skipped; 138 frontend passed)
+- [ ] Deploy and run an authenticated production rejection/acceptance smoke with safe test images
+
 ## 2026-09-04 Singlish listen pronunciation and report approval conflicts
 
 - [x] Inspect browser TTS locale/voice selection and report approval version conflicts

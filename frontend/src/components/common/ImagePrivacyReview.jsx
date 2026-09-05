@@ -52,7 +52,7 @@ const ImagePrivacyReview = ({
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {(review.warnings?.length ? review.warnings : [t('report.privacyManualFallback')]).map((warning) => <li key={warning}>{warning}</li>)}
           </ul>
-          <Button type="button" variant="outline" size="sm" onClick={() => onConfirmManualReview(review.key)} className="mt-3 min-h-11">{t('report.privacyManualConfirm')}</Button>
+          {!review.scanUnavailable && <Button type="button" variant="outline" size="sm" onClick={() => onConfirmManualReview(review.key)} className="mt-3 min-h-11">{t('report.privacyManualConfirm')}</Button>}
         </div>
       ))}
 

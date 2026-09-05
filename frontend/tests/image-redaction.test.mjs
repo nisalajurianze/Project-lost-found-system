@@ -30,4 +30,6 @@ test('sensitive or unavailable scans must be resolved before the wizard advances
   assert.match(wizard, /report\.resolvePrivacy/);
   assert.match(review, /report\.privacyPixelate/);
   assert.match(review, /report\.privacyManualConfirm/);
+  assert.match(review, /!review\.scanUnavailable/);
+  assert.match(wizard, /suggestion\.isItemPhoto !== true/);
 });

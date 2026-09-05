@@ -72,6 +72,8 @@ test('report uploads keep authenticated originals separate from stored public-sa
   assert.match(service, /privacyStatus:\s*'safe_public'/);
   assert.match(lost, /uploadMultipleReportImages/);
   assert.match(found, /uploadMultipleReportImages/);
+  assert.match(lost, /verifyReportImages\(req\.files \|\| \[\]\)/);
+  assert.match(found, /verifyReportImages\(req\.files \|\| \[\]\)/);
 });
 
 test('restricted public location intelligence withholds exact canonical identity', () => {

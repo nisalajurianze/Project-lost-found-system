@@ -270,7 +270,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
           const response = await aiService.suggestDetailsFromImage(file);
           const suggestion = response?.data;
           if (!suggestion) throw new Error(t('report.imageReviewUnavailable'));
-          if (suggestion.isSpam || suggestion.moderationDecision === 'reject') {
+          if (suggestion.isSpam || suggestion.isItemPhoto !== true || suggestion.moderationDecision === 'reject') {
             rejectedKeys.add(key);
             continue;
           }
@@ -282,7 +282,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
           const status = regions.length > 0
             ? 'redaction-required'
             : (warnings.length > 0 || suggestion.moderationDecision === 'review' ? 'manual-review' : 'safe');
-          newReviews.push({ key, fileName: file.name || t('report.selectedPhoto'), regions, warnings, status, moderationDecision: suggestion.moderationDecision });
+          newReviews.push({ key, fileName: file.name || t('report.selectedPhoto'), regions, warnings, status, moderationDecision: suggestion.moderationDecision, isItemPhoto: suggestion.isItemPhoto });
           if (!firstSuggestion) firstSuggestion = suggestion;
         } catch {
           newReviews.push({
