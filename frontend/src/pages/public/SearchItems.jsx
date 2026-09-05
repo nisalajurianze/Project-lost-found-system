@@ -161,13 +161,17 @@ export const SearchItems = () => {
     return () => { active = false; };
   }, [debouncedQuery, type, category, startDate, endDate, sort, page, t]);
 
-  const activeFilters = useMemo(() => [
-    debouncedQuery && { key: 'query', label: `"${debouncedQuery}"` },
-    type !== 'both' && { key: 'type', label: t(type === 'lost' ? 'search.lost' : 'search.found') },
-    category && { key: 'category', label: `${categories.find((c) => c.name === category)?.icon || getCategoryIcon(category)} ${category}` },
-    startDate && { key: 'startDate', label: `From: ${startDate}` },
-    endDate && { key: 'endDate', label: `To: ${endDate}` }
-  ].filter(Boolean), [debouncedQuery, type, category, categories, startDate, endDate, t]);
+  const activeFilters = useMemo(() => {
+    const selectedCategory = categories.find((entry) => entry.name === category);
+    const categoryIcon = selectedCategory?.icon && selectedCategory.icon !== '📦' ? selectedCategory.icon : getCategoryIcon(category);
+    return [
+      debouncedQuery && { key: 'query', label: `"${debouncedQuery}"` },
+      type !== 'both' && { key: 'type', label: t(type === 'lost' ? 'search.lost' : 'search.found') },
+      category && { key: 'category', label: `${categoryIcon} ${category}` },
+      startDate && { key: 'startDate', label: `From: ${startDate}` },
+      endDate && { key: 'endDate', label: `To: ${endDate}` },
+    ].filter(Boolean);
+  }, [debouncedQuery, type, category, categories, startDate, endDate, t]);
 
   const clearFilter = (key) => {
     if (key === 'query') setQuery('');
@@ -202,7 +206,7 @@ export const SearchItems = () => {
     ...categories.map((entry) => ({
       value: entry.name,
       label: entry.name,
-      icon: entry.icon || getCategoryIcon(entry.name)
+      icon: entry.icon && entry.icon !== '📦' ? entry.icon : getCategoryIcon(entry.name)
     }))
   ], [categories, t]);
 

@@ -11,6 +11,7 @@ import EmptyState from '../../components/common/EmptyState';
 import Modal from '../../components/common/Modal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { getCategoryIcon } from '../../utils/helpers';
 
 const ManageCategories = () => {
   const dispatch = useDispatch();
@@ -83,7 +84,7 @@ const ManageCategories = () => {
           {categories.map((category) => (
             <article key={category._id} className="card flex flex-col justify-between border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900/60">
               <div>
-                <div className="flex items-center gap-3"><span aria-hidden="true" className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-3xl dark:border-slate-800 dark:bg-slate-800/80">{category.icon}</span><div><h2 className="text-base font-semibold text-slate-900 dark:text-white">{category.name}</h2><span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800">{t('categories.items', { count: category.itemCount || 0 })}</span></div></div>
+                <div className="flex items-center gap-3"><span aria-hidden="true" className="rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-3xl dark:border-slate-800 dark:bg-slate-800/80">{category.icon && category.icon !== '📦' ? category.icon : getCategoryIcon(category.name)}</span><div><h2 className="text-base font-semibold text-slate-900 dark:text-white">{category.name}</h2><span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-800">{t('categories.items', { count: category.itemCount || 0 })}</span></div></div>
                 <p className="mt-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{category.description || t('categories.noDescription')}</p>
               </div>
               <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">

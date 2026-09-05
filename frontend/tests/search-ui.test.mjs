@@ -40,3 +40,12 @@ test('item category icons infer useful emojis for custom category names', () => 
   assert.match(source, /microphone\|mic/);
   assert.match(source, /charger\|adapter/);
 });
+
+test('category lists do not keep a generic stored box icon when a fallback is available', () => {
+  const filter = read('src/components/common/SearchFilter.jsx');
+  const search = read('src/pages/public/SearchItems.jsx');
+  const admin = read('src/pages/admin/ManageCategories.jsx');
+  assert.match(filter, /cat\.icon !== '📦'/);
+  assert.match(search, /entry\.icon !== '📦'/);
+  assert.match(admin, /category\.icon !== '📦'/);
+});

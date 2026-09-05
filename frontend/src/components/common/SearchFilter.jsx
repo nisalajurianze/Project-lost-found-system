@@ -3,6 +3,7 @@ import { FiSearch, FiCalendar, FiX } from 'react-icons/fi';
 import Input from './Input';
 import Select from './Select';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { getCategoryIcon } from '../../utils/helpers';
 
 export const SearchFilter = ({
   search = '', onSearchChange, category = '', onCategoryChange, status = '', onStatusChange,
@@ -22,7 +23,9 @@ export const SearchFilter = ({
 
   const categoryOptions = categories.map((cat) => {
     if (cat.label && cat.value !== undefined) return cat;
-    return { value: cat.name || cat, label: cat.icon ? `${cat.icon} ${cat.name}` : cat.name || cat };
+    const name = cat.name || cat;
+    const icon = cat.icon && cat.icon !== '📦' ? cat.icon : getCategoryIcon(name);
+    return { value: name, label: `${icon} ${name}` };
   });
 
   const hasActiveFilters = Boolean(search || category || status || startDate || endDate);
