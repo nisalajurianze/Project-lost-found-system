@@ -95,6 +95,49 @@ test('OpenRouter endpoint prefers its provider-specific key over a generic AI ke
   }
 });
 
+test('OpenRouter legacy aliases configure the default endpoint without generic model variables', async () => {
+  const originalFetch = global.fetch;
+  const originalEnv = { ...process.env };
+  let requestUrl;
+  let requestBody;
+  try {
+    process.env.AI_ENABLED = 'true';
+    delete process.env.AI_API_KEY;
+    delete process.env.AI_API_KEYS;
+    delete process.env.AI_API_URL;
+    delete process.env.AI_VISION_MODEL;
+    delete process.env.AI_VISION_MODELS;
+    process.env.OPENROUTER_API_KEY = 'openrouter-key';
+    process.env.OPENROUTER_VISION_MODEL = 'openrouter/free';
+    delete process.env.OPENROUTER_VISION_MODELS;
+    process.env.AI_MAX_ATTEMPTS = '1';
+    resetAiProviderStateForTests();
+    global.fetch = async (url, options) => {
+      requestUrl = url;
+      requestBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ choices: [{ message: { content: '{"value":"ok"}' } }] }),
+      };
+    };
+
+    const response = await requestAIJson([{ role: 'user', content: 'test' }], {
+      vision: true,
+      purpose: 'unit-test',
+      validator: (value) => value.value === 'ok',
+    });
+    assert.equal(requestUrl, 'https://openrouter.ai/api/v1/chat/completions');
+    assert.equal(requestBody.model, 'openrouter/free');
+    assert.equal(response.meta.provider, 'openrouter');
+  } finally {
+    global.fetch = originalFetch;
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  }
+});
+
 test('provider client falls back from the primary provider to an OpenRouter model', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };

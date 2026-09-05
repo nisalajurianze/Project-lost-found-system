@@ -54,8 +54,13 @@ const getProviderPlans = (vision = false) => {
 
   if (configuredIsOpenRouter) {
     const keys = openRouterKeys.length > 0 ? openRouterKeys : genericKeys;
-    if (keys.length > 0 && getModels(vision).length > 0) {
-      plans.push({ name: 'openrouter', url: configuredUrl, keys, models: getModels(vision) });
+    // Support both provider-neutral AI_* variables and the legacy
+    // OPENROUTER_* aliases when the endpoint defaults to OpenRouter.
+    const models = getModels(vision);
+    const openRouterModels = getOpenRouterModels(vision);
+    const selectedModels = models.length > 0 ? models : openRouterModels;
+    if (keys.length > 0 && selectedModels.length > 0) {
+      plans.push({ name: 'openrouter', url: configuredUrl, keys, models: selectedModels });
     }
     return plans;
   }
