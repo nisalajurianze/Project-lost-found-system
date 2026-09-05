@@ -1,5 +1,12 @@
 # Goal: Full lost-and-found release readiness
 
+## 2026-09-06 broken report detail links
+
+- [x] Confirm the production list API returns BSON byte objects instead of string report IDs
+- [x] Preserve MongoDB IDs in item/claim serialization and guard card links
+- [x] Verify real ObjectId regressions (153 backend tests passed, one integration skip; frontend focused tests/lint/build passed)
+- [/] Publish and check live list-to-detail requests
+
 ## Locally completed
 
 - [x] Deep-read the frontend, backend, deployment configuration, and release artifacts

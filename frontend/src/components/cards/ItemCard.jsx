@@ -6,12 +6,14 @@ import { formatRelativeTime } from '../../utils/formatDate';
 import { FiMapPin, FiClock, FiMessageSquare, FiArrowRight } from 'react-icons/fi';
 import Button from '../common/Button';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { resolveItemId } from '../../utils/itemId';
 
 export const ItemCard = React.memo(({ item, type = 'lost', onFeedback, view = 'grid' }) => {
   const { t } = useLanguage();
   const isLost = type === 'lost';
-  const itemId = typeof item === 'object' ? (item?._id || item?.id || '') : String(item || '');
-  const detailPath = isLost ? `/lost-items/${itemId}` : `/found-items/${itemId}`;
+  const itemId = resolveItemId(item);
+  const directoryPath = isLost ? '/lost-items' : '/found-items';
+  const detailPath = itemId ? `${directoryPath}/${encodeURIComponent(itemId)}` : directoryPath;
   const displayLocation = isLost ? item.lostLocation : item.foundLocation;
   const displayDate = isLost ? item.lostDate : item.foundDate;
   const rawImage = item.images?.[0]?.url || null;

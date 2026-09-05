@@ -1,5 +1,15 @@
 const id = (value) => value?._id?.toString?.() || value?.toString?.() || '';
-const plain = (value) => value?.toObject ? value.toObject() : structuredClone(value || {});
+// Lean queries still contain BSON ObjectIds. structuredClone strips their
+// prototype/toJSON and exposes byte buffers instead of usable IDs on the wire.
+const cloneForView = (value) => {
+  if (value == null || typeof value !== 'object') return value;
+  if (typeof value.toHexString === 'function') return value.toHexString();
+  if (value instanceof Date) return new Date(value.getTime());
+  if (typeof value.toObject === 'function') return cloneForView(value.toObject());
+  if (Array.isArray(value)) return value.map(cloneForView);
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, cloneForView(entry)]));
+};
+const plain = (value) => cloneForView(value || {});
 
 export const minimalUser = (user) => user ? { _id: user._id, fullName: user.fullName, profileImage: user.profileImage } : null;
 export const contactUser = (user, { includeStudentId = false } = {}) => {
