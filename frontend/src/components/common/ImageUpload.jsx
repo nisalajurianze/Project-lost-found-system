@@ -100,12 +100,11 @@ export const ImageUpload = ({
       }
     }
 
+    setIsCompressing(false);
+    setPreparationProgress(null);
     if (validFiles.length > 0) {
       await onChange([...images, ...validFiles]);
     }
-
-    setIsCompressing(false);
-    setPreparationProgress(null);
   };
 
   const handleDrop = (e) => {

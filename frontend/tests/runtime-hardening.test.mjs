@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isSafeInternalPath, toSafeInternalPath } from '../src/utils/internalNavigation.js';
 import { isChunkLoadError, shouldRetryChunkLoad } from '../src/utils/lazyWithRetry.js';
+import { resolveApiBaseUrl } from '../src/utils/apiBaseUrl.js';
 
 const frontend = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (relative) => fs.readFileSync(path.join(frontend, relative), 'utf8');
@@ -91,4 +92,14 @@ test('public search and authentication secondary actions expose 44px hit targets
   assert.match(register, /role="separator" aria-label=\{t\('auth\.or'\)\}/);
   assert.match(read('src/components/layout/Footer.jsx'), /text-xs text-surface-600 dark:text-surface-400/);
   assert.match(read('src/pages/public/Home.jsx'), /mt-1 text-sm text-surface-600 dark:text-surface-400/);
+});
+
+test('Vercel API requests use the cookie-preserving proxy despite stale deployment variables', () => {
+  const configuredUrl = 'https://backend.up.railway.app/api';
+  for (const hostname of ['smart-lost-and-found-system.vercel.app', 'preview-123.vercel.app']) {
+    assert.equal(resolveApiBaseUrl({ configuredUrl, hostname, isProduction: true }), '/api');
+  }
+  assert.equal(resolveApiBaseUrl({ configuredUrl, hostname: 'localhost', isProduction: false }), configuredUrl);
+  assert.equal(resolveApiBaseUrl({ configuredUrl, hostname: 'example.com', isProduction: true }), configuredUrl);
+  assert.equal(resolveApiBaseUrl({ hostname: 'localhost', isProduction: false }), '/api');
 });

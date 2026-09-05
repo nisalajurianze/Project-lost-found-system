@@ -3,7 +3,13 @@
 // API routes, item status keys, and defaults
 // ============================================
 
-export const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
+import { resolveApiBaseUrl } from './apiBaseUrl';
+
+export const API_URL = resolveApiBaseUrl({
+  configuredUrl: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL,
+  hostname: window.location.hostname,
+  isProduction: import.meta.env.PROD,
+});
 export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 export const LOCAL_STORAGE_THEME_KEY = 'smart-lf-theme-v2';

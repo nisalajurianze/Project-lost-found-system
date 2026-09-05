@@ -1,6 +1,7 @@
 import React, { useEffect, Suspense, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { clearAuth } from './redux/slices/authSlice';
 
 // Layouts
 import PublicLayout from './components/layout/PublicLayout';
@@ -103,6 +104,14 @@ const App = () => {
   useEffect(() => {
     getMe().catch(() => undefined);
   }, [dispatch, getMe]);
+
+  // Keep Redux authentication state in sync when the shared API client cannot
+  // refresh an expired HTTP-only cookie session.
+  useEffect(() => {
+    const handleAuthLogout = () => dispatch(clearAuth());
+    window.addEventListener('auth-logout', handleAuthLogout);
+    return () => window.removeEventListener('auth-logout', handleAuthLogout);
+  }, [dispatch]);
 
   // Apply dark mode theme class globally
   useEffect(() => {

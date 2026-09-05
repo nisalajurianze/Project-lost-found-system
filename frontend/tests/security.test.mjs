@@ -35,7 +35,8 @@ test('password login confirms the secure cookie session before authenticating lo
 test('production defaults use the same origin', () => {
   const constants = read('src/utils/constants.js');
   const env = read('.env.example');
-  assert.match(constants, /['"]\/api['"]/);
+  assert.match(constants, /API_URL = resolveApiBaseUrl\(/);
+  assert.match(read('src/utils/apiBaseUrl.js'), /['"]\/api['"]/);
   assert.match(env, /VITE_API_URL=\/api/);
   assert.match(env, /VITE_SOCKET_URL=\s*$/m);
 });
