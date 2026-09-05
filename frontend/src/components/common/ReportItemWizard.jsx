@@ -673,7 +673,6 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
               </div>
             )}
             <ImageUpload images={images} onChange={handleImageChange} maxFiles={Math.max(0, 5 - existingImages.length)} error={errors.images} />
-            {errors.images && <div className="mt-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-100" role="alert">{errors.images}</div>}
             <ImagePrivacyReview
               reviews={imagePrivacyReviews}
               isScanning={isPrivacyScanning}
