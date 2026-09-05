@@ -56,9 +56,11 @@ const getProviderPlans = (vision = false) => {
     const keys = openRouterKeys.length > 0 ? openRouterKeys : genericKeys;
     // Support both provider-neutral AI_* variables and the legacy
     // OPENROUTER_* aliases when the endpoint defaults to OpenRouter.
-    const models = getModels(vision);
     const openRouterModels = getOpenRouterModels(vision);
-    const selectedModels = models.length > 0 ? models : openRouterModels;
+    const models = getModels(vision);
+    // Prefer provider-specific aliases so a stale generic model cannot mask
+    // the active OpenRouter configuration. Keep generic models as a fallback.
+    const selectedModels = [...new Set([...openRouterModels, ...models])];
     if (keys.length > 0 && selectedModels.length > 0) {
       plans.push({ name: 'openrouter', url: configuredUrl, keys, models: selectedModels });
     }
