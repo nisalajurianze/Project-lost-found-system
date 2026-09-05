@@ -62,6 +62,7 @@ export const getCategoryIcon = (category) => {
     'Personal Accessories': '👜',
     'Cards and Documents': '🪪',
     Keys: '🔑',
+    Microphones: '🎙️',
     'Electronics & Gadgets': '📱',
     'Books & Stationery': '📚',
     'Keys & Keychains': '🔑',
@@ -75,7 +76,23 @@ export const getCategoryIcon = (category) => {
     'Sports Gear': '⚽',
     'Others': '📦'
   };
-  return icons[category] || '📦';
+  if (icons[category]) return icons[category];
+  const normalized = String(category || '').normalize('NFKC').trim().toLocaleLowerCase('en-US');
+  const dynamic = [
+    [/\b(?:microphone|mic)\b/u, '🎙️'],
+    [/\b(?:battery|battry)\b/u, '🔋'],
+    [/\b(?:charger|adapter|power)\b/u, '🔌'],
+    [/\b(?:phone|mobile|smartphone|electronics)\b/u, '📱'],
+    [/\b(?:headphone|earphone|earbuds|airpods)\b/u, '🎧'],
+    [/\b(?:wallet|purse)\b/u, '👛'],
+    [/\b(?:key|keys|keychain)\b/u, '🔑'],
+    [/\b(?:bag|backpack|handbag)\b/u, '🎒'],
+    [/\b(?:book|textbook|notebook)\b/u, '📚'],
+    [/\b(?:bottle|flask)\b/u, '🧴'],
+    [/\bumbrella\b/u, '☂️'],
+    [/\b(?:glasses|spectacles|eyewear)\b/u, '🕶️'],
+  ];
+  return dynamic.find(([pattern]) => pattern.test(normalized))?.[1] || '📦';
 };
 
 /**

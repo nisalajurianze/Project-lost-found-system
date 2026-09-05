@@ -7,6 +7,9 @@ test('deterministic category icons cover common lost-item categories', () => {
   assert.equal(fallbackCategoryIcon('Cat'), '🐱');
   assert.equal(fallbackCategoryIcon('DOG'), '🐶');
   assert.equal(fallbackCategoryIcon('keys'), '🔑');
+  assert.equal(fallbackCategoryIcon('battry'), '🔋');
+  assert.equal(fallbackCategoryIcon('USB microphone'), '🎙️');
+  assert.equal(fallbackCategoryIcon('phone accessories'), '📱');
   assert.equal(fallbackCategoryIcon('custom physical item'), '📦');
 });
 

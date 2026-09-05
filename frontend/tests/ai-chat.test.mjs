@@ -61,3 +61,10 @@ test('assistant report draft follows each conversation response style', () => {
 test('assistant keeps only the latest report draft visible after a follow-up', () => {
   assert.match(source, /previous\.map\(\(entry\) => entry\.reportDraft \? \{ \.\.\.entry, reportDraft: null \} : entry\)/);
 });
+
+test('guided report categories replace generic box icons with item-aware fallbacks', () => {
+  const source = fs.readFileSync(path.join(frontend, 'src/components/common/ReportItemWizard.jsx'), 'utf8');
+  assert.match(source, /getCategoryIcon\(category\.name\)/);
+  assert.match(source, /getCategoryIcon\(name\)/);
+  assert.match(source, /getCategoryIcon\(candidate\)/);
+});

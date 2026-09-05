@@ -22,6 +22,7 @@ import ConfirmDialog from './ConfirmDialog';
 import ProfileCompletionModal from '../modals/ProfileCompletionModal';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { consumeAssistantReportDraft } from '../../utils/assistantReportDraft';
+import { getCategoryIcon } from '../../utils/helpers';
 
 const stepDefinitions = [
   { id: 1, labelKey: 'report.stepPhoto', icon: ImageIcon },
@@ -184,7 +185,10 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
   }, [draftKey, form, isInitialised, step]);
 
   const categoryOptions = useMemo(() => {
-    const values = categories.map((category) => ({ value: category.name, label: `${category.icon} ${category.name}` }));
+    const values = categories.map((category) => ({
+      value: category.name,
+      label: `${category.icon && category.icon !== '📦' ? category.icon : getCategoryIcon(category.name)} ${category.name}`,
+    }));
     if (extraCategory && !categories.some((category) => category.name === extraCategory.value)) values.push(extraCategory);
     return values;
   }, [categories, extraCategory]);
@@ -200,14 +204,16 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     setIsCategoryLoading(true);
     try {
       const response = await aiService.autoCreateCategory(candidate);
-      const name = response.data.name;
-      const resolvedIcon = response.data.icon || icon;
+      const name = response.data.name || candidate;
+      const resolvedIcon = response.data.icon && response.data.icon !== '📦'
+        ? response.data.icon
+        : (icon && icon !== '📦' ? icon : getCategoryIcon(name));
       setExtraCategory({ value: name, label: `${resolvedIcon} ${name}` });
       update('category', name);
       await dispatch(fetchCategories());
       return name;
     } catch {
-      const resolvedIcon = icon || '📦';
+      const resolvedIcon = icon && icon !== '📦' ? icon : getCategoryIcon(candidate);
       setExtraCategory({ value: candidate, label: `${resolvedIcon} ${candidate}` });
       update('category', candidate);
       setErrors((current) => {

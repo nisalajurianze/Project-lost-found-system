@@ -33,3 +33,10 @@ test('item category icons cover backend canonical category names', () => {
   assert.match(source, /'Personal Accessories':\s*'👜'/);
   assert.match(source, /'Cards and Documents':\s*'🪪'/);
 });
+
+test('item category icons infer useful emojis for custom category names', () => {
+  const source = read('src/utils/helpers.js');
+  assert.match(source, /battery\|battry/);
+  assert.match(source, /microphone\|mic/);
+  assert.match(source, /charger\|adapter/);
+});
