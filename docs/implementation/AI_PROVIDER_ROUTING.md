@@ -46,3 +46,14 @@ Muse models use OpenCode's `/v1/responses` request and response format. The prov
 5. Verify an unavailable provider produces a usable fallback rather than blocking report submission.
 
 Liveness/readiness endpoints validate application dependencies; they do not call external AI providers. Use the AI health metrics and actual smoke requests for provider acceptance.
+
+## 2026-09-05 upload/session verification
+
+- The previous deployed browser bundle sent API calls directly to Railway. Production Vercel builds now use the existing same-origin `/api` rewrite, including multipart uploads and session refresh, even if an old deployment variable contains the Railway URL. Other hosts retain their configured API URL.
+- Failed session refresh now clears Redux authentication and redirects protected reports to login. Image preparation finishes before waiting for the separate AI/privacy scan.
+- Frontend verification: 138 tests, lint, and production build passed. Six desktop/mobile browser checks exercised multipart retry after a successful refresh, login redirect after a rejected refresh, and manual review after an AI 503. Browser API responses in these regression checks are mocked; they do not certify an external model.
+- Live frontend code deployed with commit `da66a35`; the public chatbot returned a relevant response in 3.9 seconds on September 5. The local OpenCode Muse vision request timed out after 18 seconds.
+- A browser regression against the deployed frontend also passed: both the initial upload and its refreshed retry used the website's own `/api` origin. API responses were mocked for this session-recovery check.
+- Live OpenRouter photo analysis still needs a signed-in smoke test. The connected browser has no authenticated session and the connector does not expose provider key values. Do not mark vision fixed based on chatbot success or browser mocks.
+
+To reproduce browser checks without replacing historical tracked test artifacts, use `PLAYWRIGHT_BASE_URL` for the preview/deployment URL and run `node node_modules/@playwright/test/cli.js test e2e/report-session.spec.js --output=.tmp/report-session-results --reporter=list` from `frontend`. Set `PLAYWRIGHT_CHANNEL=chrome` if using an installed Chrome instead of bundled Chromium.

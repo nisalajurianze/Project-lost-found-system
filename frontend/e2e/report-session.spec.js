@@ -6,7 +6,7 @@ if (process.env.PLAYWRIGHT_CHANNEL) test.use({ channel: process.env.PLAYWRIGHT_C
 const user = { _id: 'session-test-user', fullName: 'Session Test', email: 'session@example.test', phone: '0771234567', studentId: 'SEU-2026-TEST', role: 'student', isVerified: true };
 
 const setupReport = async (page, { refreshSucceeds, providerUnavailable = false }) => {
-  const requests = { uploads: 0, refreshes: 0, multipartBodies: [] };
+  const requests = { uploads: 0, refreshes: 0, multipartBodies: [], uploadUrls: [] };
   await page.route('**/socket.io/**', (route) => route.abort());
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -20,6 +20,7 @@ const setupReport = async (page, { refreshSucceeds, providerUnavailable = false 
     }
     if (pathname === '/api/ai/suggest-details') {
       requests.uploads += 1;
+      requests.uploadUrls.push(request.url());
       requests.multipartBodies.push(request.postDataBuffer());
       if (providerUnavailable) return reply(503, {}, 'AI image suggestions are temporarily unavailable.');
       if (requests.uploads === 1) return reply(401, {}, 'Access token expired.');
@@ -52,6 +53,7 @@ test('expired upload session refreshes once and retries the image successfully',
   await expect(page.getByText('Red striped bag', { exact: true })).toBeVisible();
   expect(requests.refreshes).toBe(1);
   expect(requests.uploads).toBe(2);
+  expect(requests.uploadUrls).toEqual(Array(2).fill(`${new URL(page.url()).origin}/api/ai/suggest-details`));
   const imageParts = requests.multipartBodies.map((body) => {
     expect(body.toString()).toContain('name="image"');
     expect(body.toString()).toContain('Content-Type: image/png');

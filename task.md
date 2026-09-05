@@ -192,8 +192,8 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Synchronize expired-session UI with failed refresh and preserve same-origin API cookies on Vercel
 - [x] End image preparation state before awaiting the separate AI review
 - [x] Verify browser upload refresh/retry and expired-session redirect behavior (6 desktop/mobile checks; 138 frontend tests)
-- [ ] Publish frontend cookie/session repair and verify the live API origin
-- [ ] Verify, publish, deploy, and repeat the production photo-analysis smoke test
+- [x] Publish frontend cookie/session repair and verify the live API origin (`da66a35`; deployed API proxy and logout listener confirmed)
+- [ ] Run an authenticated production photo-analysis smoke and confirm OpenRouter success (connected browser requires sign-in)
 
 ## 2026-09-04 Singlish listen pronunciation and report approval conflicts
 
