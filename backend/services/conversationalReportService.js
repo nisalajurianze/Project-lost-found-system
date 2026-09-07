@@ -2,6 +2,7 @@ import { normalizeText } from './chatSearchService.js';
 import { publicLocationView, resolveLocation } from './locationIntelligenceService.js';
 
 const ITEM_TYPES = [
+  { canonical: 'Battery', category: 'Electronics', aliases: ['battery', 'batteries', 'battry', 'battary'] },
   { canonical: 'Microphone', category: 'Electronics', aliases: ['microphone', 'mic', 'mics', 'මයික්', 'මයික්‍රොෆෝනය', 'மைக்ரோஃபோன்'] },
   { canonical: 'Mobile phone', category: 'Electronics', aliases: ['phone', 'mobile', 'smartphone', 'fone', 'ෆෝන්', 'දුරකථන', 'மொபைல்', 'தொலைபேசி'] },
   { canonical: 'Wallet', category: 'Personal Accessories', aliases: ['wallet', 'purse', 'moneybag', 'පසුම්බිය', 'පර්ස්', 'பணப்பை', 'பர்ஸ்'] },
@@ -32,12 +33,20 @@ const LOCATION_HINTS = [
   { canonical: 'Canteen', aliases: ['canteen', 'cateen', 'canteen eka', 'kantin', 'ආපනශාලාව', 'கேன்டீன்', 'உணவகம்'] },
 ];
 
-const includesAlias = (normalized, alias) => normalized.includes(normalizeText(alias));
+const includesAlias = (normalized, alias) => (` ${normalized} `).includes(` ${normalizeText(alias)} `);
 
 const localDateTime = (date) => {
-  const value = new Date(date);
-  value.setMinutes(value.getMinutes() - value.getTimezoneOffset());
-  return value.toISOString().slice(0, 16);
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date).map(({ type, value }) => [type, value]));
+  return `${parts.year}-${parts.month}-${parts.day}T00:00`;
+};
+
+const explicitDate = (original) => {
+  const match = original.match(/\b(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?\b/u);
+  if (!match) return '';
+  const [, year, month, day, hour = '00', minute = '00'] = match;
+  const value = `${year}-${month}-${day}T${hour}:${minute}`;
+  const parsed = new Date(`${value}:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(value) ? value : '';
 };
 
 const inferDate = (normalized, now) => {
@@ -52,13 +61,17 @@ export const buildConversationalReportDraft = ({ message, intent, now = new Date
   if (!['lost', 'found'].includes(intent)) return null;
   const original = String(message || '').normalize('NFKC').trim().slice(0, 500);
   const normalized = normalizeText(original);
-  const item = ITEM_TYPES.find((candidate) => candidate.aliases.some((alias) => includesAlias(normalized, alias)));
+  // Match whole nouns: phone is not microphone, key is not keytag.
+  const item = ITEM_TYPES.flatMap((candidate) => candidate.aliases
+    .filter((alias) => includesAlias(normalized, alias))
+    .map((alias) => ({ ...candidate, length: alias.length })))
+    .sort((a, b) => b.length - a.length)[0];
   const colours = COLOURS.filter((colour) => colour.aliases.some((alias) => includesAlias(normalized, alias))).map((colour) => colour.canonical);
   const locationHint = LOCATION_HINTS.find((candidate) => candidate.aliases.some((alias) => includesAlias(normalized, alias)));
   const resolved = resolveLocation(original);
   const locationView = publicLocationView(resolved);
   const location = locationHint?.canonical || (resolved.confidence >= 55 ? locationView?.canonicalName || '' : '');
-  const date = inferDate(normalized, now);
+  const date = explicitDate(original) || inferDate(normalized, now);
   const fields = {
     itemName: item?.canonical || '',
     category: item?.category || '',

@@ -147,11 +147,15 @@ const generateCategoryDetails = async (categoryName, existingCategories = []) =>
 
 const suggestionValidator = (value) => typeof value.isSpam === 'boolean'
   && typeof value.isItemPhoto === 'boolean'
-  && typeof value.itemName === 'string' && value.itemName.trim().length > 0
-  && typeof value.category === 'string' && value.category.trim().length > 0
-  && typeof value.description === 'string' && value.description.trim().length >= 10
-  && ['poor', 'fair', 'good'].includes(value.imageQuality)
-  && ['allow', 'review', 'reject'].includes(value.moderationDecision);
+  && ['allow', 'review', 'reject'].includes(value.moderationDecision)
+  // A rejection need not hallucinate an item/category for a blank image or
+  // poster. Missing positive fields still never authorize a public upload.
+  && (value.moderationDecision !== 'allow' || (
+    typeof value.itemName === 'string' && value.itemName.trim().length > 0
+    && typeof value.category === 'string' && value.category.trim().length > 0
+    && typeof value.description === 'string' && value.description.trim().length >= 10
+    && ['poor', 'fair', 'good'].includes(value.imageQuality)
+  ));
 
 const blockedImageContentPattern = /\b(?:adult|explicit|erotic|genital|nude|nudity|porn(?:ography)?|nsfw|sexual|sexually|obscene|fetish|breast|buttocks|violence|gore)\b/iu;
 const hasBlockedImageContent = (value) => [

@@ -2,9 +2,11 @@ import crypto from 'node:crypto';
 import AssistantSession from '../models/AssistantSession.js';
 import ApiError from '../utils/apiError.js';
 import { buildConversationalReportDraft } from './conversationalReportService.js';
+import { extractConversationUpdates } from './conversationExtractionService.js';
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_CHANGES = 20;
+const NON_DETAIL_PATTERN = /^(?:yes|no|ok|okay|thanks|thank you|continue|search|show matches|hari|ow|na|naha|hoyanna|balanna|හරි|ඔව්|නැහැ|சரி|ஆம்|இல்லை)[.!?\s]*$/iu;
 const SLOT_NAMES = ['itemName', 'category', 'colors', 'brand', 'model', 'description', 'uniqueFeatures', 'location', 'date', 'storedAt'];
 const CORRECTION_PATTERN = /\b(?:no|na|naha|nemei|wrong|correct|actually|instead|illai|இல்லை|නැහැ|නෑ)\b/iu;
 const UNDO_PATTERN = /^(?:undo|go back|kalin eka|පෙර එක|முந்தையதை)\s*[.!]?$/iu;
@@ -65,7 +67,12 @@ const candidateValues = (message, reportType, nextField, now, { allowContextFill
   const brand = text.match(/\b(apple|samsung|dell|hp|lenovo|asus|acer|xiaomi|huawei|nokia|sony)\b/iu)?.[1];
   if (brand) candidates.brand = { value: brand[0].toUpperCase() + brand.slice(1).toLowerCase(), confidence: 90 };
   const hasParsedDetail = Object.keys(candidates).length > 0;
-  const canUseFreeTextForNextField = nextField === 'uniqueFeatures' || !hasParsedDetail;
+  const bareItemCorrection = Boolean(candidates.itemName) && text.split(/\s+/u).length <= 2;
+  const canUseFreeTextForNextField = !bareItemCorrection && (['uniqueFeatures', 'storedAt'].includes(nextField) || !hasParsedDetail);
+  // Accessories/marks describe the existing item, not a new item or color.
+  if (allowContextFill && !bareItemCorrection && ['uniqueFeatures', 'storedAt'].includes(nextField)) {
+    for (const field of ['itemName', 'category', 'colors', 'location', 'date', 'brand']) delete candidates[field];
+  }
   if (allowContextFill && canUseFreeTextForNextField && nextField && !candidates[nextField] && text.length >= 2) {
     if (nextField === 'uniqueFeatures') candidates.uniqueFeatures = { value: text, confidence: 75 };
     if (nextField === 'storedAt') candidates.storedAt = { value: text, confidence: 70 };
@@ -88,8 +95,8 @@ const removalField = (message) => {
 
 const appendChange = (changes, change) => [...changes, change].slice(-MAX_CHANGES);
 
-const advanceConversationState = ({ previousState = {}, message, intent, responseStyle = 'en', now = new Date() }) => {
-  const reportType = ['lost', 'found'].includes(intent) ? intent : previousState.reportType;
+const advanceConversationState = ({ previousState = {}, message, intent, responseStyle = 'en', now = new Date(), extractedUpdates = null }) => {
+  const reportType = previousState.reportType || (['lost', 'found'].includes(intent) ? intent : '');
   if (!['lost', 'found'].includes(reportType)) return null;
   const turn = (Number(previousState.turnCount) || 0) + 1;
   const slots = asPlainSlots(previousState.slots);
@@ -102,7 +109,7 @@ const advanceConversationState = ({ previousState = {}, message, intent, respons
     changes = appendChange(changes.slice(0, -1), { field: previous.field, before: previous.after, after: previous.before, operation: 'undo', turn, at: now });
   } else {
     const correction = CORRECTION_PATTERN.test(text);
-    const { candidates } = candidateValues(text, reportType, previousState.nextField, now, { allowContextFill: !correction });
+    const candidates = NON_DETAIL_PATTERN.test(text) ? {} : extractedUpdates ?? candidateValues(text, reportType, previousState.nextField, now, { allowContextFill: !correction }).candidates;
     if (REMOVE_PATTERN.test(text)) {
       const field = removalField(text) || previousState.nextField;
       if (field && slots[field] && cleanText(valueOf(slots[field]))) candidates[field] = { value: '', confidence: 100, remove: true };
@@ -116,10 +123,13 @@ const advanceConversationState = ({ previousState = {}, message, intent, respons
       slots[field] = { value: after, confidence: candidate.confidence, sourceTurn: turn };
       changes = appendChange(changes, { field, before, after, operation, turn, at: now });
     }
-    if (!cleanText(valueOf(slots.description))) {
-      slots.description = { value: text, confidence: 100, sourceTurn: turn };
-    }
   }
+
+  // Summarize current slots; never retain a superseded phone/bag description.
+  slots.description = { value: [
+    `${reportType === 'found' ? 'Found' : 'Lost'} ${valueOf(slots.colors)} ${valueOf(slots.itemName)}`.replace(/\s+/gu, ' ').trim(),
+    valueOf(slots.uniqueFeatures) ? `Identifying feature: ${valueOf(slots.uniqueFeatures)}` : '',
+  ].filter(Boolean).join('. '), confidence: 100, sourceTurn: turn };
 
   const fields = draftFieldsFromSlots(slots);
   const missing = missingFields(reportType, fields);
@@ -164,7 +174,14 @@ const applyAssistantSessionTurn = async ({ sessionId, expectedVersion, message, 
   }
   const version = Number(expectedVersion);
   if (Number.isFinite(version) && version !== record.stateVersion) throw ApiError.conflict('This conversation changed in another tab. Reload it before correcting details.');
-  const advanced = advanceConversationState({ previousState: record.toObject(), message, intent, responseStyle, now });
+  const previousState = record.toObject();
+  const extractedUpdates = UNDO_PATTERN.test(message) || REMOVE_PATTERN.test(message) || NON_DETAIL_PATTERN.test(message)
+    ? null
+    : await extractConversationUpdates({
+      message, fields: draftFieldsFromSlots(asPlainSlots(previousState.slots)), nextField: previousState.nextField,
+      reportType: previousState.reportType || intent, now,
+    });
+  const advanced = advanceConversationState({ previousState, message, intent, responseStyle, now, extractedUpdates });
   if (!advanced) return null;
   const updated = await AssistantSession.findOneAndUpdate(
     { _id: record._id, stateVersion: record.stateVersion },

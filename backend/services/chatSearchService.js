@@ -123,6 +123,9 @@ export const resolveConversationStyle = (message, history = [], locale = 'en', p
 
 export const inferIntent = (value) => {
   const text = normalizeText(value);
+  // Asking whether somebody found MY missing item is a lost-item search.
+  if (/\b(?:has|have|did) (?:anyone|anybody|someone) (?:found|find)\b/u.test(text)
+    || /\b(?:my|mage|mge)\b.*\b(?:lost|nathi)\b/u.test(text)) return 'lost';
   const foundSignals = ['found', 'hambuna', 'hambu una', 'හමු', 'கண்ட', 'கிடைத்த'];
   const lostSignals = ['lost', 'nathi', 'නැති', 'අහිමි', 'காணாமல்', 'தொலைந்த'];
   if (foundSignals.some((signal) => text.includes(normalizeText(signal)))) return 'found';

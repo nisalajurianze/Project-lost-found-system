@@ -89,3 +89,35 @@ test('assistant session identifiers are stored as hashes and state has a TTL ind
   const ttlIndex = AssistantSession.schema.indexes().find(([keys, options]) => keys.expiresAt === 1 && options.expireAfterSeconds === 0);
   assert.ok(ttlIndex);
 });
+
+test('feature accessories and sticker colors cannot overwrite the main item', () => {
+  const first = advanceConversationState({ message: 'I lost a black bag yesterday at canteen', intent: 'lost', now });
+  const next = advanceConversationState({ previousState: first, message: 'white keytag with a phone drawing', intent: 'search', now });
+  assert.equal(next.fields.itemName, 'Bag');
+  assert.equal(next.fields.colors, 'Black');
+  assert.equal(next.fields.uniqueFeatures, 'white keytag with a phone drawing');
+});
+
+test('an acknowledgment cannot fill a location or an identifying feature', () => {
+  const first = advanceConversationState({ message: 'I lost a bag', intent: 'lost', now });
+  const next = advanceConversationState({ previousState: first, message: 'hari', intent: 'search', now });
+  assert.equal(next.fields.location, '');
+  assert.equal(next.nextField, 'location');
+});
+
+test('item corrections update the summary and explicit dates work without a provider', () => {
+  const first = advanceConversationState({ message: 'I lost a phone', intent: 'lost', now });
+  const next = advanceConversationState({ previousState: first, message: 'microphone', intent: 'search', now });
+  assert.equal(next.fields.description, 'Lost Microphone');
+  const dated = advanceConversationState({ previousState: next, message: '2026-09-02 14:30', intent: 'search', now });
+  assert.equal(dated.fields.date, '2026-09-02T14:30');
+  assert.equal(dated.fields.location, '');
+});
+
+test('validated contextual corrections take precedence over incidental nouns', () => {
+  const first = advanceConversationState({ message: 'I lost a phone', intent: 'lost', now });
+  const next = advanceConversationState({ previousState: first, message: 'phone nemei microphone', intent: 'search', now,
+    extractedUpdates: { itemName: { value: 'Microphone', confidence: 80 } } });
+  assert.equal(next.fields.itemName, 'Microphone');
+  assert.equal(next.fields.location, '');
+});

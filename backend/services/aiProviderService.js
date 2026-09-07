@@ -203,7 +203,7 @@ const requestAIJson = async (messages, {
   metrics.totalInputChars += envelope.textChars;
   updatePurposeMetrics(purpose, 'request', { inputChars: envelope.textChars });
 
-  for (const provider of providerPlans) {
+  providerLoop: for (const provider of providerPlans) {
     for (const model of provider.models) {
       for (let keyIndex = 0; keyIndex < provider.keys.length; keyIndex += 1) {
         if (attempts >= attemptBudget) break;
@@ -228,6 +228,15 @@ const requestAIJson = async (messages, {
 
         if (!response.ok) {
           lastCode = `HTTP_${response.status}`;
+          // Honor provider access restrictions, never impersonate its client.
+          // Trying every free model/key cannot fix an application-wide denial.
+          const failure = typeof response.json === 'function' ? await response.json().catch(() => null) : null;
+          if (failure?.error?.type === 'MissingSessionID'
+            && /free tier can only be used in OpenCode/i.test(failure?.error?.message || '')) {
+            const restricted = new Error('Provider does not permit this application.');
+            restricted.code = 'PROVIDER_APP_RESTRICTED';
+            throw restricted;
+          }
           throw new Error(lastCode);
         }
         const data = await response.json();
@@ -269,6 +278,8 @@ const requestAIJson = async (messages, {
             : (error?.code || (lastCode !== 'AI_PROVIDER_UNAVAILABLE' ? lastCode : error?.name) || 'AI_PROVIDER_ERROR');
           lastCode = String(reportedCode).slice(0, 80);
           metrics.lastFailureCode = lastCode;
+          console.warn('[ai] provider attempt failed', { purpose, provider: provider.name, model, code: lastCode });
+          if (lastCode === 'PROVIDER_APP_RESTRICTED') continue providerLoop;
         }
       }
       if (attempts >= attemptBudget) break;

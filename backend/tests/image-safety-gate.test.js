@@ -76,3 +76,31 @@ test('server image gate fails closed when safety provider is unavailable', async
     resetAiProviderStateForTests();
   }
 });
+
+test('a rejected non-item with no invented category is rejected, not reported as an outage', async (t) => {
+  const originalEnv = { ...process.env };
+  t.after(() => {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  });
+  Object.assign(process.env, { AI_ENABLED: 'true', AI_API_KEY: 'test-key', AI_API_URL: 'https://vision.example.test/chat',
+    AI_VISION_PROVIDER: 'primary', AI_VISION_MODEL: 'vision-test', AI_MAX_ATTEMPTS: '1' });
+  t.mock.method(global, 'fetch', async () => responseFor({ isSpam: true, isItemPhoto: false, moderationDecision: 'reject', itemName: '', category: '' }));
+  resetAiProviderStateForTests();
+  await assert.rejects(() => verifyReportImages([validImage]), (error) => error.code === 'IMAGE_NOT_ALLOWED');
+});
+
+test('missing positive moderation fields can never authorize an upload', async (t) => {
+  const originalEnv = { ...process.env };
+  t.after(() => {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  });
+  Object.assign(process.env, { AI_ENABLED: 'true', AI_API_KEY: 'test-key', AI_API_URL: 'https://vision.example.test/chat',
+    AI_VISION_PROVIDER: 'primary', AI_VISION_MODEL: 'vision-test', AI_MAX_ATTEMPTS: '1' });
+  t.mock.method(global, 'fetch', async () => responseFor({ isSpam: false, isItemPhoto: true, moderationDecision: 'allow' }));
+  resetAiProviderStateForTests();
+  await assert.rejects(() => verifyReportImages([validImage]), (error) => error.code === 'IMAGE_SAFETY_UNAVAILABLE');
+});

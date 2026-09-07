@@ -226,3 +226,11 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 - [x] Resolve speech locale and available voice from each assistant response style
 - [x] Restrict approval to the current report draft and guard duplicate submissions
 - [x] Add regression coverage, run frontend checks, and publish the focused fix
+## 2026-09-08 AI behavior and photo verification repair
+
+- [x] Reproduce current conversation and vision failures; verify live provider evidence.
+- [x] Fix contextual item corrections and collect-details-then-search behavior without auto-submission.
+- [x] Repair vision response handling while preserving fail-closed image safety.
+- [ ] Run behavioral regression tests and build; publish and verify deployment/runtime where accessible.
+
+Evidence: production `I lost something` previously bypassed session collection. Local configured OpenCode text and vision endpoints now return `MissingSessionID: OpenCode's free tier can only be used in OpenCode`; no client-impersonation workaround added. Application restrictions now fail over to another configured provider and emit safe diagnostic codes. Negative image verdicts no longer require fabricated item/category names. Backend suite: 168 passed, 1 skipped; lint and syntax passed. Production provider success and authenticated image acceptance remain unverified.

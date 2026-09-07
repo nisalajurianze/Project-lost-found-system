@@ -162,8 +162,7 @@ export const withRelevantItemEmoji = (reply, reportDraft = null, items = []) => 
   const context = [
     reportDraft?.fields?.itemName,
     reportDraft?.fields?.category,
-    reportDraft?.fields?.description,
-    ...items.slice(0, 3).flatMap((item) => [item?.itemName, item?.category]),
+    ...(!reportDraft?.fields?.itemName ? items.slice(0, 3).flatMap((item) => [item?.itemName, item?.category]) : []),
   ].filter(Boolean).join(' ');
   if (!context) return text;
   const emoji = itemEmojiRules.find(([pattern]) => pattern.test(context))?.[1] || '🔎';
@@ -402,7 +401,9 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       language,
       responseStyle,
       intent: 'report',
-      quickReplies: q(responseStyle, 'greeting').slice(0, 2),
+      quickReplies: ['si', 'ta'].includes(responseStyle)
+        ? (responseStyle === 'si' ? ['නැති වුණා', 'හමු වුණා'] : ['தொலைந்தது', 'கிடைத்தது'])
+        : (responseStyle === 'singlish' ? ['Nathi una', 'Hambuna'] : ['I lost something', 'I found something']),
       items: [],
       actions: [
         { type: 'report_lost', label: actionLabel(responseStyle, 'reportLost'), url: '/dashboard/report-lost' },
@@ -414,11 +415,8 @@ export const handleAIChat = asyncHandler(async (req, res) => {
 
   const rawSearchMessage = resolveSearchMessage(incoming, history);
   const spelling = correctSearchText(rawSearchMessage);
-  const searchMessage = spelling.corrected;
-  const terms = expandKeywords(searchMessage);
-  if (!terms.length) {
-    return ApiResponse.ok({ text: t(responseStyle, 'ask'), language, responseStyle, quickReplies: q(responseStyle, 'ask'), items: [] }).send(res);
-  }
+  let searchMessage = spelling.corrected;
+  let terms = expandKeywords(searchMessage);
 
   const requestedPage = Number.parseInt(req.body?.page, 10);
   const requestedPageSize = Number.parseInt(req.body?.pageSize, 10);
@@ -449,7 +447,8 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     privacyNotice: 'Remove passwords, full card numbers, private addresses and other sensitive identifiers before submission.',
   } : buildConversationalReportDraft({ message: searchMessage, intent });
 
-  if (sessionState) {
+  const readyToSearch = sessionState && ['itemName', 'location', 'date'].every((field) => sessionState.fields[field]);
+  if (sessionState && !readyToSearch) {
     const reportUrl = sessionState.reportType === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost';
     const text = sessionState.state === 'reviewing' ? t(responseStyle, 'reportReady') : (sessionState.question || t(responseStyle, 'reportContinue'));
     return ApiResponse.ok({
@@ -467,8 +466,18 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       reportDraft,
       sessionState,
       corrections: spelling.corrections,
-      meta: { source: 'Guided report workflow', notice: 'Public matching starts after the report details are reviewed.' },
+      meta: { source: 'Guided report workflow', notice: 'Collecting item, location and date before searching existing reports.' },
     }).send(res);
+  }
+
+  if (sessionState) {
+    // Search using remembered public details, never just the latest short answer
+    // or private identifying marks supplied for ownership verification.
+    searchMessage = ['itemName', 'colors', 'brand', 'model', 'location'].map((field) => sessionState.fields[field]).filter(Boolean).join(' ');
+    terms = expandKeywords(searchMessage);
+  }
+  if (!terms.length) {
+    return ApiResponse.ok({ text: t(responseStyle, 'ask'), language, responseStyle, quickReplies: q(responseStyle, 'ask'), items: [] }).send(res);
   }
 
   let ranked;
@@ -492,11 +501,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
   const items = ranked.slice(start, start + pageSize);
 
   if (!total) {
-    const aiGenerated = sessionState?.question
+    const aiGenerated = sessionState
       ? null
       : await generateAssistantResponse(searchMessage, history, [], reportDraft, responseStyle);
     return ApiResponse.ok({
-      text: withRelevantItemEmoji(sessionState?.question || aiGenerated?.reply || t(responseStyle, 'none'), reportDraft),
+      text: withRelevantItemEmoji(sessionState ? `${t(responseStyle, 'none')} ${sessionState.question || t(responseStyle, 'reportReady')}` : aiGenerated?.reply || t(responseStyle, 'none'), reportDraft),
       language,
       responseStyle,
       intent,
@@ -504,7 +513,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
       total: 0,
       totalPages: 0,
       hasMore: false,
-      quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'retry'),
+      quickReplies: sessionState ? [] : aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'retry'),
       items: [],
       actions: [{ type: intent === 'found' ? 'report_found' : 'report_lost', label: actionLabel(responseStyle, intent === 'found' ? 'reportFound' : 'reportLost'), url: intent === 'found' ? '/dashboard/report-found' : '/dashboard/report-lost' }],
       reportDraft,
@@ -514,11 +523,11 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     }).send(res);
   }
 
-  const aiGenerated = sessionState?.question
+  const aiGenerated = sessionState
     ? null
     : await generateAssistantResponse(searchMessage, history, items, reportDraft, responseStyle);
   return ApiResponse.ok({
-    text: withRelevantItemEmoji(sessionState?.question || aiGenerated?.reply || t(responseStyle, 'results', total), reportDraft, items),
+    text: withRelevantItemEmoji(sessionState ? `${t(responseStyle, 'results', total)} ${sessionState.question || t(responseStyle, 'reportReady')}` : aiGenerated?.reply || t(responseStyle, 'results', total), reportDraft, items),
     language,
     responseStyle,
     intent,
@@ -529,7 +538,7 @@ export const handleAIChat = asyncHandler(async (req, res) => {
     totalPages,
     hasMore: safePage < totalPages,
     items,
-    quickReplies: aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'refine'),
+    quickReplies: sessionState ? [] : aiGenerated?.quickReplies?.length ? aiGenerated.quickReplies : q(responseStyle, 'refine'),
     reportDraft,
     sessionState,
     corrections: spelling.corrections,

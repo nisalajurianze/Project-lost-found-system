@@ -6,6 +6,30 @@ import {
   resetAiProviderStateForTests,
 } from '../services/aiProviderService.js';
 
+test('application-restricted provider skips its other models and uses an authorized fallback', async (t) => {
+  const originalEnv = { ...process.env };
+  t.after(() => {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  });
+  Object.assign(process.env, { AI_ENABLED: 'true', AI_API_KEY: 'test-primary', AI_API_URL: 'https://opencode.ai/zen/v1/chat/completions',
+    AI_CHAT_MODELS: 'free-one,free-two,free-three', AI_CHAT_PROVIDER: 'auto', OPENROUTER_API_KEY: 'test-fallback',
+    OPENROUTER_CHAT_MODELS: 'fallback-model', AI_MAX_ATTEMPTS: '2' });
+  const calls = [];
+  t.mock.method(global, 'fetch', async (url, options) => {
+    calls.push({ url, headers: options.headers });
+    if (url.includes('opencode.ai')) return { ok: false, status: 400, json: async () => ({ error: { type: 'MissingSessionID', message: "OpenCode's free tier can only be used in OpenCode" } }) };
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: '{"reply":"available"}' } }] }) };
+  });
+  resetAiProviderStateForTests();
+  const result = await requestAIJson([{ role: 'user', content: 'test' }]);
+  assert.equal(result.meta.provider, 'openrouter');
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].headers['X-Session-ID'], undefined);
+  assert.equal(getAiProviderStatus().models['free-one'].failures, 1);
+});
+
 test('provider client fails over across configured key slots with bounded attempts', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };

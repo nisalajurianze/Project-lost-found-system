@@ -1,4 +1,5 @@
 const PROMPT_VERSIONS = Object.freeze({
+  'conversation-extraction': 'conversation-extraction-v1',
   'assistant-chat': 'assistant-chat-v2',
   'item-image-analysis': 'item-image-analysis-v2',
   'item-image-comparison': 'item-image-comparison-v1',
