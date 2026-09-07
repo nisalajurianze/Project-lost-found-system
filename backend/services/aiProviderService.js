@@ -231,6 +231,12 @@ const requestAIJson = async (messages, {
           // Honor provider access restrictions, never impersonate its client.
           // Trying every free model/key cannot fix an application-wide denial.
           const failure = typeof response.json === 'function' ? await response.json().catch(() => null) : null;
+          const failureMessage = String(failure?.error?.message || '');
+          if (response.status === 429 && /free-models-per-day|daily|per day|per-day/i.test(failureMessage)) {
+            const quota = new Error('Provider daily quota is exhausted.');
+            quota.code = 'DAILY_QUOTA_EXCEEDED';
+            throw quota;
+          }
           if (failure?.error?.type === 'MissingSessionID'
             && /free tier can only be used in OpenCode/i.test(failure?.error?.message || '')) {
             const restricted = new Error('Provider does not permit this application.');
@@ -279,7 +285,7 @@ const requestAIJson = async (messages, {
           lastCode = String(reportedCode).slice(0, 80);
           metrics.lastFailureCode = lastCode;
           console.warn('[ai] provider attempt failed', { purpose, provider: provider.name, model, code: lastCode });
-          if (lastCode === 'PROVIDER_APP_RESTRICTED') continue providerLoop;
+          if (['PROVIDER_APP_RESTRICTED', 'DAILY_QUOTA_EXCEEDED'].includes(lastCode)) continue providerLoop;
         }
       }
       if (attempts >= attemptBudget) break;

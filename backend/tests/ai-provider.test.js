@@ -30,6 +30,25 @@ test('application-restricted provider skips its other models and uses an authori
   assert.equal(getAiProviderStatus().models['free-one'].failures, 1);
 });
 
+test('daily provider quota exhaustion is reported without trying every model', async (t) => {
+  const originalEnv = { ...process.env };
+  t.after(() => {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  });
+  Object.assign(process.env, { AI_ENABLED: 'true', AI_API_KEY: 'test-key', AI_API_URL: 'https://example.test/chat',
+    AI_CHAT_MODELS: 'model-one,model-two', AI_CHAT_PROVIDER: 'primary', AI_MAX_ATTEMPTS: '2' });
+  let calls = 0;
+  t.mock.method(global, 'fetch', async () => {
+    calls += 1;
+    return { ok: false, status: 429, json: async () => ({ error: { message: 'Rate limit exceeded: free-models-per-day' } }) };
+  });
+  resetAiProviderStateForTests();
+  await assert.rejects(() => requestAIJson([{ role: 'user', content: 'test' }]), { code: 'DAILY_QUOTA_EXCEEDED' });
+  assert.equal(calls, 1);
+});
+
 test('provider client fails over across configured key slots with bounded attempts', async () => {
   const originalFetch = global.fetch;
   const originalEnv = { ...process.env };
