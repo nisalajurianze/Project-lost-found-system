@@ -12,6 +12,8 @@ const posterAssetSchema = new mongoose.Schema({
   svgChecksum: { type: String, required: true, maxlength: 64 },
   status: { type: String, enum: ['preview', 'approved', 'expired', 'deleted'], default: 'preview', index: true },
   approvedAt: { type: Date, default: null },
+  phoneIncluded: { type: Boolean, default: false },
+  phoneConsentAt: { type: Date, default: null },
   expiresAt: { type: Date, required: true, index: true },
 }, { timestamps: true });
 

@@ -237,3 +237,15 @@ Result: deployment `da367a38-6351-40f6-8cb3-4f2f782a663c` returned the three sta
 Evidence: production `I lost something` previously bypassed session collection. Local configured OpenCode text and vision endpoints now return `MissingSessionID: OpenCode's free tier can only be used in OpenCode`; no client-impersonation workaround added. Application restrictions now fail over to another configured provider and emit safe diagnostic codes. Negative image verdicts no longer require fabricated item/category names. Backend suite: 168 passed, 1 skipped; lint and syntax passed. Production provider success and authenticated image acceptance remain unverified.
 
 Release evidence: `8f11bcd` deployed successfully (`cba75e0e-81bc-4600-8645-3867af4b217e`). Two four-turn production checks via the Vercel API proxy retained Microphone, Canteen, date and identifying marks correctly and searched remembered public fields before offering a reviewed draft (1.4-2.4 seconds/turn, no report submitted). Readiness confirms MongoDB transactions, Redis, Cloudinary and email. Existing Railway OpenRouter key retained; chat/vision routing changed to the verified free Gemma 4 26B A4B / 31B models. Configuration deployment `b77d9d95-d18c-4663-836f-39d4052e28c6` succeeded, but both models return HTTP 429. Thus these live chat results demonstrate the deterministic fallback, not functioning model inference. Signed-in photo test blocked: in-app browser redirects to login and Chrome is unavailable. Do not mark AI/photos fully operational until provider success and authenticated image tests pass.
+## 2026-09-08 Full AI workflow follow-up
+
+- [/] Phase 1: Trace chatbot, matching, vision moderation, category generation, knowledge answers and report submission; separate model inference from deterministic fallbacks.
+- [ ] Phase 2: Fix verified backend/data-contract defects and add behavioral regressions.
+- [ ] Phase 3: Reflect actual AI availability and draft completeness in the interface; verify frontend bindings.
+- [ ] Phase 4: Publish verified changes and exercise live AI flows; retain provider-quota/authentication blockers explicitly.
+## 2026-09-08 Owner phone on lost-item posters
+
+- [x] Add explicit owner-only opt-in, profile phone validation and consent metadata; keep default posters private.
+- [x] Add checkbox and public-sharing warning; invalidate approval whenever poster options change.
+- [x] Verify backend ownership/privacy behavior, frontend option changes and build (174 backend passed/1 skipped, 144 frontend passed, 2 desktop/mobile poster interaction tests passed; frontend build and scoped lint passed).
+- [ ] Publish and check deployment; live authenticated flow requires sign-in.

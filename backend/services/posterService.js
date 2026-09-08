@@ -36,20 +36,27 @@ const publicPosterFields = (item, reportType) => {
 const renderPosterSvg = ({ fields, language = 'en', deepLink, expiresAt }) => {
   const text = COPY[language] || COPY.en;
   const title = text[fields.reportType];
-  const imageBlock = fields.imageUrl ? `<image href="${escapeXml(fields.imageUrl)}" x="70" y="235" width="660" height="380" preserveAspectRatio="xMidYMid slice" clip-path="url(#photo)"/>` : '<rect x="70" y="235" width="660" height="380" rx="28" fill="#1e293b"/><text x="400" y="435" text-anchor="middle" fill="#94a3b8" font-size="30">Smart L&amp;F</text>';
+  const phoneLabel = ({ en: 'Contact', singlish: 'Amathanna', si: 'අමතන්න', ta: 'தொடர்பு' })[language] || 'Contact';
+  const phoneBlock = fields.contactPhone ? `<text x="70" y="883" fill="#ffffff" font-size="25" font-family="Arial,sans-serif" font-weight="700">${escapeXml(phoneLabel)}: ${escapeXml(fields.contactPhone)}</text>` : '';
+  const imageBlock = phoneBlock + (fields.imageUrl ? `<image href="${escapeXml(fields.imageUrl)}" x="70" y="235" width="660" height="380" preserveAspectRatio="xMidYMid slice" clip-path="url(#photo)"/>` : '<rect x="70" y="235" width="660" height="380" rx="28" fill="#1e293b"/><text x="400" y="435" text-anchor="middle" fill="#94a3b8" font-size="30">Smart L&amp;F</text>');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1120" viewBox="0 0 800 1120" role="img" aria-labelledby="title desc"><title id="title">${escapeXml(title)}: ${escapeXml(fields.itemName)}</title><desc id="desc">${escapeXml(fields.description)}</desc><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#09051d"/><stop offset="1" stop-color="#101d35"/></linearGradient><clipPath id="photo"><rect x="70" y="235" width="660" height="380" rx="28"/></clipPath></defs><rect width="800" height="1120" fill="url(#bg)"/><rect x="36" y="36" width="728" height="1048" rx="40" fill="none" stroke="#6366f1" stroke-width="3"/><text x="70" y="110" fill="#a5b4fc" font-size="28" font-family="Arial,sans-serif" font-weight="700">SMART L&amp;F · SEUSL</text><text x="70" y="178" fill="#ffffff" font-size="54" font-family="Arial,sans-serif" font-weight="900">${escapeXml(title)}</text>${imageBlock}<text x="70" y="690" fill="#ffffff" font-size="44" font-family="Arial,sans-serif" font-weight="800">${escapeXml(fields.itemName)}</text><text x="70" y="742" fill="#cbd5e1" font-size="24" font-family="Arial,sans-serif">${escapeXml(fields.category)}</text><text x="70" y="810" fill="#a5b4fc" font-size="22" font-family="Arial,sans-serif" font-weight="700">${escapeXml(text.where)}</text><text x="70" y="846" fill="#ffffff" font-size="26" font-family="Arial,sans-serif">${escapeXml(fields.location)}</text><text x="500" y="810" fill="#a5b4fc" font-size="22" font-family="Arial,sans-serif" font-weight="700">${escapeXml(text.when)}</text><text x="500" y="846" fill="#ffffff" font-size="26" font-family="Arial,sans-serif">${escapeXml(fields.date)}</text><rect x="70" y="900" width="660" height="82" rx="20" fill="#4f46e5"/><text x="400" y="934" text-anchor="middle" fill="#ffffff" font-size="20" font-family="Arial,sans-serif" font-weight="700">${escapeXml(text.action)}</text><text x="400" y="964" text-anchor="middle" fill="#e0e7ff" font-size="15" font-family="Arial,sans-serif">${escapeXml(deepLink)}</text><text x="70" y="1035" fill="#94a3b8" font-size="16" font-family="Arial,sans-serif">${escapeXml(text.notice)} · Expires ${escapeXml(new Date(expiresAt).toISOString().slice(0, 10))}</text></svg>`;
 };
 
-const createPosterPreview = async ({ item, reportType, ownerId, language = 'en', now = new Date() }) => {
+const createPosterPreview = async ({ item, reportType, ownerId, language = 'en', contactPhone = '', now = new Date() }) => {
   const fields = publicPosterFields(item, reportType);
+  // Only the owner-authorized controller supplies this separately from public
+  // report fields. Never derive contact information from report descriptions.
+  if (contactPhone) fields.contactPhone = contactPhone;
   const base = String(process.env.CLIENT_URL || '').replace(/\/$/u, '');
   const path = reportType === 'FoundItem' ? `/found-items/${item._id}` : `/lost-items/${item._id}`;
   const deepLink = `${base}${path}` || path;
   const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const svg = renderPosterSvg({ fields, language, deepLink, expiresAt });
   const svgChecksum = crypto.createHash('sha256').update(svg).digest('hex');
-  const asset = await PosterAsset.create({ ownerId, reportType, reportId: item._id, language, safeFields: ['itemName', 'category', 'description', 'approximateLocation', 'date', 'deepLink'], safeImageUrl: fields.imageUrl, deepLink, svgChecksum, expiresAt });
-  return { assetId: asset._id, status: asset.status, expiresAt, deepLink, svg, downloadDataUrl: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`, privacyNotice: 'Poster excludes contact details, exact private evidence, IDs and unreviewed images.' };
+  const asset = await PosterAsset.create({ ownerId, reportType, reportId: item._id, language, safeFields: ['itemName', 'category', 'description', 'approximateLocation', 'date', 'deepLink', ...(contactPhone ? ['contactPhone'] : [])], safeImageUrl: fields.imageUrl, deepLink, svgChecksum, expiresAt, phoneIncluded: Boolean(contactPhone), phoneConsentAt: contactPhone ? now : null });
+  return { assetId: asset._id, status: asset.status, expiresAt, deepLink, svg, phoneIncluded: Boolean(contactPhone), downloadDataUrl: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`, privacyNotice: contactPhone
+    ? 'This poster includes your phone number with your permission. Anyone receiving it can contact you. Downloaded or shared copies cannot be recalled. Other private details remain excluded.'
+    : 'Poster excludes contact details, exact private evidence, IDs and unreviewed images.' };
 };
 
 export { COPY, createPosterPreview, publicPosterFields, renderPosterSvg };
