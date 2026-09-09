@@ -5,15 +5,19 @@ import { deflateSync } from 'node:zlib';
 import { requestAIJson } from '../services/aiProviderService.js';
 import { generateCategoryDetails, suggestDetailsFromImage } from '../services/imageAnalysisService.js';
 
-if (!process.argv.includes('--live')) throw new Error('Pass --live to authorize three free API requests.');
+if (!process.argv.includes('--live')) throw new Error('Pass --live to authorize up to six free API requests.');
 if (!process.env.OPENROUTER_API_KEY?.trim()) throw new Error('OPENROUTER_API_KEY is required.');
 Object.assign(process.env, {
   AI_ENABLED: 'true', AI_CHAT_PROVIDER: 'openrouter', AI_VISION_PROVIDER: 'openrouter',
   AI_API_URL: 'https://opencode.ai/zen/v1/chat/completions',
   OPENROUTER_API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-  OPENROUTER_CHAT_MODEL: 'openrouter/free', OPENROUTER_CHAT_MODELS: 'openrouter/free',
-  OPENROUTER_VISION_MODEL: 'openrouter/free', OPENROUTER_VISION_MODELS: 'openrouter/free',
-  AI_USE_RESPONSE_FORMAT: 'false', AI_TIMEOUT_MS: '25000', AI_MAX_ATTEMPTS: '1',
+  // Use verified free models directly so the smoke also exercises failover,
+  // rather than depending on the router's changing model selection.
+  OPENROUTER_CHAT_MODEL: 'inclusionai/ling-3.0-flash-fin:free',
+  OPENROUTER_CHAT_MODELS: 'inclusionai/ling-3.0-flash-fin:free,nex-agi/nex-n2.5-mini:free,google/gemma-4-31b-it:free',
+  OPENROUTER_VISION_MODEL: 'google/gemma-4-31b-it:free',
+  OPENROUTER_VISION_MODELS: 'google/gemma-4-31b-it:free,nex-agi/nex-n2.5-mini:free',
+  AI_USE_RESPONSE_FORMAT: 'false', AI_TIMEOUT_MS: '25000', AI_MAX_ATTEMPTS: '2',
   AI_CATEGORY_TIMEOUT_MS: '15000', AI_CATEGORY_MAX_ATTEMPTS: '1',
 });
 
