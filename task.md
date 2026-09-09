@@ -248,4 +248,8 @@ Release evidence: `8f11bcd` deployed successfully (`cba75e0e-81bc-4600-8645-3867
 - [x] Add explicit owner-only opt-in, profile phone validation and consent metadata; keep default posters private.
 - [x] Add checkbox and public-sharing warning; invalidate approval whenever poster options change.
 - [x] Verify backend ownership/privacy behavior, frontend option changes and build (174 backend passed/1 skipped, 144 frontend passed, 2 desktop/mobile poster interaction tests passed; frontend build and scoped lint passed).
-- [ ] Publish and check deployment; live authenticated flow requires sign-in.
+- [ ] Complete backend deployment; live authenticated flow requires sign-in.
+
+2026-09-10 recheck: commit `8a6fa90` is on main; Vercel succeeded and live bundle `index-v_NbWmet.js` includes the phone checkbox. Railway still runs `c9a9cd7`. Service inspection reports 49 staged variable changes (including database/auth/provider secrets), whose values cannot be verified through this connector. Do not accept/deploy these unreviewed changes without owner direction. GitHub Security Analysis passed; Production Verification failed. Poster backend release remains incomplete.
+
+Owner subsequently authorized the staged changes; accept-deploy completed and staged state is now empty. Redeploy `a239f503-9816-4d9f-8f7d-87de49d4688d` uses OLD commit `c9a9cd7`, not the poster commit. Railway Agent request for Deploy Latest Commit failed with an agent usage limit. Poster tests re-run: 5 passed. Latest-source deployment remains required; do not confuse old-source redeploy/READY health with poster availability.
