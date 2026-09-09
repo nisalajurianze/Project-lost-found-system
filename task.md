@@ -248,7 +248,17 @@ Release evidence: `8f11bcd` deployed successfully (`cba75e0e-81bc-4600-8645-3867
 - [x] Add explicit owner-only opt-in, profile phone validation and consent metadata; keep default posters private.
 - [x] Add checkbox and public-sharing warning; invalidate approval whenever poster options change.
 - [x] Verify backend ownership/privacy behavior, frontend option changes and build (174 backend passed/1 skipped, 144 frontend passed, 2 desktop/mobile poster interaction tests passed; frontend build and scoped lint passed).
-- [ ] Complete backend deployment; live authenticated flow requires sign-in.
+- [x] Complete backend deployment (`53f8934`, Railway `9cb47d1e-8fee-408a-93e5-35df46fdcbc5` SUCCESS).
+- [ ] Verify opted-in poster on a signed-in live account with owner-approved phone disclosure.
+
+## 2026-09-10 Working free-provider integration
+
+- [x] Verify candidate text/image endpoints with the local OpenRouter key and check provider data policies.
+- [x] Route chat and vision through the working free router with privacy restrictions; preserve strict image validation and actual-model diagnostics.
+- [x] Run regression tests and real application-contract smoke requests using non-private samples (175 passed/1 skipped; full backend lint passed; live JSON, category/emoji and non-item rejection passed).
+- [ ] Deploy source/configuration and verify production model inference and readiness.
+
+Privacy evidence: ZDR-only routing worked for text but returned 404 for vision. Final policy is `data_collection: deny` plus NVIDIA trial-provider exclusion, not a blanket zero-retention guarantee. With this policy the free router returned valid application JSON using Dots/Ling and correctly rejected the synthetic non-item image using Nex Mini. No raw user photos were used. Dedicated NVIDIA moderation is not installed as an item validator: a simple safe verdict cannot authorize physical-item publication.
 
 2026-09-10 recheck: commit `8a6fa90` is on main; Vercel succeeded and live bundle `index-v_NbWmet.js` includes the phone checkbox. Railway still runs `c9a9cd7`. Service inspection reports 49 staged variable changes (including database/auth/provider secrets), whose values cannot be verified through this connector. Do not accept/deploy these unreviewed changes without owner direction. GitHub Security Analysis passed; Production Verification failed. Poster backend release remains incomplete.
 

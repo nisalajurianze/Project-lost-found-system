@@ -133,9 +133,18 @@ const responsesInput = (messages) => messages.map(({ role, content }) => ({
       : { type: 'input_text', text: String(part.text || '') })
     : [{ type: 'input_text', text: String(content || '') }],
 }));
-const providerRequest = ({ model, messages, temperature, responseFormat }) => usesResponsesApi(model)
+const providerRequest = ({ model, messages, temperature, responseFormat, openRouter = false }) => usesResponsesApi(model)
   ? { model, input: responsesInput(messages), temperature }
-  : { model, messages, temperature, ...(responseFormat ? { response_format: { type: 'json_object' } } : {}) };
+  : { model, messages, temperature,
+    ...(responseFormat ? { response_format: { type: 'json_object' } } : {}),
+    ...(openRouter ? {
+      // Reports can contain personal information before image review. Never
+      // relax these filters on fallback or send raw reports to trial endpoints.
+      provider: { data_collection: 'deny', ignore: ['NVIDIA'] },
+      max_tokens: 2048,
+      stream: false,
+    } : {}),
+  };
 const providerResponseText = (data, model) => usesResponsesApi(model)
   ? data?.output?.find((entry) => entry?.type === 'message')?.content?.find((entry) => entry?.type === 'output_text')?.text
   : data?.choices?.[0]?.message?.content;
@@ -222,7 +231,7 @@ const requestAIJson = async (messages, {
             'X-Title': 'Smart Lost and Found',
             'X-AI-Purpose': String(purpose).slice(0, 80),
           },
-          body: JSON.stringify(providerRequest({ model, messages, temperature, responseFormat: jsonResponseFormatEnabled() })),
+          body: JSON.stringify(providerRequest({ model, messages, temperature, responseFormat: jsonResponseFormatEnabled(), openRouter: provider.name === 'openrouter' })),
           signal: AbortSignal.timeout(requestTimeoutMs),
         });
 
@@ -246,6 +255,7 @@ const requestAIJson = async (messages, {
           throw new Error(lastCode);
         }
         const data = await response.json();
+        const actualModel = typeof data?.model === 'string' && data.model.length <= 200 ? data.model : model;
         const result = parseJSONResponse(providerResponseText(data, model));
         if (!validateResult(result, validator)) {
           lastCode = 'INVALID_SCHEMA';
@@ -269,7 +279,8 @@ const requestAIJson = async (messages, {
         updateModelMetrics(model, 'success', latencyMs);
         updatePurposeMetrics(purpose, 'success', { latencyMs, outputChars: outputSafety.serializedChars });
           setCircuit(model, keyIndex, provider.name, { failures: 0, openUntil: 0 });
-          return { data: result, meta: { provider: provider.name, model, keySlot: keyIndex + 1, attempts, latencyMs, purpose, promptVersion, safetyVersion: AI_SAFETY_VERSION } };
+          console.info('[ai] provider success', { purpose, provider: provider.name, model: actualModel, requestedModel: model, latencyMs });
+          return { data: result, meta: { provider: provider.name, model: actualModel, requestedModel: model, keySlot: keyIndex + 1, attempts, latencyMs, purpose, promptVersion, safetyVersion: AI_SAFETY_VERSION } };
         } catch (error) {
           const latencyMs = Date.now() - startedAt;
           const nextFailures = state.failures + 1;

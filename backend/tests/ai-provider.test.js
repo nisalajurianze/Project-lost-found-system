@@ -431,12 +431,40 @@ test('explicit OpenRouter vision routing preserves image input and skips the pri
     assert.equal(request.url, 'https://openrouter.test/chat');
     assert.equal(request.body.model, 'openrouter/free');
     assert.equal(request.body.messages[0].content[1].type, 'image_url');
+    assert.deepEqual(request.body.provider, { data_collection: 'deny', ignore: ['NVIDIA'] });
+    assert.equal(request.body.max_tokens, 2048);
     assert.equal(response.meta.provider, 'openrouter');
   } finally {
     global.fetch = originalFetch;
     for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
     Object.assign(process.env, originalEnv);
     resetAiProviderStateForTests();
+  }
+});
+
+test('free router records the actual model and never relaxes privacy on failure', async (t) => {
+  const originalEnv = { ...process.env };
+  t.after(() => {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  });
+  Object.assign(process.env, { AI_ENABLED: 'true', AI_API_URL: 'https://opencode.test/chat', AI_CHAT_PROVIDER: 'openrouter',
+    OPENROUTER_API_KEY: 'test-only', OPENROUTER_CHAT_MODELS: 'openrouter/free,fallback:free', OPENROUTER_CHAT_MODEL: '',
+    AI_USE_RESPONSE_FORMAT: 'true', AI_MAX_ATTEMPTS: '2' });
+  const requests = [];
+  t.mock.method(global, 'fetch', async (_url, options) => {
+    requests.push(JSON.parse(options.body));
+    if (requests.length === 1) return { ok: false, status: 503, json: async () => ({}) };
+    return { ok: true, json: async () => ({ model: 'actual/model:free', choices: [{ message: { content: '{"reply":"ok"}' } }] }) };
+  });
+  const response = await requestAIJson([{ role: 'user', content: 'Return JSON.' }]);
+  assert.equal(response.meta.model, 'actual/model:free');
+  assert.equal(response.meta.requestedModel, 'fallback:free');
+  assert.equal(requests.length, 2);
+  for (const request of requests) {
+    assert.deepEqual(request.provider, { data_collection: 'deny', ignore: ['NVIDIA'] });
+    assert.equal(request.response_format.type, 'json_object');
   }
 });
 
