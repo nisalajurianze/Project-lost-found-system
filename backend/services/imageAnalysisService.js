@@ -1,4 +1,5 @@
 import ImageAnalysis from '../models/ImageAnalysis.js';
+import { imageRejectionReason, imageRejectionMessages } from '../utils/imageRejectionReason.js';
 import { maskSensitiveText, sanitizeRegion } from './imagePrivacyService.js';
 import {
   aiConfigured,
@@ -178,10 +179,16 @@ const suggestDetailsFromImage = async (imageUrl) => {
       },
       { type: 'image_url', image_url: { url: imageUrl } },
     ],
+  }, {
+    role: 'user',
+    content: 'For a rejection, also include rejectionReason using one of sexual, unsafe, nonItem, spam, quality, rejected, and short safetyLabels explaining the classification without personal data.',
   }], { vision: true, purpose: 'report-auto-fill', validator: suggestionValidator, allowSensitiveOutput: true });
   const result = response?.data;
   if (!result) throw new Error('AI provider returned an invalid suggestion.');
+  const rejectionReason = imageRejectionReason(result);
   return {
+    rejectionReason,
+    rejectionMessage: imageRejectionMessages[rejectionReason],
     isSpam: result.isSpam,
     itemName: String(result.itemName || '').slice(0, 80),
     category: String(result.category || '').slice(0, 80),
@@ -214,6 +221,13 @@ const verifyReportImages = async (files = []) => {
     try {
       suggestion = await suggestDetailsFromImage(imageUrl);
     } catch (error) {
+      if (error.code === 'IMAGE_POLICY_REFUSAL') {
+        const rejection = new Error('The AI provider declined to analyze this image under its safety policy. Upload a different photo of the item.');
+        rejection.code = 'IMAGE_NOT_ALLOWED';
+        rejection.statusCode = 400;
+        rejection.isOperational = true;
+        throw rejection;
+      }
       const wrapped = new Error('Image safety verification is temporarily unavailable. Remove the photo or retry.');
       wrapped.code = 'IMAGE_SAFETY_UNAVAILABLE';
       wrapped.statusCode = 503;
@@ -227,7 +241,7 @@ const verifyReportImages = async (files = []) => {
       && ['fair', 'good'].includes(suggestion.imageQuality)
       && !hasBlockedImageContent(suggestion);
     if (!allowed) {
-      const rejection = new Error('This image is not an allowed lost-and-found item photo.');
+      const rejection = new Error(suggestion.rejectionMessage || imageRejectionMessages.rejected);
       rejection.code = 'IMAGE_NOT_ALLOWED';
       rejection.statusCode = 400;
       rejection.isOperational = true;

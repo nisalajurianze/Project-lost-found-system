@@ -266,6 +266,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
     const newReviews = [];
     const rejectedKeys = new Set();
     const unavailableKeys = new Set();
+    const rejectionMessages = [];
     let firstSuggestion = null;
 
     try {
@@ -277,6 +278,7 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
           if (!suggestion) throw new Error(t('report.imageReviewUnavailable'));
           if (suggestion.isSpam || suggestion.isItemPhoto !== true || suggestion.moderationDecision === 'reject') {
             rejectedKeys.add(key);
+            rejectionMessages.push(`${file.name || t('report.selectedPhoto')}: ${suggestion.rejectionMessage || t('report.moderationRemoved', { count: 1 })}`);
             continue;
           }
           const regions = normalizeRedactionRegions(suggestion.redactionRegions);
@@ -308,11 +310,13 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
         if (firstSuggestion.category) await ensureCategory(firstSuggestion.category, firstSuggestion.categoryIcon);
       }
       if (unavailableKeys.size > 0) {
-        const message = t('report.imageReviewUnavailable');
+        const message = [...rejectionMessages, t('report.imageReviewUnavailable')].join('\n');
         setErrors((current) => ({ ...current, images: message }));
         toast.error(message, { id: toastId });
       } else if (rejectedKeys.size > 0) {
-        toast.error(t('report.moderationRemoved', { count: rejectedKeys.size }), { id: toastId });
+        const message = rejectionMessages.join('\n');
+        setErrors((current) => ({ ...current, images: message }));
+        toast.error(message, { id: toastId });
       } else {
         toast.success(t('report.privacyReady'), { id: toastId });
       }

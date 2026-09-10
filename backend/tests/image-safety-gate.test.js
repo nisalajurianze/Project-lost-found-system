@@ -104,3 +104,17 @@ test('missing positive moderation fields can never authorize an upload', async (
   resetAiProviderStateForTests();
   await assert.rejects(() => verifyReportImages([validImage]), (error) => error.code === 'IMAGE_SAFETY_UNAVAILABLE');
 });
+
+test('provider safety refusal is a rejection, not an outage', async (t) => {
+  const originalEnv = { ...process.env };
+  t.after(() => {
+    for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+    Object.assign(process.env, originalEnv);
+    resetAiProviderStateForTests();
+  });
+  Object.assign(process.env, { AI_ENABLED: 'true', AI_API_KEY: 'test-key', AI_API_URL: 'https://vision.example.test/chat',
+    AI_VISION_PROVIDER: 'primary', AI_VISION_MODEL: 'vision-test', AI_MAX_ATTEMPTS: '1' });
+  t.mock.method(global, 'fetch', async () => ({ ok: true, json: async () => ({ choices: [{ message: { refusal: 'Policy refusal' }, finish_reason: 'content_filter' }] }) }));
+  resetAiProviderStateForTests();
+  await assert.rejects(() => verifyReportImages([validImage]), (error) => error.code === 'IMAGE_NOT_ALLOWED' && /safety policy/.test(error.message));
+});

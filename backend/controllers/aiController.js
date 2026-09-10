@@ -25,6 +25,13 @@ export const suggestItemDetails = asyncHandler(async (req, res) => {
     const suggestions = await suggestDetailsFromImage(base64Image);
     return ApiResponse.ok(suggestions, 'AI suggestions generated successfully').send(res);
   } catch (error) {
+    if (error.code === 'IMAGE_POLICY_REFUSAL') {
+      return ApiResponse.ok({
+        isSpam: false, isItemPhoto: false, moderationDecision: 'reject',
+        rejectionReason: 'rejected',
+        rejectionMessage: 'Photo removed: the AI provider declined to analyze this image under its safety policy. Try a different, clear photo of the item.',
+      }, 'Image was not approved.').send(res);
+    }
     console.warn('[ai] image suggestion unavailable', { code: error.code || error.name });
     throw ApiError.serviceUnavailable('AI image suggestions are temporarily unavailable. Enter the item details manually.');
   }

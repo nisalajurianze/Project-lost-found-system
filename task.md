@@ -1,5 +1,12 @@
 # Goal: Full lost-and-found release readiness
 
+## 2026-09-10 image rejection explanations
+
+- [x] Separate explicit moderation rejection and provider safety refusal from outage messages.
+- [x] Show controlled rejection reasons persistently and in the upload toast, including mixed batches.
+- [x] Verify rejection and outage regressions: 22 tests, targeted backend/frontend lint and frontend production build passed.
+- [ ] Confirm production deployment and authenticated upload UI behavior.
+
 ## 2026-09-06 guided report conversation and voice item recognition
 
 - [x] Recognize `microphone`/`mic` voice input as `Microphone` in `Electronics`

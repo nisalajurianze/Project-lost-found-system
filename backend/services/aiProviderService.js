@@ -255,6 +255,11 @@ const requestAIJson = async (messages, {
           throw new Error(lastCode);
         }
         const data = await response.json();
+        if (vision && (data?.choices?.[0]?.message?.refusal || data?.choices?.[0]?.finish_reason === 'content_filter')) {
+          const refusal = new Error('Image analysis was refused by the provider safety policy.');
+          refusal.code = 'IMAGE_POLICY_REFUSAL';
+          throw refusal;
+        }
         const actualModel = typeof data?.model === 'string' && data.model.length <= 200 ? data.model : model;
         const result = parseJSONResponse(providerResponseText(data, model));
         if (!validateResult(result, validator)) {
@@ -282,6 +287,7 @@ const requestAIJson = async (messages, {
           console.info('[ai] provider success', { purpose, provider: provider.name, model: actualModel, requestedModel: model, latencyMs });
           return { data: result, meta: { provider: provider.name, model: actualModel, requestedModel: model, keySlot: keyIndex + 1, attempts, latencyMs, purpose, promptVersion, safetyVersion: AI_SAFETY_VERSION } };
         } catch (error) {
+          if (error.code === 'IMAGE_POLICY_REFUSAL') throw error;
           const latencyMs = Date.now() - startedAt;
           const nextFailures = state.failures + 1;
           setCircuit(model, keyIndex, provider.name, {
