@@ -258,6 +258,14 @@ Release evidence: `8f11bcd` deployed successfully (`cba75e0e-81bc-4600-8645-3867
 - [x] Run regression tests and real application-contract smoke requests using non-private samples (175 passed/1 skipped; full backend lint passed; live JSON, category/emoji and non-item rejection passed).
 - [x] Deploy source/configuration and verify production model inference and readiness.
 
+## 2026-09-10 Duplicate suggested categories
+
+- [x] Trace exact-name-only category matching across photo, assistant and manual submission paths.
+- [x] Reuse active flat categories for plural/breadcrumb aliases and canonicalize new category names; keep modifiers distinct.
+- [x] Verify regression tests and prepare the category resolution fix for publication.
+
+Evidence: the photo category controller and manual submission service both reuse existing `Tablet` for `Electronics > Tablets`; regression cases cover plurals, Unicode, legacy breadcrumb duplicates, inactive categories and distinct modifiers. Backend suite: 180 passed, 1 skipped. Frontend report regressions and production build passed. Existing duplicate records remain intact; no category or report data migration was performed.
+
 ## 2026-09-10 Recovery progress label overflow
 
 - [x] Trace overlap to viewport-based five-column layout inside narrow claim cards.

@@ -1,6 +1,9 @@
 import Category, { normalizeCategoryName } from '../models/Category.js';
 import { deleteCache } from '../config/redis.js';
 import { fallbackCategoryIcon } from '../utils/categoryPresentation.js';
+import { canonicalCategoryName, findEquivalentCategory } from '../utils/categoryIdentity.js';
+
+const findActiveCategory = async (value) => findEquivalentCategory(value, await Category.find({ isActive: true }));
 
 const cleanCategoryName = (value) => String(value || '')
   .normalize('NFKC')
@@ -9,10 +12,10 @@ const cleanCategoryName = (value) => String(value || '')
   .slice(0, 100);
 
 const resolveOrCreateUserCategory = async (value) => {
-  const name = cleanCategoryName(value);
+  const name = cleanCategoryName(canonicalCategoryName(value));
   if (!name) return null;
   const normalizedName = normalizeCategoryName(name);
-  const existing = await Category.findOne({ normalizedName, isActive: true });
+  const existing = await findActiveCategory(value);
   if (existing) return existing;
   try {
     const category = await Category.create({
@@ -30,4 +33,4 @@ const resolveOrCreateUserCategory = async (value) => {
   }
 };
 
-export { cleanCategoryName, resolveOrCreateUserCategory };
+export { cleanCategoryName, findActiveCategory, resolveOrCreateUserCategory };

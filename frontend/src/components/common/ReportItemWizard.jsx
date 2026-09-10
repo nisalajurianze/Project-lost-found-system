@@ -197,11 +197,8 @@ const ReportItemWizard = ({ mode, itemId = null }) => {
   const ensureCategory = async (value, icon = '📦') => {
     const candidate = String(value || '').trim();
     if (!candidate) return '';
-    const existing = categories.find((category) => category.name.toLocaleLowerCase() === candidate.toLocaleLowerCase());
-    if (existing) {
-      update('category', existing.name);
-      return existing.name;
-    }
+    // The server resolves plural/breadcrumb aliases against active categories,
+    // including legacy duplicates that would otherwise look like exact matches.
     setIsCategoryLoading(true);
     try {
       const response = await aiService.autoCreateCategory(candidate);

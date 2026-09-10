@@ -12,6 +12,8 @@ import { enqueueItemProcessing } from './outboxService.js';
 import { locationIntelligenceView, resolveLocation } from './locationIntelligenceService.js';
 import { publicSessionState, sessionKeyFor } from './conversationStateService.js';
 import { fallbackCategoryIcon, normalizeCategoryIcon } from '../utils/categoryPresentation.js';
+import { findActiveCategory } from './categoryResolutionService.js';
+import { canonicalCategoryName } from '../utils/categoryIdentity.js';
 
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000;
 const PROCESSING_LEASE_MS = 2 * 60 * 1000;
@@ -25,18 +27,18 @@ const list = (value, max) => [...new Set(String(value || '').split(',').map((ent
 const tags = (value) => list(value, 20).map((entry) => entry.toLowerCase());
 
 const resolveAssistantCategory = async (value) => {
-  const requested = String(value || '').trim();
+  const requested = canonicalCategoryName(value).slice(0, 100);
   const normalized = normalizeCategoryName(requested);
   if (!normalized) return null;
-  const existing = await Category.findOne({ normalizedName: normalized, isActive: true });
+  const existing = await findActiveCategory(value);
   if (existing) return existing;
   let candidateNormalized = normalized;
   try {
     const names = await Category.find({ isActive: true }).distinct('name');
     const details = await generateCategoryDetails(requested, names);
-    const name = String(details.correctedName || requested).normalize('NFKC').trim().replace(/\s+/g, ' ').slice(0, 100);
+    const name = canonicalCategoryName(details.correctedName || requested).slice(0, 100);
     candidateNormalized = normalizeCategoryName(name);
-    const mapped = await Category.findOne({ normalizedName: candidateNormalized, isActive: true });
+    const mapped = await findActiveCategory(name);
     if (mapped) return mapped;
     const icon = details.icon === '📦' ? fallbackCategoryIcon(name) : normalizeCategoryIcon(details.icon);
     return await Category.create({ name, normalizedName: candidateNormalized, icon, description: String(details.description || '').slice(0, 300), isActive: true });

@@ -8,6 +8,8 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { getCache, setCache, deleteCache } from '../config/redis.js';
 import { generateCategoryDetails } from '../services/imageAnalysisService.js';
 import { fallbackCategoryIcon, normalizeCategoryIcon } from '../utils/categoryPresentation.js';
+import { findActiveCategory } from '../services/categoryResolutionService.js';
+import { canonicalCategoryName } from '../utils/categoryIdentity.js';
 
 const CACHE_KEY_CATEGORIES = 'categories:all';
 const CACHE_TTL_SECONDS = 900;
@@ -124,7 +126,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 const autoCreateCategory = asyncHandler(async (req, res) => {
   const requestedName = cleanName(req.body.name);
   if (!requestedName) throw ApiError.badRequest('Category name is required.');
-  const existing = await Category.findOne({ normalizedName: normalizeCategoryName(requestedName) });
+  const existing = await findActiveCategory(requestedName);
   if (existing) return ApiResponse.ok(existing, 'Category mapped to existing.').send(res);
 
   const existingNames = await Category.find({ isActive: true }).distinct('name');
@@ -134,9 +136,9 @@ const autoCreateCategory = asyncHandler(async (req, res) => {
   } catch {
     details = { correctedName: requestedName, icon: fallbackCategoryIcon(requestedName), description: 'User-created physical item category.' };
   }
-  const correctedName = cleanName(details.correctedName || requestedName);
+  const correctedName = cleanName(canonicalCategoryName(details.correctedName || requestedName));
   const normalizedName = normalizeCategoryName(correctedName);
-  const mapped = await Category.findOne({ normalizedName });
+  const mapped = await findActiveCategory(correctedName);
   if (mapped) return ApiResponse.ok(mapped, 'Category mapped to existing.').send(res);
 
   try {
