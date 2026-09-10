@@ -139,11 +139,26 @@ const AIFeedbackReview = () => {
             <input type="number" min="1" max="99" value={threshold} onChange={(event) => setThreshold(Math.min(99, Math.max(1, Number(event.target.value) || 70)))} aria-label={t('aiFeedback.threshold')} className="min-h-11 rounded-xl border border-surface-300 bg-white px-3 dark:border-surface-700 dark:bg-surface-900" />
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" disabled={saving === 'snapshot'} onClick={sealSnapshot} className="btn btn-outline btn-sm">{t('aiFeedback.sealSnapshot')}</button>
-            <button type="button" disabled={saving === 'challenger' || !calibration?.latestSnapshot?._id} onClick={createChallenger} className="btn btn-primary btn-sm">{t('aiFeedback.createChallenger')}</button>
+            <button type="button" disabled={Boolean(saving) || loading || !(calibration?.approvedCount > 0)} onClick={sealSnapshot} className="btn btn-outline btn-sm">{t('aiFeedback.sealSnapshot')}</button>
+            <button type="button" disabled={Boolean(saving) || loading || !calibration?.latestSnapshot?._id || !(calibration.latestSnapshot.metrics?.sampleSize > 0) || !algorithmVersion.trim()} onClick={createChallenger} className="btn btn-primary btn-sm">{t('aiFeedback.createChallenger')}</button>
           </div>
-          {calibration?.latestSnapshot?.metrics && <p className="mt-3 text-xs">{t('aiFeedback.latestMetrics', { count: calibration.latestSnapshot.metrics.sampleSize || 0, accuracy: calibration.latestSnapshot.metrics.accuracy || 0, fpr: calibration.latestSnapshot.metrics.falsePositiveRate || 0 })}</p>}
-          {calibration?.challengers?.map((experiment) => <div key={experiment._id} className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/80 p-3 text-sm dark:bg-surface-900/70"><span>{experiment.algorithmVersion} · {experiment.metrics?.sampleSize || 0} samples</span><button type="button" disabled={saving === experiment._id} onClick={() => promote(experiment._id)} className="btn btn-success btn-sm">{t('aiFeedback.promote')}</button></div>)}
+          {calibration?.latestSnapshot?.metrics && <p className="mt-3 text-xs">{calibration.latestSnapshot.metrics.sampleSize > 0
+            ? t('aiFeedback.latestMetrics', { count: calibration.latestSnapshot.metrics.sampleSize, accuracy: calibration.latestSnapshot.metrics.accuracy || 0, fpr: calibration.latestSnapshot.metrics.falsePositiveRate || 0 })
+            : t('aiFeedback.noEvaluationSamples')}</p>}
+          {calibration?.challengers?.map((experiment) => {
+            const sampleSize = Number(experiment.metrics?.sampleSize) || 0;
+            const falsePositiveRate = experiment.metrics?.falsePositiveRate;
+            const blockedReason = sampleSize < 20 ? t('aiFeedback.promotionSamples')
+              : !Number.isFinite(falsePositiveRate) || falsePositiveRate > 15 ? t('aiFeedback.promotionFalsePositives') : '';
+            const reasonId = `promotion-reason-${experiment._id}`;
+            return <div key={experiment._id} className="mt-3 rounded-xl bg-white/80 p-3 text-sm dark:bg-surface-900/70">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 break-words">{experiment.algorithmVersion} · {t('aiFeedback.sampleCount', { count: sampleSize })}</span>
+                <button type="button" disabled={Boolean(saving) || loading || Boolean(blockedReason)} aria-describedby={blockedReason ? reasonId : undefined} onClick={() => promote(experiment._id)} className="btn btn-success btn-sm">{t('aiFeedback.promote')}</button>
+              </div>
+              {blockedReason && <p id={reasonId} className="mt-2 text-xs text-surface-600 dark:text-surface-300">{blockedReason}</p>}
+            </div>;
+          })}
         </article>
 
         <article className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 dark:border-amber-900/60 dark:bg-amber-950/20">

@@ -258,6 +258,15 @@ Release evidence: `8f11bcd` deployed successfully (`cba75e0e-81bc-4600-8645-3867
 - [x] Run regression tests and real application-contract smoke requests using non-private samples (175 passed/1 skipped; full backend lint passed; live JSON, category/emoji and non-item rejection passed).
 - [x] Deploy source/configuration and verify production model inference and readiness.
 
+## 2026-09-10 Recovery progress label overflow
+
+- [x] Trace overlap to viewport-based five-column layout inside narrow claim cards.
+- [x] Make timeline columns follow available card width; preserve workflow states and translations.
+- [x] Explain the calibration empty state and align disabled controls with available samples and existing promotion requirements (20 outcomes, false-positive rate at most 15%).
+- [x] Verify desktop/mobile, light/dark and supported-language layouts; prepare the verified changes for publication.
+
+Evidence: 30 browser layout combinations (320, 390, 768, 1024 and 1440px; English/Sinhala/Tamil; light/dark) kept timeline labels and icons inside their steps. Browser checks also covered empty calibration, 19/20 sample boundaries, false-positive rates of 15/16%, and missing evaluation metrics. All 148 frontend tests, full frontend lint and the production build passed. Screenshots and the temporary mock-data verification script are retained under `.tmp/`; no production feedback was created or promoted.
+
 ## 2026-09-10 Report validation and dark calendar control
 
 - [x] Trace the report POST contract and authentication recovery separately: auth/me 401 was followed by 200; UI still offered public contact visibility rejected by the server.
