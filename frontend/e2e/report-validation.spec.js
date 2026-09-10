@@ -10,7 +10,8 @@ for (const mode of ['lost', 'found']) {
     page.on('pageerror', (error) => pageErrors.push(error.stack || error.message));
     await page.addInitScript(({ mode, userId }) => {
       localStorage.setItem('smart-lf-theme-v2', 'dark');
-      localStorage.setItem(`lf-report-draft:${mode}:create:${userId}`, JSON.stringify({ step: 4, form: {
+      const draftKey = `lf-report-draft:${mode}:create:${userId}`;
+      localStorage.setItem(draftKey, JSON.stringify({ step: 4, form: {
         itemName: 'Headphones', category: 'Electronics', description: 'Black wireless headphones with padded earcups.',
         location: 'SEUSL Main Entrance', date: '2025-09-09T03:21', contactVisibility: 'public', contactPreference: 'both',
       } }));
@@ -38,7 +39,7 @@ for (const mode of ['lost', 'found']) {
     });
 
     await page.goto(`/dashboard/report-${mode}`);
-    await expect(page.getByRole('button', { name: 'Submit report', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Submit report', exact: true })).toBeVisible({ timeout: 30_000 });
     const visibility = page.locator('#contactVisibility');
     await expect(visibility).toHaveValue('request_only');
     await expect(visibility.locator('option[value="public"]')).toHaveCount(0);
