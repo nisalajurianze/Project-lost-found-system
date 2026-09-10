@@ -5,6 +5,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import lostItemService from '../../services/lostItemService';
+import { reportRejection } from '../../utils/reportErrors';
 
 export const fetchLostItems = createAsyncThunk(
   'lostItems/fetchAll',
@@ -35,7 +36,7 @@ export const createNewLostReport = createAsyncThunk(
       const formData = payload?.formData || payload;
       return await lostItemService.createLostItem(formData, payload?.onUploadProgress);
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(reportRejection(error));
     }
   }
 );
@@ -46,7 +47,7 @@ export const updateLostReport = createAsyncThunk(
     try {
       return await lostItemService.updateLostItem(id, formData, onUploadProgress);
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(reportRejection(error));
     }
   }
 );
@@ -120,7 +121,7 @@ const lostItemSlice = createSlice({
       })
       .addCase(createNewLostReport.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.error.message;
       })
       // Update
       .addCase(updateLostReport.pending, (state) => {
@@ -137,7 +138,7 @@ const lostItemSlice = createSlice({
       })
       .addCase(updateLostReport.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.error.message;
       })
       // Delete
       .addCase(deleteLostReport.fulfilled, (state, action) => {

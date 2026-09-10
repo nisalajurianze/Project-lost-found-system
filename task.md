@@ -258,6 +258,16 @@ Release evidence: `8f11bcd` deployed successfully (`cba75e0e-81bc-4600-8645-3867
 - [x] Run regression tests and real application-contract smoke requests using non-private samples (175 passed/1 skipped; full backend lint passed; live JSON, category/emoji and non-item rejection passed).
 - [x] Deploy source/configuration and verify production model inference and readiness.
 
+## 2026-09-10 Report validation and dark calendar control
+
+- [x] Trace the report POST contract and authentication recovery separately: auth/me 401 was followed by 200; UI still offered public contact visibility rejected by the server.
+- [x] Normalize old report drafts to request_only and preserve field validation messages through Redux to the wizard.
+- [x] Remove double inversion of the native dark calendar icon.
+- [x] Verify lost/found report retry on desktop/mobile (4 browser cases), inspect dark/light native date controls, and pass frontend build, scoped lint and all 148 frontend tests.
+- [ ] Publish the fixes and verify the production frontend deployment.
+
+Validation evidence: the unchanged backend validator rejects a synthetic `public` contact setting for both report types and accepts `request_only`. The wizard now normalizes stale drafts and sends the accepted setting. Field-specific server errors retain their message and guide users to the relevant step without discarding their report. The exact rejected production payload was not available; the browser regression also verifies a separate date-error/retry flow. Live chatbot recheck returned in 1.5 seconds and Railway confirmed Ling model inference, independently of report validation.
+
 Privacy evidence: ZDR-only routing worked for text but returned 404 for vision. Final policy is `data_collection: deny` plus NVIDIA trial-provider exclusion, not a blanket zero-retention guarantee. Explicit free model failover is now configured: Ling -> Nex -> Gemma for chat, and Gemma -> Nex for vision (both vision models advertise image input). With this policy the free router returned valid application JSON using Dots/Ling and correctly rejected the synthetic non-item image using Nex Mini. No raw user photos were used. Dedicated NVIDIA moderation is not installed as an item validator: a simple safe verdict cannot authorize physical-item publication.
 
 Release evidence: source `5822df2` is deployed on Railway as `a292b641-6184-44d7-a2a8-d675b5701200` (`SUCCESS`). Production `/api/ai/chat` returned a model-generated greeting and Railway logged `inclusionai/ling-3.0-flash-fin:free` success. Local explicit vision failover passed after Gemma returned HTTP 429: Nex Mini returned a valid non-item rejection. Authenticated production photo acceptance/rejection remains pending because a signed-in account and safe test image are required.

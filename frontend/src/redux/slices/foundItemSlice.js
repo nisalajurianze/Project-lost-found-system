@@ -6,6 +6,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import foundItemService from '../../services/foundItemService';
 import { resolveItemId } from '../../utils/itemId';
+import { reportRejection } from '../../utils/reportErrors';
 
 export const fetchFoundItems = createAsyncThunk(
   'foundItems/fetchAll',
@@ -36,7 +37,7 @@ export const createNewFoundReport = createAsyncThunk(
       const formData = payload?.formData || payload;
       return await foundItemService.createFoundItem(formData, payload?.onUploadProgress);
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(reportRejection(error));
     }
   }
 );
@@ -47,7 +48,7 @@ export const updateFoundReport = createAsyncThunk(
     try {
       return await foundItemService.updateFoundItem(id, formData, onUploadProgress);
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(reportRejection(error));
     }
   }
 );
@@ -121,7 +122,7 @@ const foundItemSlice = createSlice({
       })
       .addCase(createNewFoundReport.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.error.message;
       })
       // Update
       .addCase(updateFoundReport.pending, (state) => {
@@ -138,7 +139,7 @@ const foundItemSlice = createSlice({
       })
       .addCase(updateFoundReport.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.error.message;
       })
       // Delete
       .addCase(deleteFoundReport.fulfilled, (state, action) => {

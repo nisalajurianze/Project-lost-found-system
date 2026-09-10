@@ -91,7 +91,8 @@ test('claim, match and handover paths keep evidence private until human-approved
   assert.match(serializers, /const maySeeContact = owner \|\| connected \|\| admin/);
   assert.doesNotMatch(serializers, /maySeeContact[^;]*publicContact/);
   assert.match(read('frontend/src/components/common/ReportItemWizard.jsx'), /value: 'request_only'/);
-  assert.match(read('frontend/src/components/common/ReportItemWizard.jsx'), /value: 'public'/);
+  assert.doesNotMatch(read('frontend/src/components/common/ReportItemWizard.jsx'), /value: 'public'/);
+  assert.match(read('frontend/src/components/common/ReportItemWizard.jsx'), /contactVisibility', CONTACT_VISIBILITY/);
 });
 
 test('motion, accessibility and mobile keyboard collision safeguards remain explicit', () => {

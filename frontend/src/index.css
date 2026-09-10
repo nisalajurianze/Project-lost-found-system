@@ -154,9 +154,10 @@ html[data-language="ta"] .tracking-tighter {
   .dark input[type="date"]::-webkit-calendar-picker-indicator,
   .dark input[type="time"]::-webkit-calendar-picker-indicator,
   .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.9) brightness(1.2);
+    /* color-scheme already supplies a light icon; inversion makes it dark. */
+    filter: none;
     cursor: pointer;
-    opacity: 0.85;
+    opacity: 1;
     transition: opacity 0.2s;
   }
 
